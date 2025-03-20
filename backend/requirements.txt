@@ -5,4 +5,5 @@ flask-cors==4.0.0
 python-dotenv==1.0.1
 pytest==8.0.2
 black==24.2.0
-pylint==3.0.3 
+pylint==3.0.3
+flask-jwt-extended==4.6.0 
