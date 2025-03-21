@@ -77,15 +77,21 @@ def login():
         }
     })
 
-@auth.route('/me', methods=['GET']) # Me route'unu oluşturuyoruz.
-@jwt_required() # JWT token gerekli olduğunda kullanılır.
+@auth.route('/me', methods=['GET'])
+@jwt_required()
 def get_current_user():
-    user_id = get_jwt_identity() # JWT token'ın içindeki bilgileri alıyoruz.
-    user = User.query.get(user_id) # User modelini kullanarak kullanıcıyı alıyoruz.
-    
-    return jsonify({
-        'id': user.id,
-        'username': user.username,
-        'email': user.email,
-        'role': user.role
-    }) 
+    try:
+        user_id = str(get_jwt_identity())
+        user = User.query.filter_by(id=user_id).first()
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+            
+        return jsonify({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': user.role
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 401 

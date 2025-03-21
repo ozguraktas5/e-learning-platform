@@ -6,6 +6,7 @@ from flask_migrate import Migrate # Veritabanı şema değişikliklerini yönetm
 import os # İşletim sistemi ile ilgili işlemleri yapmak için kullanılır.
 from config import config # Konfigürasyon ayarlarını içeren dosyayı import ediyoruz.
 from auth import auth # Auth blueprint'ini import ediyoruz.
+from datetime import timedelta
 
 app = Flask(__name__) # Yeni bir Flask uygulaması oluşturuyoruz.
 CORS(app) # CORS'u etkinleştiriyoruz.
@@ -13,7 +14,22 @@ CORS(app) # CORS'u etkinleştiriyoruz.
 env = os.environ.get('FLASK_ENV', 'development') # Ortam değişkeninden çalışma ortamını alıyoruz.
 app.config.from_object(config[env]) # Konfigürasyon ayarlarını yüklüyoruz.
 
+app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Gerçek uygulamada bu değer .env'den alınmalı
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
+app.config['JWT_TOKEN_LOCATION'] = ['headers']
+app.config['JWT_HEADER_NAME'] = 'Authorization'
+app.config['JWT_HEADER_TYPE'] = 'Bearer'
+
 jwt = JWTManager(app) # JWT token işlemleri için JWTManager'ı başlatıyoruz.
+
+@jwt.user_identity_loader
+def user_identity_lookup(user):
+    return str(user)
+
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    identity = jwt_data["sub"]
+    return User.query.filter_by(id=identity).one_or_none()
 
 db.init_app(app) # SQLAlchemy veritabanını Flask uygulamasına bağlıyoruz.
 migrate = Migrate(app, db) # Veritabanı şema değişikliklerini yönetmek için Migrate'i başlatıyoruz.
