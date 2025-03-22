@@ -6,6 +6,8 @@ from flask_migrate import Migrate # Veritabanı şema değişikliklerini yönetm
 import os # İşletim sistemi ile ilgili işlemleri yapmak için kullanılır.
 from config import config # Konfigürasyon ayarlarını içeren dosyayı import ediyoruz.
 from auth import auth # Auth blueprint'ini import ediyoruz.
+from courses import courses
+from enrollments import enrollments
 from datetime import timedelta
 
 app = Flask(__name__) # Yeni bir Flask uygulaması oluşturuyoruz.
@@ -35,6 +37,8 @@ db.init_app(app) # SQLAlchemy veritabanını Flask uygulamasına bağlıyoruz.
 migrate = Migrate(app, db) # Veritabanı şema değişikliklerini yönetmek için Migrate'i başlatıyoruz.
 
 app.register_blueprint(auth, url_prefix='/api/auth') # Auth blueprint'ini Flask uygulamasına bağlıyoruz.
+app.register_blueprint(courses, url_prefix='/api')
+app.register_blueprint(enrollments, url_prefix='/api')
 
 app.config['JSON_AS_ASCII'] = False # JSON verilerinin UTF-8 kodlamasını kullanmasını sağlar.
 
