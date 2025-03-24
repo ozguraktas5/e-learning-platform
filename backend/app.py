@@ -8,6 +8,7 @@ from config import config # Konfigürasyon ayarlarını içeren dosyayı import 
 from auth import auth # Auth blueprint'ini import ediyoruz.
 from courses import courses
 from enrollments import enrollments
+from profiles import profiles
 from datetime import timedelta
 
 app = Flask(__name__) # Yeni bir Flask uygulaması oluşturuyoruz.
@@ -16,7 +17,7 @@ CORS(app) # CORS'u etkinleştiriyoruz.
 env = os.environ.get('FLASK_ENV', 'development') # Ortam değişkeninden çalışma ortamını alıyoruz.
 app.config.from_object(config[env]) # Konfigürasyon ayarlarını yüklüyoruz.
 
-app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Gerçek uygulamada bu değer .env'den alınmalı
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
 app.config['JWT_TOKEN_LOCATION'] = ['headers']
 app.config['JWT_HEADER_NAME'] = 'Authorization'
@@ -39,6 +40,7 @@ migrate = Migrate(app, db) # Veritabanı şema değişikliklerini yönetmek içi
 app.register_blueprint(auth, url_prefix='/api/auth') # Auth blueprint'ini Flask uygulamasına bağlıyoruz.
 app.register_blueprint(courses, url_prefix='/api')
 app.register_blueprint(enrollments, url_prefix='/api')
+app.register_blueprint(profiles, url_prefix='/api')
 
 app.config['JSON_AS_ASCII'] = False # JSON verilerinin UTF-8 kodlamasını kullanmasını sağlar.
 

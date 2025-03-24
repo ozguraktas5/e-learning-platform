@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify # Blueprint: Flask'ta route'ları 
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity # create_access_token: Access token oluşturmak için kullanılır. jwt_required: JWT token gerekli olduğunda kullanılır. get_jwt_identity: JWT token'ın içindeki bilgileri almak için kullanılır.
 from models import db, User # models.py dosyasından User modelini import ediyoruz.
 from datetime import timedelta # timedelta: Zaman aralıklarını hesaplamak için kullanılır.
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
 
 auth = Blueprint('auth', __name__) # Auth blueprint'ini oluşturuyoruz.
 
@@ -9,39 +11,33 @@ auth = Blueprint('auth', __name__) # Auth blueprint'ini oluşturuyoruz.
 def register():
     data = request.get_json() # JSON formatında gelen verileri alıyoruz.
     
-    # Gerekli alanları kontrol et
-    if not all(k in data for k in ['username', 'email', 'password', 'role']):
-        return jsonify({'error': 'Missing required fields'}), 400
+    if not data or not data.get('username') or not data.get('email') or not data.get('password'):
+        return jsonify({'message': 'Missing required fields'}), 400
     
-    # Kullanıcı adı ve email kontrolü
     if User.query.filter_by(username=data['username']).first():
-        return jsonify({'error': 'Username already exists'}), 400
+        return jsonify({'message': 'Username already exists'}), 400
+    
     if User.query.filter_by(email=data['email']).first():
-        return jsonify({'error': 'Email already exists'}), 400
+        return jsonify({'message': 'Email already exists'}), 400
     
-    # Rol kontrolü
-    if data['role'] not in ['student', 'instructor']:
-        return jsonify({'error': 'Invalid role'}), 400
-    
-    # Yeni kullanıcı oluştur
-    user = User(
+    hashed_password = generate_password_hash(data['password'])
+    new_user = User(
         username=data['username'],
         email=data['email'],
-        role=data['role']
+        password=hashed_password,  # Şifreyi doğrudan password alanına kaydediyoruz
+        role=data.get('role', 'student')
     )
-    user.set_password(data['password'])
     
-    # Veritabanına kaydet
-    db.session.add(user)
+    db.session.add(new_user)
     db.session.commit()
     
     return jsonify({
-        'message': 'User created successfully',
+        'message': 'User registered successfully',
         'user': {
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'role': user.role
+            'id': new_user.id,
+            'username': new_user.username,
+            'email': new_user.email,
+            'role': new_user.role
         }
     }), 201
 
@@ -49,21 +45,16 @@ def register():
 def login():
     data = request.get_json()
     
-    # Gerekli alanları kontrol et
-    if not all(k in data for k in ['username', 'password']):
-        return jsonify({'error': 'Missing username or password'}), 400
+    if not data or not data.get('username') or not data.get('password'):
+        return jsonify({'message': 'Missing username or password'}), 400
     
-    # Kullanıcıyı bul
     user = User.query.filter_by(username=data['username']).first()
     
-    # Kullanıcı ve şifre kontrolü
-    if not user or not user.check_password(data['password']):
-        return jsonify({'error': 'Invalid username or password'}), 401
+    if not user or not check_password_hash(user.password, data['password']):
+        return jsonify({'message': 'Invalid username or password'}), 401
     
-    # Access token oluştur
     access_token = create_access_token(
-        identity=user.id,
-        additional_claims={'role': user.role},
+        identity=str(user.id),
         expires_delta=timedelta(days=1)
     )
     
@@ -80,18 +71,13 @@ def login():
 @auth.route('/me', methods=['GET'])
 @jwt_required()
 def get_current_user():
-    try:
-        user_id = str(get_jwt_identity())
-        user = User.query.filter_by(id=user_id).first()
-        
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-            
-        return jsonify({
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'role': user.role
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 401 
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    return jsonify({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'role': user.role,
+        'created_at': user.created_at.isoformat()
+    }) 

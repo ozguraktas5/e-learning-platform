@@ -8,9 +8,9 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True) # Kullanıcının benzersiz kimliği.
     username = db.Column(db.String(80), unique=True, nullable=False) # Kullanıcı adı.
     email = db.Column(db.String(120), unique=True, nullable=False) # E-posta adresi.
-    password_hash = db.Column(db.String(128)) # Şifrenin hashlenmiş hali.
-    role = db.Column(db.String(20), default='student')  # Kullanıcının rolü.
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC)) # Kullanıcının oluşturulma tarihi.
+    password = db.Column(db.String(255), nullable=False)  # Şifre alanını ekledik
+    role = db.Column(db.String(20), nullable=False, default='student')  # Kullanıcının rolü.
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow) # Kullanıcının oluşturulma tarihi.
     
     # İlişkiler
     enrolled_courses = db.relationship('Enrollment', back_populates='student') # Öğrencinin kayıtlı olduğu kurslar.
