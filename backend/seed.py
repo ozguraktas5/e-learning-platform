@@ -1,12 +1,12 @@
-from app import app, db
+from app import app, db 
 from models import User, Course, Lesson
-from datetime import datetime, UTC
+from datetime import datetime, UTC 
 
-def seed_database():
-    with app.app_context():
-        # Veritabanını temizle
-        db.drop_all()
-        db.create_all()
+def seed_database(): # Veritabanını doldur
+    with app.app_context(): 
+        
+        db.drop_all() # Veritabanını temizle
+        db.create_all() # Yeni tabloları oluştur
 
         # Örnek eğitmen oluştur
         instructor = User(
@@ -14,9 +14,9 @@ def seed_database():
             email="instructor@test.com",
             role="instructor"
         )
-        instructor.set_password("test123")
-        db.session.add(instructor)
-        db.session.commit()
+        instructor.set_password("test123") # Şifreyi hash'liyoruz.
+        db.session.add(instructor) # Eğitmeni veritabanına ekliyoruz.
+        db.session.commit() # Değişiklikleri kaydediyoruz.
 
         # Örnek kurslar oluştur
         courses = [
@@ -37,12 +37,12 @@ def seed_database():
             )
         ]
         
-        for course in courses:
-            db.session.add(course)
-        db.session.commit()
+        for course in courses: # Kursları veritabanına ekliyoruz.
+            db.session.add(course) 
+        db.session.commit() # Değişiklikleri kaydediyoruz.
 
         # Her kurs için örnek dersler oluştur
-        for i, course in enumerate(courses):
+        for i, course in enumerate(courses): # Kursları döngüye sokuyoruz.
             lessons = [
                 Lesson(
                     title=f"Ders 1: Giriş - {course.title}",
@@ -64,11 +64,11 @@ def seed_database():
                 )
             ]
             
-            for lesson in lessons:
-                db.session.add(lesson)
+            for lesson in lessons: # Dersleri veritabanına ekliyoruz.
+                db.session.add(lesson) 
         
-        db.session.commit()
+        db.session.commit() # Değişiklikleri kaydediyoruz.
 
-if __name__ == "__main__":
-    seed_database()
-    print("Veritabanı başarıyla dolduruldu!") 
+if __name__ == "__main__": # Bu kodu çalıştır
+    seed_database() # Veritabanını doldur
+    print("Veritabanı başarıyla dolduruldu!") # Mesaj göster

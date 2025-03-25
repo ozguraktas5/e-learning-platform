@@ -20,16 +20,16 @@ def register():
     if User.query.filter_by(email=data['email']).first():
         return jsonify({'message': 'Email already exists'}), 400
     
-    hashed_password = generate_password_hash(data['password'])
+    hashed_password = generate_password_hash(data['password']) # Şifreyi hash'liyoruz.
     new_user = User(
         username=data['username'],
         email=data['email'],
         password=hashed_password,  # Şifreyi doğrudan password alanına kaydediyoruz
-        role=data.get('role', 'student')
+        role=data.get('role', 'student') 
     )
     
-    db.session.add(new_user)
-    db.session.commit()
+    db.session.add(new_user) # Yeni kullanıcıyı veritabanına ekliyoruz.
+    db.session.commit() # Değişiklikleri kaydediyoruz.
     
     return jsonify({
         'message': 'User registered successfully',
@@ -45,20 +45,20 @@ def register():
 def login():
     data = request.get_json()
     
-    if not data or not data.get('username') or not data.get('password'):
+    if not data or not data.get('username') or not data.get('password'): # Kullanıcı adı ve şifre eksikse hata döndürüyoruz.
         return jsonify({'message': 'Missing username or password'}), 400
     
-    user = User.query.filter_by(username=data['username']).first()
+    user = User.query.filter_by(username=data['username']).first() # Kullanıcı adına göre kullanıcıyı buluyoruz.
     
-    if not user or not check_password_hash(user.password, data['password']):
+    if not user or not check_password_hash(user.password, data['password']): # Kullanıcı adı ve şifre eksikse hata döndürüyoruz.
         return jsonify({'message': 'Invalid username or password'}), 401
     
-    access_token = create_access_token(
+    access_token = create_access_token( # Access token oluşturuyoruz.
         identity=str(user.id),
         expires_delta=timedelta(days=1)
     )
     
-    return jsonify({
+    return jsonify({ # JSON formatında döndürüyoruz.
         'access_token': access_token,
         'user': {
             'id': user.id,
@@ -68,7 +68,7 @@ def login():
         }
     })
 
-@auth.route('/me', methods=['GET'])
+@auth.route('/me', methods=['GET']) 
 @jwt_required()
 def get_current_user():
     current_user_id = get_jwt_identity()

@@ -6,10 +6,10 @@ from flask_migrate import Migrate # Veritabanı şema değişikliklerini yönetm
 import os # İşletim sistemi ile ilgili işlemleri yapmak için kullanılır.
 from config import config # Konfigürasyon ayarlarını içeren dosyayı import ediyoruz.
 from auth import auth # Auth blueprint'ini import ediyoruz.
-from courses import courses
-from enrollments import enrollments
-from profiles import profiles
-from datetime import timedelta
+from courses import courses # Courses blueprint'ini import ediyoruz.
+from enrollments import enrollments # Enrollments blueprint'ini import ediyoruz.
+from profiles import profiles # Profiles blueprint'ini import ediyoruz.
+from datetime import timedelta # Zaman aralıklarını hesaplamak için kullanılır.
 
 app = Flask(__name__) # Yeni bir Flask uygulaması oluşturuyoruz.
 CORS(app) # CORS'u etkinleştiriyoruz.
@@ -17,19 +17,19 @@ CORS(app) # CORS'u etkinleştiriyoruz.
 env = os.environ.get('FLASK_ENV', 'development') # Ortam değişkeninden çalışma ortamını alıyoruz.
 app.config.from_object(config[env]) # Konfigürasyon ayarlarını yüklüyoruz.
 
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
-app.config['JWT_TOKEN_LOCATION'] = ['headers']
-app.config['JWT_HEADER_NAME'] = 'Authorization'
-app.config['JWT_HEADER_TYPE'] = 'Bearer'
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key') # JWT token için gizli anahtarı ayarlıyoruz.
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1) # Access token'ın geçerlilik süresini ayarlıyoruz.
+app.config['JWT_TOKEN_LOCATION'] = ['headers'] # Token konumunu ayarlıyoruz.
+app.config['JWT_HEADER_NAME'] = 'Authorization' # Authorization header'ının adını ayarlıyoruz.
+app.config['JWT_HEADER_TYPE'] = 'Bearer' # Authorization header'ının tipini ayarlıyoruz.
 
 jwt = JWTManager(app) # JWT token işlemleri için JWTManager'ı başlatıyoruz.
 
-@jwt.user_identity_loader
+@jwt.user_identity_loader # JWT token'ının içindeki bilgileri almak için kullanılır.
 def user_identity_lookup(user):
     return str(user)
 
-@jwt.user_lookup_loader
+@jwt.user_lookup_loader # JWT token'ının içindeki bilgileri almak için kullanılır.
 def user_lookup_callback(_jwt_header, jwt_data):
     identity = jwt_data["sub"]
     return User.query.filter_by(id=identity).one_or_none()
@@ -38,9 +38,9 @@ db.init_app(app) # SQLAlchemy veritabanını Flask uygulamasına bağlıyoruz.
 migrate = Migrate(app, db) # Veritabanı şema değişikliklerini yönetmek için Migrate'i başlatıyoruz.
 
 app.register_blueprint(auth, url_prefix='/api/auth') # Auth blueprint'ini Flask uygulamasına bağlıyoruz.
-app.register_blueprint(courses, url_prefix='/api')
-app.register_blueprint(enrollments, url_prefix='/api')
-app.register_blueprint(profiles, url_prefix='/api')
+app.register_blueprint(courses, url_prefix='/api') # Courses blueprint'ini Flask uygulamasına bağlıyoruz.
+app.register_blueprint(enrollments, url_prefix='/api') # Enrollments blueprint'ini Flask uygulamasına bağlıyoruz.
+app.register_blueprint(profiles, url_prefix='/api') # Profiles blueprint'ini Flask uygulamasına bağlıyoruz.
 
 app.config['JSON_AS_ASCII'] = False # JSON verilerinin UTF-8 kodlamasını kullanmasını sağlar.
 

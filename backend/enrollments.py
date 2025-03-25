@@ -3,15 +3,15 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, Course, Enrollment, Progress, Lesson, User
 from datetime import datetime, UTC
 
-enrollments = Blueprint('enrollments', __name__)
+enrollments = Blueprint('enrollments', __name__) # Enrollments blueprint'ini oluşturuyoruz.
 
-def is_student(user_id):
+def is_student(user_id): # Kullanıcının öğrenci olup olmadığını kontrol et
     user = User.query.get(user_id)
     return user and user.role == 'student'
 
 @enrollments.route('/courses/<int:course_id>/enroll', methods=['POST'])
 @jwt_required()
-def enroll_course(course_id):
+def enroll_course(course_id): # Kursa kayıt ol
     # Kullanıcının öğrenci olup olmadığını kontrol et
     user_id = get_jwt_identity()
     if not is_student(user_id):
@@ -26,7 +26,7 @@ def enroll_course(course_id):
         course_id=course_id
     ).first()
     
-    if existing_enrollment:
+    if existing_enrollment: # Zaten kayıtlı ise hata döndür
         return jsonify({'error': 'Already enrolled in this course'}), 400
     
     # Yeni kayıt oluştur
@@ -46,7 +46,7 @@ def enroll_course(course_id):
         )
         db.session.add(progress)
     
-    db.session.commit()
+    db.session.commit() # Değişiklikleri kaydediyoruz.
     
     return jsonify({
         'message': 'Successfully enrolled in course',
@@ -60,9 +60,9 @@ def enroll_course(course_id):
 @enrollments.route('/my-courses', methods=['GET'])
 @jwt_required()
 def get_my_courses():
-    user_id = get_jwt_identity()
+    user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
     
-    enrollments = Enrollment.query.filter_by(student_id=user_id).all()
+    enrollments = Enrollment.query.filter_by(student_id=user_id).all() # Kullanıcının kayıtlı olduğu kursları al
     
     return jsonify([{
         'enrollment_id': enrollment.id,
@@ -81,7 +81,7 @@ def get_my_courses():
 @enrollments.route('/courses/<int:course_id>/progress', methods=['GET'])
 @jwt_required()
 def get_course_progress(course_id):
-    user_id = get_jwt_identity()
+    user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
     
     # Kayıt kontrolü
     enrollment = Enrollment.query.filter_by(
@@ -108,7 +108,7 @@ def get_course_progress(course_id):
 @enrollments.route('/lessons/<int:lesson_id>/complete', methods=['POST'])
 @jwt_required()
 def complete_lesson(lesson_id):
-    user_id = get_jwt_identity()
+    user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
     
     # Dersi bul
     lesson = Lesson.query.get_or_404(lesson_id)

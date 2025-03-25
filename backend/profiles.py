@@ -8,8 +8,8 @@ profiles = Blueprint('profiles', __name__)
 @profiles.route('/profile', methods=['GET'])
 @jwt_required()
 def get_profile():
-    current_user_id = get_jwt_identity()
-    current_user = User.query.get(current_user_id)
+    current_user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
+    current_user = User.query.get(current_user_id) # Kullanıcıyı al
     
     return jsonify({
         'id': current_user.id,
@@ -22,12 +22,12 @@ def get_profile():
 @profiles.route('/profile', methods=['PUT'])
 @jwt_required()
 def update_profile():
-    current_user_id = get_jwt_identity()
-    current_user = User.query.get(current_user_id)
+    current_user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
+    current_user = User.query.get(current_user_id) # Kullanıcıyı al
     
-    data = request.get_json()
+    data = request.get_json() # JSON formatında veri al
     
-    if not data:
+    if not data: # Veri yoksa hata döndür
         return jsonify({'message': 'No data provided'}), 400
     
     # Email değişikliği varsa, yeni email'in başka bir kullanıcı tarafından kullanılmadığından emin ol
@@ -42,7 +42,7 @@ def update_profile():
             return jsonify({'message': 'Username already in use'}), 400
         current_user.username = data['username']
     
-    db.session.commit()
+    db.session.commit() # Değişiklikleri kaydediyoruz.
     
     return jsonify({
         'message': 'Profile updated successfully',
@@ -58,18 +58,18 @@ def update_profile():
 @profiles.route('/profile/password', methods=['PUT'])
 @jwt_required()
 def change_password():
-    current_user_id = get_jwt_identity()
-    current_user = User.query.get(current_user_id)
+    current_user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
+    current_user = User.query.get(current_user_id) # Kullanıcıyı al
     
-    data = request.get_json()
+    data = request.get_json() # JSON formatında veri al
     
-    if not data or 'current_password' not in data or 'new_password' not in data:
+    if not data or 'current_password' not in data or 'new_password' not in data: # Şifre değiştirme için gerekli veri yoksa hata döndür
         return jsonify({'message': 'Current password and new password are required'}), 400
     
-    if not check_password_hash(current_user.password, data['current_password']):
+    if not check_password_hash(current_user.password, data['current_password']): # Şifre yanlışsa hata döndür
         return jsonify({'message': 'Current password is incorrect'}), 401
     
-    current_user.password = generate_password_hash(data['new_password'])
-    db.session.commit()
+    current_user.password = generate_password_hash(data['new_password']) # Yeni şifreyi hash'liyoruz.
+    db.session.commit() # Değişiklikleri kaydediyoruz.
     
-    return jsonify({'message': 'Password updated successfully'}) 
+    return jsonify({'message': 'Password updated successfully'}) # Şifre değiştirme işlemi başarılıysa mesaj döndür

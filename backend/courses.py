@@ -4,11 +4,11 @@ from models import db, Course, Lesson, User
 
 courses = Blueprint('courses', __name__)
 
-def is_instructor(user_id):
+def is_instructor(user_id): # Kullanıcının eğitmen olup olmadığını kontrol et
     user = User.query.get(user_id)
     return user and user.role == 'instructor'
 
-@courses.route('/courses', methods=['POST'])
+@courses.route('/courses', methods=['POST']) 
 @jwt_required()
 def create_course():
     # Kullanıcının eğitmen olup olmadığını kontrol et
@@ -29,8 +29,8 @@ def create_course():
         instructor_id=user_id
     )
     
-    db.session.add(course)
-    db.session.commit()
+    db.session.add(course) # Kursu veritabanına ekliyoruz.
+    db.session.commit() # Değişiklikleri kaydediyoruz.
     
     return jsonify({
         'message': 'Course created successfully',
@@ -45,7 +45,7 @@ def create_course():
 @jwt_required()
 def update_course(course_id):
     # Kursu bul
-    course = Course.query.get_or_404(course_id)
+    course = Course.query.get_or_404(course_id) 
     
     # Kullanıcının kursun sahibi olup olmadığını kontrol et
     user_id = get_jwt_identity()
@@ -60,7 +60,7 @@ def update_course(course_id):
     if 'description' in data:
         course.description = data['description']
     
-    db.session.commit()
+    db.session.commit() # Değişiklikleri kaydediyoruz.
     
     return jsonify({
         'message': 'Course updated successfully',
@@ -82,8 +82,8 @@ def delete_course(course_id):
     if str(course.instructor_id) != str(user_id):
         return jsonify({'error': 'You can only delete your own courses'}), 403
     
-    db.session.delete(course)
-    db.session.commit()
+    db.session.delete(course) # Kursu veritabanından siliyoruz.
+    db.session.commit() # Değişiklikleri kaydediyoruz.
     
     return jsonify({'message': 'Course deleted successfully'})
 
@@ -112,8 +112,8 @@ def add_lesson(course_id):
         course_id=course_id
     )
     
-    db.session.add(lesson)
-    db.session.commit()
+    db.session.add(lesson) # Dersi veritabanına ekliyoruz.
+    db.session.commit() # Değişiklikleri kaydediyoruz.
     
     return jsonify({
         'message': 'Lesson added successfully',
