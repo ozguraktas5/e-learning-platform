@@ -24,7 +24,7 @@ def register():
     new_user = User(
         username=data['username'],
         email=data['email'],
-        password=hashed_password,  # Şifreyi doğrudan password alanına kaydediyoruz
+        password_hash=hashed_password,  # password yerine password_hash kullanıyoruz
         role=data.get('role', 'student') 
     )
     
@@ -50,7 +50,7 @@ def login():
     
     user = User.query.filter_by(username=data['username']).first() # Kullanıcı adına göre kullanıcıyı buluyoruz.
     
-    if not user or not check_password_hash(user.password, data['password']): # Kullanıcı adı ve şifre eksikse hata döndürüyoruz.
+    if not user or not check_password_hash(user.password_hash, data['password']): # password yerine password_hash kullanıyoruz
         return jsonify({'message': 'Invalid username or password'}), 401
     
     access_token = create_access_token( # Access token oluşturuyoruz.

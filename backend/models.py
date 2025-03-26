@@ -8,13 +8,13 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True) # Kullanıcının benzersiz kimliği.
     username = db.Column(db.String(80), unique=True, nullable=False) # Kullanıcı adı.
     email = db.Column(db.String(120), unique=True, nullable=False) # E-posta adresi.
-    password = db.Column(db.String(255), nullable=False)  # Şifre alanını ekledik
+    password_hash = db.Column(db.String(255), nullable=False)  # password yerine password_hash kullanıyoruz
     role = db.Column(db.String(20), nullable=False, default='student')  # Kullanıcının rolü.
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow) # Kullanıcının oluşturulma tarihi.
     
     # İlişkiler
-    enrolled_courses = db.relationship('Enrollment', back_populates='student') # Öğrencinin kayıtlı olduğu kurslar.
-    created_courses = db.relationship('Course', back_populates='instructor') # Öğretmenin oluşturduğu kurslar.
+    enrolled_courses = db.relationship('Enrollment', backref='student', lazy=True)
+    created_courses = db.relationship('Course', backref='instructor', lazy=True)
 
     def set_password(self, password): # Şifreyi hashler.
         self.password_hash = generate_password_hash(password)
@@ -23,47 +23,77 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
 
 class Course(db.Model):
-    id = db.Column(db.Integer, primary_key=True) # Kursun benzersiz kimliği.
-    title = db.Column(db.String(200), nullable=False) # Kursun başlığı.
-    description = db.Column(db.Text) # Kursun açıklaması.
-    instructor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # Öğretmenin kimliği.
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC)) # Kursun oluşturulma tarihi.
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(50), nullable=True)
+    popularity = db.Column(db.Integer, default=0)
+    price = db.Column(db.Float, nullable=False, default=0.0)  # Fiyat alanı eklendi
+    instructor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     
     # İlişkiler
-    instructor = db.relationship('User', back_populates='created_courses') # Kursu oluşturan öğretmen.
-    enrollments = db.relationship('Enrollment', back_populates='course') # Kursa kayıtlı öğrenciler.
-    lessons = db.relationship('Lesson', back_populates='course', cascade='all, delete-orphan') # Kursa ait dersler.
+    lessons = db.relationship('Lesson', backref='course', lazy=True, order_by='Lesson.order')
+    enrollments = db.relationship('Enrollment', backref='course', lazy=True)
 
 class Lesson(db.Model):
-    id = db.Column(db.Integer, primary_key=True) # Dersin benzersiz kimliği.
-    title = db.Column(db.String(200), nullable=False) # Dersin başlığı.
-    content = db.Column(db.Text, nullable=False) # Dersin içeriği.
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False) # Kursun kimliği.
-    order = db.Column(db.Integer, nullable=False)  # Dersin sırasını belirtir.
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC)) # Dersin oluşturulma tarihi.
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    order = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     
     # İlişkiler
-    course = db.relationship('Course', back_populates='lessons') # Dersin ait olduğu kurs.
-    progress_records = db.relationship('Progress', back_populates='lesson') # Dersin ilerleme kayıtları.
+    progress_records = db.relationship('Progress', backref='lesson', lazy=True)
 
 class Enrollment(db.Model):
-    id = db.Column(db.Integer, primary_key=True) # Kayıtun benzersiz kimliği.
-    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # Öğrencinin kimliği.
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False) # Kursun kimliği.
-    enrolled_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC)) # Kayıtun oluşturulma tarihi.
-    
-    # İlişkiler
-    student = db.relationship('User', back_populates='enrolled_courses') # Kayıt yapan öğrenci.
-    course = db.relationship('Course', back_populates='enrollments') # Kurs.
-    progress = db.relationship('Progress', back_populates='enrollment') # Kayıt ile ilişkili ilerleme kayıtları.
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    enrolled_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
 class Progress(db.Model):
-    id = db.Column(db.Integer, primary_key=True) # İlerleme kayıtlarının benzersiz kimliği.
-    enrollment_id = db.Column(db.Integer, db.ForeignKey('enrollment.id'), nullable=False) # Kayıtun kimliği.
-    lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False) # Dersin kimliği.
-    completed = db.Column(db.Boolean, default=False) # Dersin tamamlanıp tamamlanmadığını belirtir.
-    completed_at = db.Column(db.DateTime) # Dersin tamamlanma tarihi.
+    id = db.Column(db.Integer, primary_key=True)
+    enrollment_id = db.Column(db.Integer, db.ForeignKey('enrollment.id'), nullable=False)
+    lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
+    completed = db.Column(db.Boolean, default=False)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     
     # İlişkiler
-    enrollment = db.relationship('Enrollment', back_populates='progress') # Kayıt ile ilişkili ilerleme kayıtları.
-    lesson = db.relationship('Lesson', back_populates='progress_records') # Ders ile ilişkili ilerleme kayıtları. 
+    enrollment = db.relationship('Enrollment', backref='progress_records', lazy=True)
+
+class Review(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5 arası puan
+    comment = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # İlişkiler
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    instructor_reply = db.Column(db.Text, nullable=True)
+    instructor_reply_date = db.Column(db.DateTime, nullable=True)
+    
+    # İlişki tanımlamaları
+    course = db.relationship('Course', backref=db.backref('reviews', lazy=True))
+    user = db.relationship('User', backref=db.backref('reviews', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'rating': self.rating,
+            'comment': self.comment,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+            'course_id': self.course_id,
+            'user_id': self.user_id,
+            'user': {
+                'id': self.user.id,
+                'username': self.user.username
+            },
+            'instructor_reply': self.instructor_reply,
+            'instructor_reply_date': self.instructor_reply_date.isoformat() if self.instructor_reply_date else None
+        } 

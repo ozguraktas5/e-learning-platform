@@ -12,9 +12,10 @@ def seed_database(): # Veritabanını doldur
         instructor = User(
             username="test_instructor",
             email="instructor@test.com",
-            role="instructor"
+            role="instructor",
+            created_at=datetime.utcnow()
         )
-        instructor.set_password("test123") # Şifreyi hash'liyoruz.
+        instructor.set_password("password123")  # Şifreyi doğru şekilde ayarla
         db.session.add(instructor) # Eğitmeni veritabanına ekliyoruz.
         db.session.commit() # Değişiklikleri kaydediyoruz.
 
@@ -23,17 +24,29 @@ def seed_database(): # Veritabanını doldur
             Course(
                 title="Python Programlama Temelleri",
                 description="Python programlama dilini sıfırdan öğrenin. Değişkenler, döngüler, fonksiyonlar ve daha fazlası.",
-                instructor_id=instructor.id
+                instructor_id=instructor.id,
+                category="programming",
+                popularity=100,  # En popüler kurs
+                price=199.99,  # Fiyat eklendi
+                created_at=datetime.utcnow()
             ),
             Course(
                 title="Web Geliştirme ile Flask",
                 description="Flask framework'ü ile web uygulamaları geliştirmeyi öğrenin. REST API, veritabanı entegrasyonu ve authentication konuları.",
-                instructor_id=instructor.id
+                instructor_id=instructor.id,
+                category="web_development",
+                popularity=75,  # Orta popülerlik
+                price=149.99,  # Fiyat eklendi
+                created_at=datetime.utcnow()
             ),
             Course(
                 title="Veri Bilimi ve Machine Learning",
                 description="Python ile veri bilimi ve makine öğrenmesi. NumPy, Pandas, Scikit-learn kütüphaneleri ile uygulamalı örnekler.",
-                instructor_id=instructor.id
+                instructor_id=instructor.id,
+                category="data_science",
+                popularity=50,  # En az popüler kurs
+                price=299.99,  # Fiyat eklendi
+                created_at=datetime.utcnow()
             )
         ]
         
@@ -42,30 +55,16 @@ def seed_database(): # Veritabanını doldur
         db.session.commit() # Değişiklikleri kaydediyoruz.
 
         # Her kurs için örnek dersler oluştur
-        for i, course in enumerate(courses): # Kursları döngüye sokuyoruz.
-            lessons = [
-                Lesson(
-                    title=f"Ders 1: Giriş - {course.title}",
-                    content="Bu derste kursun genel içeriğini ve hedeflerini öğreneceksiniz.",
+        for course in courses:
+            for i in range(1, 4):
+                lesson = Lesson(
+                    title=f"{course.title} - Ders {i}",
+                    content=f"Bu {course.title} kursunun {i}. dersidir.",
                     course_id=course.id,
-                    order=1
-                ),
-                Lesson(
-                    title=f"Ders 2: Temel Kavramlar - {course.title}",
-                    content="Bu derste temel kavramları ve terminolojiyi öğreneceksiniz.",
-                    course_id=course.id,
-                    order=2
-                ),
-                Lesson(
-                    title=f"Ders 3: İleri Seviye - {course.title}",
-                    content="Bu derste ileri seviye konuları ve best practice'leri öğreneceksiniz.",
-                    course_id=course.id,
-                    order=3
+                    order=i,
+                    created_at=datetime.utcnow()
                 )
-            ]
-            
-            for lesson in lessons: # Dersleri veritabanına ekliyoruz.
-                db.session.add(lesson) 
+                db.session.add(lesson)
         
         db.session.commit() # Değişiklikleri kaydediyoruz.
 
