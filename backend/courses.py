@@ -227,7 +227,7 @@ def create_course_review(course_id):
     
     # Kullanıcının kursa kayıtlı olup olmadığını kontrol et
     enrollment = Enrollment.query.filter_by(
-        user_id=current_user_id,
+        student_id=current_user_id,
         course_id=course_id
     ).first()
     
@@ -270,8 +270,10 @@ def create_course_review(course_id):
 @jwt_required()
 def update_course_review(course_id, review_id):
     """Kurs değerlendirmesini güncelle"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())  # String'i integer'a çevir
     review = Review.query.get_or_404(review_id)
+    
+    print(f"Debug - current_user_id: {current_user_id}, review.user_id: {review.user_id}")  # Debug log
     
     if review.user_id != current_user_id:
         return jsonify({'error': 'Bu değerlendirmeyi güncelleyemezsiniz.'}), 403
@@ -298,7 +300,7 @@ def update_course_review(course_id, review_id):
 @jwt_required()
 def delete_course_review(course_id, review_id):
     """Kurs değerlendirmesini sil"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())  # String'i integer'a çevir
     review = Review.query.get_or_404(review_id)
     
     if review.user_id != current_user_id:
@@ -307,18 +309,20 @@ def delete_course_review(course_id, review_id):
     db.session.delete(review)
     db.session.commit()
     
-    return '', 204
+    return jsonify({'message': 'Değerlendirme başarıyla silindi'}), 200
 
 @courses.route('/courses/<int:course_id>/reviews/<int:review_id>/reply', methods=['POST'])
 @jwt_required()
 def reply_to_review(course_id, review_id):
     """Değerlendirmeye eğitmen yanıtı ekle"""
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())  # String'i integer'a çevir
     review = Review.query.get_or_404(review_id)
     course = Course.query.get_or_404(course_id)
     
+    print(f"Debug - current_user_id: {current_user_id}, course.instructor_id: {course.instructor_id}")  # Debug log
+    
     # Kullanıcının kursun eğitmeni olup olmadığını kontrol et
-    if course.instructor_id != current_user_id:
+    if int(course.instructor_id) != current_user_id:  # Her iki değeri de integer olarak karşılaştır
         return jsonify({'error': 'Bu değerlendirmeye yanıt veremezsiniz.'}), 403
     
     data = request.get_json()
@@ -331,4 +335,7 @@ def reply_to_review(course_id, review_id):
     
     db.session.commit()
     
-    return jsonify(review.to_dict()) 
+    return jsonify({
+        'message': 'Yanıt başarıyla eklendi',
+        'review': review.to_dict()
+    }) 
