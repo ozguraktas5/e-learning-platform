@@ -3,6 +3,14 @@ from dotenv import load_dotenv # .env dosyasındaki değişkenleri yüklemek iç
 
 load_dotenv() # .env dosyasındaki değişkenleri yüklemek için kullanılır.
 
+# Google Cloud Storage ayarları
+GOOGLE_CLOUD_PROJECT = os.environ.get('GOOGLE_CLOUD_PROJECT', 'your-project-id')  # Google Cloud Console'dan proje ID'niz
+GOOGLE_CLOUD_BUCKET = os.environ.get('GOOGLE_CLOUD_BUCKET', 'elearning-media-storage')  # Oluşturduğunuz bucket adı
+
+# Dosya yükleme ayarları
+ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'webm', 'mkv'}
+ALLOWED_FILE_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'}
+
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key' # SECRET_KEY değişkenini oluşturuyoruz ve .env dosyasındaki SECRET_KEY değişkenini yüklüyoruz.
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///elearning.db' # SQLALCHEMY_DATABASE_URI değişkenini oluşturuyoruz ve .env dosyasındaki DATABASE_URL değişkenini yüklüyoruz.

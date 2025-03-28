@@ -1,8 +1,9 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from models import db, Course, Lesson, User, Enrollment, Review
+from models import db, Course, Lesson, User, Enrollment, Review, Quiz, QuizQuestion, QuizOption, QuizAttempt, Assignment, AssignmentSubmission
 from sqlalchemy import or_
 from datetime import datetime
+from .utils import upload_video_to_gcs, upload_document_to_gcs
 
 courses = Blueprint('courses', __name__)
 
@@ -338,4 +339,272 @@ def reply_to_review(course_id, review_id):
     return jsonify({
         'message': 'Yanıt başarıyla eklendi',
         'review': review.to_dict()
+    })
+
+@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/media', methods=['POST'])
+@jwt_required()
+def upload_lesson_media(course_id, lesson_id):
+    # Kursu ve dersi kontrol et
+    course = Course.query.get_or_404(course_id)
+    lesson = Lesson.query.get_or_404(lesson_id)
+    
+    # Eğitmen yetkisi kontrolü
+    if course.instructor_id != current_user.id:
+        return jsonify({'error': 'Bu işlem için yetkiniz yok'}), 403
+        
+    if 'video' not in request.files and 'document' not in request.files:
+        return jsonify({'error': 'Video veya döküman yüklenmedi'}), 400
+        
+    media_urls = []
+    
+    # Video yükleme
+    if 'video' in request.files:
+        video_file = request.files['video']
+        video_url = upload_video_to_gcs(video_file)
+        if video_url:
+            # Video URL'ini veritabanına kaydet
+            lesson.video_url = video_url
+            media_urls.append({'type': 'video', 'url': video_url})
+            
+    # Döküman yükleme
+    if 'document' in request.files:
+        document_file = request.files['document']
+        document_url = upload_document_to_gcs(document_file)
+        if document_url:
+            # Döküman URL'ini veritabanına kaydet
+            new_document = LessonDocument(
+                lesson_id=lesson.id,
+                file_url=document_url,
+                file_name=document_file.filename
+            )
+            db.session.add(new_document)
+            media_urls.append({'type': 'document', 'url': document_url})
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': 'Medya başarıyla yüklendi',
+            'media': media_urls
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Medya yüklenirken bir hata oluştu'}), 500
+
+@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/quiz', methods=['POST'])
+@jwt_required()
+def create_quiz(course_id, lesson_id):
+    """Ders için quiz oluştur"""
+    current_user_id = int(get_jwt_identity())
+    lesson = Lesson.query.get_or_404(lesson_id)
+    course = Course.query.get_or_404(course_id)
+    
+    # Kullanıcının kursun eğitmeni olup olmadığını kontrol et
+    if course.instructor_id != current_user_id:
+        return jsonify({'error': 'Bu derse quiz ekleyemezsiniz.'}), 403
+    
+    data = request.get_json()
+    
+    if not data or 'title' not in data or 'questions' not in data:
+        return jsonify({'error': 'Quiz başlığı ve sorular zorunludur.'}), 400
+    
+    quiz = Quiz(
+        title=data['title'],
+        description=data.get('description'),
+        lesson_id=lesson_id
+    )
+    db.session.add(quiz)
+    
+    for q in data['questions']:
+        question = QuizQuestion(
+            quiz_id=quiz.id,
+            question_text=q['text'],
+            question_type=q['type'],
+            points=q.get('points', 1)
+        )
+        db.session.add(question)
+        
+        if q['type'] == 'multiple_choice' and 'options' in q:
+            for opt in q['options']:
+                option = QuizOption(
+                    question_id=question.id,
+                    option_text=opt['text'],
+                    is_correct=opt.get('is_correct', False)
+                )
+                db.session.add(option)
+    
+    db.session.commit()
+    return jsonify({'message': 'Quiz başarıyla oluşturuldu', 'quiz_id': quiz.id})
+
+@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/quiz/<int:quiz_id>', methods=['POST'])
+@jwt_required()
+def submit_quiz(course_id, lesson_id, quiz_id):
+    """Quiz'i tamamla ve sonuçları kaydet"""
+    current_user_id = int(get_jwt_identity())
+    quiz = Quiz.query.get_or_404(quiz_id)
+    
+    # Kullanıcının kursa kayıtlı olup olmadığını kontrol et
+    enrollment = Enrollment.query.filter_by(
+        student_id=current_user_id,
+        course_id=course_id
+    ).first()
+    
+    if not enrollment:
+        return jsonify({'error': 'Bu quizi çözmek için kursa kayıtlı olmalısınız.'}), 403
+    
+    data = request.get_json()
+    
+    if not data or 'answers' not in data:
+        return jsonify({'error': 'Cevaplar zorunludur.'}), 400
+    
+    attempt = QuizAttempt(
+        quiz_id=quiz_id,
+        user_id=current_user_id
+    )
+    db.session.add(attempt)
+    
+    total_score = 0
+    for answer in data['answers']:
+        question = QuizQuestion.query.get(answer['question_id'])
+        if not question:
+            continue
+            
+        quiz_answer = QuizAnswer(
+            attempt_id=attempt.id,
+            question_id=question.id,
+            answer_text=answer['text']
+        )
+        
+        if question.question_type == 'multiple_choice':
+            correct_option = QuizOption.query.filter_by(
+                question_id=question.id,
+                is_correct=True
+            ).first()
+            
+            if correct_option and answer['text'] == correct_option.option_text:
+                quiz_answer.is_correct = True
+                quiz_answer.points_earned = question.points
+                total_score += question.points
+        
+        db.session.add(quiz_answer)
+    
+    attempt.score = total_score
+    attempt.completed_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Quiz başarıyla tamamlandı',
+        'score': total_score
+    })
+
+@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/assignment', methods=['POST'])
+@jwt_required()
+def create_assignment(course_id, lesson_id):
+    """Ders için ödev oluştur"""
+    current_user_id = int(get_jwt_identity())
+    lesson = Lesson.query.get_or_404(lesson_id)
+    course = Course.query.get_or_404(course_id)
+    
+    # Kullanıcının kursun eğitmeni olup olmadığını kontrol et
+    if course.instructor_id != current_user_id:
+        return jsonify({'error': 'Bu derse ödev ekleyemezsiniz.'}), 403
+    
+    data = request.get_json()
+    
+    if not data or 'title' not in data or 'description' not in data or 'due_date' not in data:
+        return jsonify({'error': 'Ödev başlığı, açıklaması ve son tarihi zorunludur.'}), 400
+    
+    assignment = Assignment(
+        title=data['title'],
+        description=data['description'],
+        lesson_id=lesson_id,
+        due_date=datetime.fromisoformat(data['due_date']),
+        max_points=data.get('max_points', 100)
+    )
+    
+    db.session.add(assignment)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Ödev başarıyla oluşturuldu',
+        'assignment_id': assignment.id
+    })
+
+@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>/submit', methods=['POST'])
+@jwt_required()
+def submit_assignment(course_id, lesson_id, assignment_id):
+    """Ödevi gönder"""
+    current_user_id = int(get_jwt_identity())
+    assignment = Assignment.query.get_or_404(assignment_id)
+    
+    # Kullanıcının kursa kayıtlı olup olmadığını kontrol et
+    enrollment = Enrollment.query.filter_by(
+        student_id=current_user_id,
+        course_id=course_id
+    ).first()
+    
+    if not enrollment:
+        return jsonify({'error': 'Bu ödevi göndermek için kursa kayıtlı olmalısınız.'}), 403
+    
+    # Ödevin son tarihini kontrol et
+    if assignment.due_date < datetime.utcnow():
+        return jsonify({'error': 'Ödev son tarihi geçmiş.'}), 400
+    
+    data = request.get_json()
+    
+    if not data and 'file' not in request.files:
+        return jsonify({'error': 'Ödev içeriği veya dosya zorunludur.'}), 400
+    
+    submission = AssignmentSubmission(
+        assignment_id=assignment_id,
+        user_id=current_user_id
+    )
+    
+    if data and 'text' in data:
+        submission.submission_text = data['text']
+    
+    if 'file' in request.files:
+        file = request.files['file']
+        # Dosya yükleme işlemi
+        # submission.file_url = upload_to_storage(file)
+    
+    db.session.add(submission)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Ödev başarıyla gönderildi',
+        'submission_id': submission.id
+    })
+
+@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>/grade', methods=['POST'])
+@jwt_required()
+def grade_assignment(course_id, lesson_id, assignment_id):
+    """Ödevi değerlendir"""
+    current_user_id = int(get_jwt_identity())
+    assignment = Assignment.query.get_or_404(assignment_id)
+    course = Course.query.get_or_404(course_id)
+    
+    # Kullanıcının kursun eğitmeni olup olmadığını kontrol et
+    if course.instructor_id != current_user_id:
+        return jsonify({'error': 'Bu ödevi değerlendiremezsiniz.'}), 403
+    
+    data = request.get_json()
+    
+    if not data or 'submission_id' not in data or 'grade' not in data:
+        return jsonify({'error': 'Değerlendirme bilgileri zorunludur.'}), 400
+    
+    submission = AssignmentSubmission.query.get_or_404(data['submission_id'])
+    
+    if submission.assignment_id != assignment_id:
+        return jsonify({'error': 'Geçersiz ödev gönderimi.'}), 400
+    
+    submission.grade = data['grade']
+    submission.feedback = data.get('feedback')
+    submission.graded_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Ödev başarıyla değerlendirildi',
+        'grade': submission.grade,
+        'feedback': submission.feedback
     }) 
