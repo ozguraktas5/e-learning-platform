@@ -1,14 +1,14 @@
 from flask import Flask, jsonify, request # Flask: Web uygulaması oluşturmak için kullanılır.
 from flask_cors import CORS # Farklı domainlerden gelen verileri almak için kullanılır.
 from flask_jwt_extended import JWTManager # JWT token işlemleri için kullanılır.
-from models import db, User, Course, Lesson, Enrollment, Progress # Oluşturduğumuz modelleri import ediyoruz.
+from models import db, User, Course, Lesson, Enrollment, Progress # Relative import kullanıyoruz
 from flask_migrate import Migrate # Veritabanı şema değişikliklerini yönetmek için kullanılır.
 import os # İşletim sistemi ile ilgili işlemleri yapmak için kullanılır.
-from config import config # Konfigürasyon ayarlarını içeren dosyayı import ediyoruz.
-from auth import auth # Auth blueprint'ini import ediyoruz.
-from courses import courses # Courses blueprint'ini import ediyoruz.
-from enrollments import enrollments # Enrollments blueprint'ini import ediyoruz.
-from profiles import profiles # Profiles blueprint'ini import ediyoruz.
+from config import config # Relative import kullanıyoruz
+from auth import auth # Relative import kullanıyoruz
+from courses import courses # Relative import kullanıyoruz
+from enrollments import enrollments # Relative import kullanıyoruz
+from profiles import profiles # Relative import kullanıyoruz
 from datetime import timedelta # Zaman aralıklarını hesaplamak için kullanılır.
 
 app = Flask(__name__) # Yeni bir Flask uygulaması oluşturuyoruz.

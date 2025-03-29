@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from models import db, Course, Lesson, User, Enrollment, Review, Quiz, QuizQuestion, QuizOption, QuizAttempt, Assignment, AssignmentSubmission
 from sqlalchemy import or_
 from datetime import datetime
-from .utils import upload_video_to_gcs, upload_document_to_gcs
+from utils import upload_video_to_gcs, upload_document_to_gcs
 
 courses = Blueprint('courses', __name__)
 
@@ -349,7 +349,8 @@ def upload_lesson_media(course_id, lesson_id):
     lesson = Lesson.query.get_or_404(lesson_id)
     
     # Eğitmen yetkisi kontrolü
-    if course.instructor_id != current_user.id:
+    current_user_id = get_jwt_identity()
+    if course.instructor_id != int(current_user_id):
         return jsonify({'error': 'Bu işlem için yetkiniz yok'}), 403
         
     if 'video' not in request.files and 'document' not in request.files:

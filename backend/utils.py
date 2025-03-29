@@ -1,8 +1,9 @@
 from werkzeug.utils import secure_filename
 import os
 from google.cloud import storage
-from config import GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_BUCKET
+from config import GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_BUCKET, GOOGLE_APPLICATION_CREDENTIALS
 from config import ALLOWED_VIDEO_EXTENSIONS, ALLOWED_FILE_EXTENSIONS
+from datetime import datetime, timedelta
 
 def allowed_video_file(filename):
     """Video dosya uzantısının geçerli olup olmadığını kontrol et"""
@@ -14,7 +15,8 @@ def allowed_file(filename):
 
 def get_storage_client():
     """Google Cloud Storage istemcisi oluştur"""
-    return storage.Client(project=GOOGLE_CLOUD_PROJECT)
+    credentials_path = os.path.join(os.path.dirname(__file__), GOOGLE_APPLICATION_CREDENTIALS)
+    return storage.Client.from_service_account_json(credentials_path)
 
 def upload_file_to_gcs(file, folder='general'):
     """Dosyayı Google Cloud Storage'a yükle"""
@@ -41,11 +43,12 @@ def upload_file_to_gcs(file, folder='general'):
             content_type=file.content_type
         )
         
-        # Dosyayı herkese açık yap
-        blob.make_public()
-        
-        # Dosyanın URL'sini oluştur
-        url = blob.public_url
+        # Geçici URL oluştur (24 saat geçerli)
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(hours=24),
+            method="GET"
+        )
         return url
         
     except Exception as e:

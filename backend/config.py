@@ -4,8 +4,9 @@ from dotenv import load_dotenv # .env dosyasındaki değişkenleri yüklemek iç
 load_dotenv() # .env dosyasındaki değişkenleri yüklemek için kullanılır.
 
 # Google Cloud Storage ayarları
-GOOGLE_CLOUD_PROJECT = os.environ.get('GOOGLE_CLOUD_PROJECT', 'your-project-id')  # Google Cloud Console'dan proje ID'niz
-GOOGLE_CLOUD_BUCKET = os.environ.get('GOOGLE_CLOUD_BUCKET', 'elearning-media-storage')  # Oluşturduğunuz bucket adı
+GOOGLE_CLOUD_PROJECT = os.getenv('GOOGLE_CLOUD_PROJECT')
+GOOGLE_CLOUD_BUCKET = os.getenv('GOOGLE_CLOUD_BUCKET')
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
 # Dosya yükleme ayarları
 ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'webm', 'mkv'}
