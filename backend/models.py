@@ -210,7 +210,6 @@ class QuizAnswer(db.Model):
     answer_text = db.Column(db.Text, nullable=False)
     is_correct = db.Column(db.Boolean, default=False)
     points_earned = db.Column(db.Float, default=0)
-    submitted_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
 class Assignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)

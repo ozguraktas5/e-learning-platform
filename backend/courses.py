@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from models import db, Course, Lesson, User, Enrollment, Review, Quiz, QuizQuestion, QuizOption, QuizAttempt, Assignment, AssignmentSubmission, LessonDocument
+from models import db, Course, Lesson, User, Enrollment, Review, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Assignment, AssignmentSubmission, LessonDocument
 from sqlalchemy import or_
 from datetime import datetime
 from utils import upload_video_to_gcs, upload_document_to_gcs, upload_file_to_gcs
@@ -659,4 +659,76 @@ def enroll_course(course_id):
         }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': 'Kursa kayıt olurken bir hata oluştu'}), 500 
+        return jsonify({'error': 'Kursa kayıt olurken bir hata oluştu'}), 500
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz/<int:quiz_id>/results', methods=['GET'])
+@jwt_required()
+def get_quiz_results(course_id, lesson_id, quiz_id):
+    """Öğrencinin quiz sonuçlarını getir"""
+    current_user_id = get_jwt_identity()
+    
+    # Quiz'in var olduğunu kontrol et
+    quiz = Quiz.query.get_or_404(quiz_id)
+    
+    # Öğrencinin bu kursa kayıtlı olduğunu kontrol et
+    enrollment = Enrollment.query.filter_by(
+        student_id=current_user_id,
+        course_id=course_id
+    ).first()
+    
+    if not enrollment:
+        return jsonify({'error': 'Bu kursa kayıtlı değilsiniz'}), 403
+    
+    # Öğrencinin quiz denemelerini bul
+    attempts = QuizAttempt.query.filter_by(
+        quiz_id=quiz_id,
+        user_id=current_user_id
+    ).order_by(QuizAttempt.started_at.desc()).all()
+    
+    if not attempts:
+        return jsonify({'message': 'Bu quiz için henüz bir denemeniz bulunmuyor'}), 404
+    
+    results = []
+    for attempt in attempts:
+        answers = []
+        total_points = 0
+        total_questions = len(quiz.questions)
+        
+        for answer in attempt.answers:
+            question = QuizQuestion.query.get(answer.question_id)
+            correct_answer = None
+            
+            if question.question_type == 'multiple_choice':
+                correct_option = QuizOption.query.filter_by(
+                    question_id=question.id,
+                    is_correct=True
+                ).first()
+                correct_answer = correct_option.option_text if correct_option else None
+            
+            answers.append({
+                'question_text': question.question_text,
+                'your_answer': answer.answer_text,
+                'correct_answer': correct_answer,
+                'points_earned': answer.points_earned,
+                'is_correct': answer.is_correct
+            })
+            
+            if answer.is_correct:
+                total_points += answer.points_earned
+        
+        results.append({
+            'attempt_id': attempt.id,
+            'started_at': attempt.started_at.isoformat(),
+            'completed_at': attempt.completed_at.isoformat() if attempt.completed_at else None,
+            'total_score': total_points,
+            'max_possible_score': sum(q.points for q in quiz.questions),
+            'percentage': (total_points / sum(q.points for q in quiz.questions)) * 100 if quiz.questions else 0,
+            'answers': answers
+        })
+    
+    return jsonify({
+        'quiz_title': quiz.title,
+        'quiz_description': quiz.description,
+        'total_attempts': len(attempts),
+        'results': results
+    }) 
