@@ -1,9 +1,9 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from models import db, Course, Lesson, User, Enrollment, Review, Quiz, QuizQuestion, QuizOption, QuizAttempt, Assignment, AssignmentSubmission
+from models import db, Course, Lesson, User, Enrollment, Review, Quiz, QuizQuestion, QuizOption, QuizAttempt, Assignment, AssignmentSubmission, LessonDocument
 from sqlalchemy import or_
 from datetime import datetime
-from utils import upload_video_to_gcs, upload_document_to_gcs
+from utils import upload_video_to_gcs, upload_document_to_gcs, upload_file_to_gcs
 
 courses = Blueprint('courses', __name__)
 
@@ -11,7 +11,7 @@ def is_instructor(user_id): # Kullanıcının eğitmen olup olmadığını kontr
     user = User.query.get(user_id)
     return user and user.role == 'instructor'
 
-@courses.route('/courses', methods=['POST']) 
+@courses.route('/', methods=['POST'])  # /courses yerine / kullanıyoruz çünkü prefix zaten /api/courses
 @jwt_required()
 def create_course():
     # Kullanıcının eğitmen olup olmadığını kontrol et
@@ -44,7 +44,7 @@ def create_course():
         }
     }), 201
 
-@courses.route('/courses/<int:course_id>', methods=['PUT'])
+@courses.route('/<int:course_id>', methods=['PUT'])
 @jwt_required()
 def update_course(course_id):
     # Kursu bul
@@ -74,7 +74,7 @@ def update_course(course_id):
         }
     })
 
-@courses.route('/courses/<int:course_id>', methods=['DELETE'])
+@courses.route('/<int:course_id>', methods=['DELETE'])
 @jwt_required()
 def delete_course(course_id):
     # Kursu bul
@@ -90,7 +90,7 @@ def delete_course(course_id):
     
     return jsonify({'message': 'Course deleted successfully'})
 
-@courses.route('/courses/<int:course_id>/lessons', methods=['POST'])
+@courses.route('/<int:course_id>/lessons', methods=['POST'])
 @jwt_required()
 def add_lesson(course_id):
     # Kursu bul
@@ -127,7 +127,7 @@ def add_lesson(course_id):
         }
     }), 201
 
-@courses.route('/courses/search', methods=['GET'])
+@courses.route('/search', methods=['GET'])
 def search_courses():
     # Arama parametrelerini al
     query = request.args.get('q', '')  # Arama terimi
@@ -188,13 +188,13 @@ def search_courses():
         'enrollment_count': len(course.enrollments)
     } for course in courses])
 
-@courses.route('/courses/categories', methods=['GET'])
+@courses.route('/categories', methods=['GET'])
 def get_categories():
     # Tüm kategorileri getir
     categories = db.session.query(Course.category).distinct().all()
     return jsonify([category[0] for category in categories])
 
-@courses.route('/courses/instructors', methods=['GET'])
+@courses.route('/instructors', methods=['GET'])
 def get_instructors():
     # Tüm eğitmenleri getir
     instructors = User.query.filter_by(role='instructor').all()
@@ -204,7 +204,7 @@ def get_instructors():
         'email': instructor.email
     } for instructor in instructors])
 
-@courses.route('/courses/<int:course_id>/reviews', methods=['GET'])
+@courses.route('/<int:course_id>/reviews', methods=['GET'])
 def get_course_reviews(course_id):
     """Kurs değerlendirmelerini getir"""
     course = Course.query.get_or_404(course_id)
@@ -220,7 +220,7 @@ def get_course_reviews(course_id):
         'reviews': [review.to_dict() for review in reviews]
     })
 
-@courses.route('/courses/<int:course_id>/reviews', methods=['POST'])
+@courses.route('/<int:course_id>/reviews', methods=['POST'])
 @jwt_required()
 def create_course_review(course_id):
     """Kurs değerlendirmesi oluştur"""
@@ -267,7 +267,7 @@ def create_course_review(course_id):
     
     return jsonify(review.to_dict()), 201
 
-@courses.route('/courses/<int:course_id>/reviews/<int:review_id>', methods=['PUT'])
+@courses.route('/<int:course_id>/reviews/<int:review_id>', methods=['PUT'])
 @jwt_required()
 def update_course_review(course_id, review_id):
     """Kurs değerlendirmesini güncelle"""
@@ -297,7 +297,7 @@ def update_course_review(course_id, review_id):
     
     return jsonify(review.to_dict())
 
-@courses.route('/courses/<int:course_id>/reviews/<int:review_id>', methods=['DELETE'])
+@courses.route('/<int:course_id>/reviews/<int:review_id>', methods=['DELETE'])
 @jwt_required()
 def delete_course_review(course_id, review_id):
     """Kurs değerlendirmesini sil"""
@@ -312,7 +312,7 @@ def delete_course_review(course_id, review_id):
     
     return jsonify({'message': 'Değerlendirme başarıyla silindi'}), 200
 
-@courses.route('/courses/<int:course_id>/reviews/<int:review_id>/reply', methods=['POST'])
+@courses.route('/<int:course_id>/reviews/<int:review_id>/reply', methods=['POST'])
 @jwt_required()
 def reply_to_review(course_id, review_id):
     """Değerlendirmeye eğitmen yanıtı ekle"""
@@ -341,7 +341,7 @@ def reply_to_review(course_id, review_id):
         'review': review.to_dict()
     })
 
-@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/media', methods=['POST'])
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/media', methods=['POST'])
 @jwt_required()
 def upload_lesson_media(course_id, lesson_id):
     # Kursu ve dersi kontrol et
@@ -391,7 +391,7 @@ def upload_lesson_media(course_id, lesson_id):
         db.session.rollback()
         return jsonify({'error': 'Medya yüklenirken bir hata oluştu'}), 500
 
-@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/quiz', methods=['POST'])
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz', methods=['POST'])
 @jwt_required()
 def create_quiz(course_id, lesson_id):
     """Ders için quiz oluştur"""
@@ -408,21 +408,25 @@ def create_quiz(course_id, lesson_id):
     if not data or 'title' not in data or 'questions' not in data:
         return jsonify({'error': 'Quiz başlığı ve sorular zorunludur.'}), 400
     
+    # Önce quiz'i oluştur ve kaydet
     quiz = Quiz(
         title=data['title'],
         description=data.get('description'),
         lesson_id=lesson_id
     )
     db.session.add(quiz)
+    db.session.commit()  # Quiz'i kaydet ve ID al
     
+    # Sonra soruları ekle
     for q in data['questions']:
         question = QuizQuestion(
-            quiz_id=quiz.id,
+            quiz_id=quiz.id,  # Artık quiz.id mevcut
             question_text=q['text'],
             question_type=q['type'],
             points=q.get('points', 1)
         )
         db.session.add(question)
+        db.session.flush()  # Question ID'yi al
         
         if q['type'] == 'multiple_choice' and 'options' in q:
             for opt in q['options']:
@@ -434,9 +438,12 @@ def create_quiz(course_id, lesson_id):
                 db.session.add(option)
     
     db.session.commit()
-    return jsonify({'message': 'Quiz başarıyla oluşturuldu', 'quiz_id': quiz.id})
+    return jsonify({
+        'message': 'Quiz başarıyla oluşturuldu',
+        'quiz_id': quiz.id
+    })
 
-@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/quiz/<int:quiz_id>', methods=['POST'])
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz/<int:quiz_id>', methods=['POST'])
 @jwt_required()
 def submit_quiz(course_id, lesson_id, quiz_id):
     """Quiz'i tamamla ve sonuçları kaydet"""
@@ -497,7 +504,7 @@ def submit_quiz(course_id, lesson_id, quiz_id):
         'score': total_score
     })
 
-@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/assignment', methods=['POST'])
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignment', methods=['POST'])
 @jwt_required()
 def create_assignment(course_id, lesson_id):
     """Ders için ödev oluştur"""
@@ -530,7 +537,7 @@ def create_assignment(course_id, lesson_id):
         'assignment_id': assignment.id
     })
 
-@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>/submit', methods=['POST'])
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>/submit', methods=['POST'])
 @jwt_required()
 def submit_assignment(course_id, lesson_id, assignment_id):
     """Ödevi gönder"""
@@ -576,7 +583,7 @@ def submit_assignment(course_id, lesson_id, assignment_id):
         'submission_id': submission.id
     })
 
-@courses.route('/courses/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>/grade', methods=['POST'])
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>/grade', methods=['POST'])
 @jwt_required()
 def grade_assignment(course_id, lesson_id, assignment_id):
     """Ödevi değerlendir"""
@@ -608,4 +615,48 @@ def grade_assignment(course_id, lesson_id, assignment_id):
         'message': 'Ödev başarıyla değerlendirildi',
         'grade': submission.grade,
         'feedback': submission.feedback
-    }) 
+    })
+
+@courses.route('/<int:course_id>/enroll', methods=['POST'])
+@jwt_required()
+def enroll_course(course_id):
+    """Öğrenciyi kursa kaydet"""
+    current_user_id = get_jwt_identity()
+    
+    # Kullanıcının öğrenci olup olmadığını kontrol et
+    user = User.query.get(current_user_id)
+    if not user or user.role != 'student':
+        return jsonify({'error': 'Bu işlem için öğrenci olmalısınız'}), 403
+    
+    # Kursun var olup olmadığını kontrol et
+    course = Course.query.get_or_404(course_id)
+    
+    # Öğrencinin zaten kayıtlı olup olmadığını kontrol et
+    existing_enrollment = Enrollment.query.filter_by(
+        student_id=current_user_id,
+        course_id=course_id
+    ).first()
+    
+    if existing_enrollment:
+        return jsonify({'error': 'Bu kursa zaten kayıtlısınız'}), 400
+    
+    # Yeni kayıt oluştur
+    enrollment = Enrollment(
+        student_id=current_user_id,
+        course_id=course_id
+    )
+    
+    try:
+        db.session.add(enrollment)
+        db.session.commit()
+        return jsonify({
+            'message': 'Kursa başarıyla kaydoldunuz',
+            'enrollment': {
+                'id': enrollment.id,
+                'course_id': course_id,
+                'enrolled_at': enrollment.enrolled_at.isoformat()
+            }
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Kursa kayıt olurken bir hata oluştu'}), 500 

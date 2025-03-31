@@ -13,7 +13,7 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow) # Kullanıcının oluşturulma tarihi.
     
     # İlişkiler
-    enrolled_courses = db.relationship('Enrollment', backref='student', lazy=True)
+    enrollments = db.relationship('Enrollment', backref='student', lazy=True)
     created_courses = db.relationship('Course', backref='instructor', lazy=True)
 
     def set_password(self, password): # Şifreyi hashler.
@@ -22,19 +22,44 @@ class User(db.Model):
     def check_password(self, password): # Şifrenin doğru olup olmadığını kontrol eder.
         return check_password_hash(self.password_hash, password)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'role': self.role,
+            'created_at': self.created_at.isoformat()
+        }
+
 class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    category = db.Column(db.String(50), nullable=True)
-    popularity = db.Column(db.Integer, default=0)
-    price = db.Column(db.Float, nullable=False, default=0.0)  # Fiyat alanı eklendi
     instructor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    price = db.Column(db.Float, nullable=False, default=0.0)
+    category = db.Column(db.String(50))
+    level = db.Column(db.String(20))  # 'Beginner', 'Intermediate', 'Advanced'
     
     # İlişkiler
-    lessons = db.relationship('Lesson', backref='course', lazy=True, order_by='Lesson.order')
+    lessons = db.relationship('Lesson', backref='course', lazy=True, cascade='all, delete-orphan')
     enrollments = db.relationship('Enrollment', backref='course', lazy=True)
+    reviews = db.relationship('Review', backref='course', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'instructor': self.instructor.to_dict(),
+            'created_at': self.created_at.isoformat(),
+            'price': self.price,
+            'category': self.category,
+            'level': self.level,
+            'lesson_count': len(self.lessons),
+            'enrollment_count': len(self.enrollments),
+            'review_count': len(self.reviews)
+        }
 
 class Lesson(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -53,12 +78,49 @@ class Lesson(db.Model):
     progress_records = db.relationship('Progress', backref='lesson', lazy=True)
     quiz = db.relationship('Quiz', backref='lesson', uselist=False, lazy=True)
     assignments = db.relationship('Assignment', backref='lesson', lazy=True)
+    documents = db.relationship('LessonDocument', backref='lesson', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'content': self.content,
+            'order': self.order,
+            'video_url': self.video_url,
+            'created_at': self.created_at.isoformat(),
+            'document_count': len(self.documents),
+            'quiz_count': len(self.quiz),
+            'assignment_count': len(self.assignments)
+        }
+
+class LessonDocument(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
+    file_url = db.Column(db.String(500), nullable=False)
+    file_name = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'file_url': self.file_url,
+            'file_name': self.file_name,
+            'created_at': self.created_at.isoformat()
+        }
 
 class Enrollment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-    enrolled_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    enrolled_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'student': self.student.to_dict(),
+            'course_id': self.course_id,
+            'enrolled_at': self.enrolled_at.isoformat()
+        }
 
 class Progress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -85,7 +147,7 @@ class Review(db.Model):
     instructor_reply_date = db.Column(db.DateTime, nullable=True)
     
     # İlişki tanımlamaları
-    course = db.relationship('Course', backref=db.backref('reviews', lazy=True))
+    #course = db.relationship('Course', backref=db.backref('reviews', lazy=True))
     user = db.relationship('User', backref=db.backref('reviews', lazy=True))
 
     def to_dict(self):
@@ -97,10 +159,7 @@ class Review(db.Model):
             'updated_at': self.updated_at.isoformat(),
             'course_id': self.course_id,
             'user_id': self.user_id,
-            'user': {
-                'id': self.user.id,
-                'username': self.user.username
-            },
+            'user': self.user.to_dict(),
             'instructor_reply': self.instructor_reply,
             'instructor_reply_date': self.instructor_reply_date.isoformat() if self.instructor_reply_date else None
         }
@@ -149,8 +208,9 @@ class QuizAnswer(db.Model):
     attempt_id = db.Column(db.Integer, db.ForeignKey('quiz_attempt.id'), nullable=False)
     question_id = db.Column(db.Integer, db.ForeignKey('quiz_question.id'), nullable=False)
     answer_text = db.Column(db.Text, nullable=False)
-    is_correct = db.Column(db.Boolean, nullable=True)
-    points_earned = db.Column(db.Float, nullable=True)
+    is_correct = db.Column(db.Boolean, default=False)
+    points_earned = db.Column(db.Float, default=0)
+    submitted_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
 
 class Assignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)

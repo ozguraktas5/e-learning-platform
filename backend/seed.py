@@ -26,8 +26,7 @@ def seed_database(): # Veritabanını doldur
                 description="Python programlama dilini sıfırdan öğrenin. Değişkenler, döngüler, fonksiyonlar ve daha fazlası.",
                 instructor_id=instructor.id,
                 category="programming",
-                popularity=100,  # En popüler kurs
-                price=199.99,  # Fiyat eklendi
+                price=199.99,
                 created_at=datetime.utcnow()
             ),
             Course(
@@ -35,8 +34,7 @@ def seed_database(): # Veritabanını doldur
                 description="Flask framework'ü ile web uygulamaları geliştirmeyi öğrenin. REST API, veritabanı entegrasyonu ve authentication konuları.",
                 instructor_id=instructor.id,
                 category="web_development",
-                popularity=75,  # Orta popülerlik
-                price=149.99,  # Fiyat eklendi
+                price=149.99,
                 created_at=datetime.utcnow()
             ),
             Course(
@@ -44,8 +42,7 @@ def seed_database(): # Veritabanını doldur
                 description="Python ile veri bilimi ve makine öğrenmesi. NumPy, Pandas, Scikit-learn kütüphaneleri ile uygulamalı örnekler.",
                 instructor_id=instructor.id,
                 category="data_science",
-                popularity=50,  # En az popüler kurs
-                price=299.99,  # Fiyat eklendi
+                price=299.99,
                 created_at=datetime.utcnow()
             )
         ]
