@@ -1,9 +1,14 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from models import db, Course, Lesson, User, Enrollment, Review, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Assignment, AssignmentSubmission, LessonDocument
+from models import db, Course, Lesson, User, Enrollment, Review, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Assignment, AssignmentSubmission, LessonDocument, Notification
 from sqlalchemy import or_
-from datetime import datetime
+from datetime import datetime, timedelta
 from utils import upload_video_to_gcs, upload_document_to_gcs, upload_file_to_gcs
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 courses = Blueprint('courses', __name__)
 
@@ -115,8 +120,21 @@ def add_lesson(course_id):
         course_id=course_id
     )
     
-    db.session.add(lesson) # Dersi veritabanına ekliyoruz.
-    db.session.commit() # Değişiklikleri kaydediyoruz.
+    db.session.add(lesson)
+    
+    # Kursa kayıtlı tüm öğrencilere bildirim gönder
+    enrollments = Enrollment.query.filter_by(course_id=course_id).all()
+    for enrollment in enrollments:
+        notification = Notification(
+            user_id=enrollment.student_id,
+            course_id=course_id,
+            title=f"Yeni Ders: {lesson.title}",
+            message=f"{course.title} kursuna yeni bir ders eklendi: {lesson.title}",
+            type="new_lesson"
+        )
+        db.session.add(notification)
+    
+    db.session.commit()
     
     return jsonify({
         'message': 'Lesson added successfully',
@@ -617,6 +635,40 @@ def grade_assignment(course_id, lesson_id, assignment_id):
         'feedback': submission.feedback
     })
 
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>/submission/<int:submission_id>/grade', methods=['POST'])
+@jwt_required()
+def grade_assignment_submission(course_id, lesson_id, assignment_id, submission_id):
+    """Ödevi değerlendir"""
+    current_user_id = int(get_jwt_identity())
+    assignment = Assignment.query.get_or_404(assignment_id)
+    course = Course.query.get_or_404(course_id)
+    
+    # Kullanıcının kursun eğitmeni olup olmadığını kontrol et
+    if course.instructor_id != current_user_id:
+        return jsonify({'error': 'Bu ödevi değerlendiremezsiniz.'}), 403
+    
+    data = request.get_json()
+    
+    if not data or 'grade' not in data:
+        return jsonify({'error': 'Değerlendirme bilgileri zorunludur.'}), 400
+    
+    submission = AssignmentSubmission.query.get_or_404(submission_id)
+    
+    if submission.assignment_id != assignment_id:
+        return jsonify({'error': 'Geçersiz ödev gönderimi.'}), 400
+    
+    submission.grade = data['grade']
+    submission.feedback = data.get('feedback')
+    submission.graded_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Ödev başarıyla değerlendirildi',
+        'grade': submission.grade,
+        'feedback': submission.feedback
+    })
+
 @courses.route('/<int:course_id>/enroll', methods=['POST'])
 @jwt_required()
 def enroll_course(course_id):
@@ -731,4 +783,104 @@ def get_quiz_results(course_id, lesson_id, quiz_id):
         'quiz_description': quiz.description,
         'total_attempts': len(attempts),
         'results': results
+    })
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>/submission/<int:submission_id>', methods=['GET'])
+@jwt_required()
+def get_assignment_submission(course_id, lesson_id, assignment_id, submission_id):
+    """Ödev gönderiminin detaylarını görüntüle"""
+    current_user_id = int(get_jwt_identity())
+    
+    # Ödev gönderimini bul
+    submission = AssignmentSubmission.query.get_or_404(submission_id)
+    assignment = Assignment.query.get_or_404(assignment_id)
+    course = Course.query.get_or_404(course_id)
+    
+    # Kullanıcının yetkisi var mı kontrol et (öğrenci kendi ödevini veya eğitmen kendi kursunun ödevlerini görebilir)
+    if submission.user_id != current_user_id and course.instructor_id != current_user_id:
+        return jsonify({'error': 'Bu ödevi görüntüleme yetkiniz yok'}), 403
+    
+    # Ödev detaylarını hazırla
+    submission_details = {
+        'submission_id': submission.id,
+        'submitted_at': submission.submitted_at.isoformat(),
+        'submission_text': submission.submission_text,
+        'grade': submission.grade,
+        'feedback': submission.feedback,
+        'graded_at': submission.graded_at.isoformat() if submission.graded_at else None,
+        'assignment': {
+            'id': assignment.id,
+            'title': assignment.title,
+            'description': assignment.description,
+            'due_date': assignment.due_date.isoformat(),
+            'max_points': assignment.max_points
+        }
+    }
+    
+    return jsonify(submission_details)
+
+@courses.route('/notifications', methods=['GET'])
+@jwt_required()
+def get_notifications():
+    """Kullanıcının bildirimlerini getir"""
+    current_user_id = get_jwt_identity()
+    
+    # Okunmamış bildirimleri önce göster
+    notifications = Notification.query.filter_by(user_id=current_user_id)\
+        .order_by(Notification.is_read.asc(), Notification.created_at.desc()).all()
+    
+    return jsonify({
+        'notifications': [notification.to_dict() for notification in notifications]
+    })
+
+@courses.route('/notifications/unread', methods=['GET'])
+@jwt_required()
+def get_unread_notifications():
+    """Kullanıcının okunmamış bildirimlerini getir"""
+    current_user_id = get_jwt_identity()
+    
+    notifications = Notification.query.filter_by(
+        user_id=current_user_id,
+        is_read=False
+    ).order_by(Notification.created_at.desc()).all()
+    
+    return jsonify({
+        'notifications': [notification.to_dict() for notification in notifications],
+        'count': len(notifications)
+    })
+
+@courses.route('/notifications/<int:notification_id>/mark-read', methods=['POST'])
+@jwt_required()
+def mark_notification_read(notification_id):
+    """Bildirimi okundu olarak işaretle"""
+    current_user_id = get_jwt_identity()
+    
+    notification = Notification.query.get_or_404(notification_id)
+    
+    if notification.user_id != int(current_user_id):
+        return jsonify({'error': 'Bu bildirimi işaretleme yetkiniz yok'}), 403
+    
+    notification.is_read = True
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Bildirim okundu olarak işaretlendi',
+        'notification': notification.to_dict()
+    })
+
+@courses.route('/notifications/mark-all-read', methods=['POST'])
+@jwt_required()
+def mark_all_notifications_read():
+    """Tüm bildirimleri okundu olarak işaretle"""
+    current_user_id = get_jwt_identity()
+    
+    Notification.query.filter_by(
+        user_id=current_user_id,
+        is_read=False
+    ).update({'is_read': True})
+    
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Tüm bildirimler okundu olarak işaretlendi'
     }) 

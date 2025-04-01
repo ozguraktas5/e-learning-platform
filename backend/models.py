@@ -1,10 +1,12 @@
-from flask_sqlalchemy import SQLAlchemy # SQLAlchemy: SQL veritabanını yönetmek için kullanılır.
-from datetime import datetime, UTC # datetime: Tarih ve saat bilgilerini işlemek için kullanılır.
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime, UTC
 from werkzeug.security import generate_password_hash, check_password_hash # werkzeug.security: Şifre hashleme işlemlerini yapmak için kullanılır.
 
-db = SQLAlchemy() # Veritabanı bağlantısını başlatır.
+# Initialize SQLAlchemy
+db = SQLAlchemy()
 
 class User(db.Model):
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True) # Kullanıcının benzersiz kimliği.
     username = db.Column(db.String(80), unique=True, nullable=False) # Kullanıcı adı.
     email = db.Column(db.String(120), unique=True, nullable=False) # E-posta adresi.
@@ -13,8 +15,8 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow) # Kullanıcının oluşturulma tarihi.
     
     # İlişkiler
-    enrollments = db.relationship('Enrollment', backref='student', lazy=True)
-    created_courses = db.relationship('Course', backref='instructor', lazy=True)
+    enrollments = db.relationship('Enrollment', backref='student', lazy=True, foreign_keys='Enrollment.student_id')
+    created_courses = db.relationship('Course', backref='instructor', lazy=True, foreign_keys='Course.instructor_id')
 
     def set_password(self, password): # Şifreyi hashler.
         self.password_hash = generate_password_hash(password)
@@ -32,19 +34,22 @@ class User(db.Model):
         }
 
 class Course(db.Model):
+    __tablename__ = 'courses'
+    
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    instructor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    description = db.Column(db.Text)
+    instructor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     price = db.Column(db.Float, nullable=False, default=0.0)
     category = db.Column(db.String(50))
     level = db.Column(db.String(20))  # 'Beginner', 'Intermediate', 'Advanced'
     
     # İlişkiler
     lessons = db.relationship('Lesson', backref='course', lazy=True, cascade='all, delete-orphan')
-    enrollments = db.relationship('Enrollment', backref='course', lazy=True)
-    reviews = db.relationship('Review', backref='course', lazy=True)
+    enrollments = db.relationship('Enrollment', backref='course', lazy=True, cascade='all, delete-orphan')
+    reviews = db.relationship('Review', backref='course', lazy=True, cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
@@ -53,6 +58,7 @@ class Course(db.Model):
             'description': self.description,
             'instructor': self.instructor.to_dict(),
             'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
             'price': self.price,
             'category': self.category,
             'level': self.level,
@@ -65,7 +71,7 @@ class Lesson(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
     order = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     
@@ -110,14 +116,14 @@ class LessonDocument(db.Model):
 
 class Enrollment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
     enrolled_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
         return {
             'id': self.id,
-            'student': self.student.to_dict(),
+            'student_id': self.student_id,
             'course_id': self.course_id,
             'enrolled_at': self.enrolled_at.isoformat()
         }
@@ -141,13 +147,12 @@ class Review(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # İlişkiler
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     instructor_reply = db.Column(db.Text, nullable=True)
     instructor_reply_date = db.Column(db.DateTime, nullable=True)
     
     # İlişki tanımlamaları
-    #course = db.relationship('Course', backref=db.backref('reviews', lazy=True))
     user = db.relationship('User', backref=db.backref('reviews', lazy=True))
 
     def to_dict(self):
@@ -195,13 +200,24 @@ class QuizOption(db.Model):
 class QuizAttempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     score = db.Column(db.Float, nullable=True)
     started_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     completed_at = db.Column(db.DateTime, nullable=True)
     
     # İlişkiler
     answers = db.relationship('QuizAnswer', backref='attempt', lazy=True)
+    user = db.relationship('User', backref=db.backref('quiz_attempts', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'quiz_id': self.quiz_id,
+            'user_id': self.user_id,
+            'score': self.score,
+            'started_at': self.started_at.isoformat(),
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None
+        }
 
 class QuizAnswer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -226,7 +242,7 @@ class Assignment(db.Model):
 class AssignmentSubmission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     assignment_id = db.Column(db.Integer, db.ForeignKey('assignment.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     submission_text = db.Column(db.Text, nullable=True)
     file_url = db.Column(db.String(500), nullable=True)
     submitted_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
@@ -235,4 +251,45 @@ class AssignmentSubmission(db.Model):
     graded_at = db.Column(db.DateTime, nullable=True)
     
     # İlişkiler
-    user = db.relationship('User', backref='assignment_submissions', lazy=True) 
+    user = db.relationship('User', backref=db.backref('assignment_submissions', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'assignment_id': self.assignment_id,
+            'user_id': self.user_id,
+            'submission_text': self.submission_text,
+            'file_url': self.file_url,
+            'submitted_at': self.submitted_at.isoformat(),
+            'grade': self.grade,
+            'feedback': self.feedback,
+            'graded_at': self.graded_at.isoformat() if self.graded_at else None
+        }
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    type = db.Column(db.String(50), nullable=False)  # 'new_lesson', 'new_assignment', etc.
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # İlişkiler
+    user = db.relationship('User', backref=db.backref('notifications', lazy=True))
+    course = db.relationship('Course', backref=db.backref('notifications', lazy=True))
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'course_id': self.course_id,
+            'course_title': self.course.title,
+            'title': self.title,
+            'message': self.message,
+            'type': self.type,
+            'is_read': self.is_read,
+            'created_at': self.created_at.isoformat()
+        } 
