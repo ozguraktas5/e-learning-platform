@@ -53,31 +53,46 @@ def register():
 
 @auth.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    
-    if not data or not data.get('email') or not data.get('password'):
-        return jsonify({'message': 'Missing email or password'}), 400
-    
-    user = User.query.filter_by(email=data['email']).first()
-    
-    if not user or not check_password_hash(user.password_hash, data['password']):
-        return jsonify({'message': 'Invalid email or password'}), 401
-    
-    access_token = create_access_token(
-        identity=str(user.id),
-        expires_delta=timedelta(days=1)
-    )
-    
-    return jsonify({
-        'access_token': access_token,
-        'user': {
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'role': user.role,
-            'created_at': user.created_at.isoformat()
-        }
-    })
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'message': 'No JSON data received'}), 400
+        
+        # Kullanıcı email veya username ile giriş yapabilir
+        identifier = data.get('email') or data.get('username')
+        password = data.get('password')
+        
+        if not identifier or not password:
+            return jsonify({'message': 'Missing login identifier (email or username) or password', 'received_data': data}), 400
+        
+        # Önce email ile ara, bulunamazsa username ile ara
+        user = User.query.filter_by(email=identifier).first() or User.query.filter_by(username=identifier).first()
+        
+        if not user:
+            return jsonify({'message': 'User not found'}), 401
+        
+        if not check_password_hash(user.password_hash, password):
+            return jsonify({'message': 'Invalid password'}), 401
+        
+        access_token = create_access_token(
+            identity=str(user.id),
+            expires_delta=timedelta(days=1)
+        )
+        
+        return jsonify({
+            'access_token': access_token,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'role': user.role,
+                'created_at': user.created_at.isoformat()
+            }
+        })
+    except Exception as e:
+        print("Login error:", str(e))  # Debug log
+        return jsonify({'message': f'Login error: {str(e)}'}), 500
 
 @auth.route('/me', methods=['GET'])
 @jwt_required()

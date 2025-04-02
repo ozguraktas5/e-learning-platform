@@ -175,6 +175,8 @@ class Quiz(db.Model):
     description = db.Column(db.Text, nullable=True)
     lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    time_limit = db.Column(db.Integer, nullable=True)  # Dakika cinsinden süre limiti
+    passing_score = db.Column(db.Float, nullable=False, default=60.0)  # Geçme notu
     
     # İlişkiler
     questions = db.relationship('QuizQuestion', backref='quiz', lazy=True)
@@ -223,9 +225,13 @@ class QuizAnswer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     attempt_id = db.Column(db.Integer, db.ForeignKey('quiz_attempt.id'), nullable=False)
     question_id = db.Column(db.Integer, db.ForeignKey('quiz_question.id'), nullable=False)
+    selected_option_id = db.Column(db.Integer, db.ForeignKey('quiz_option.id'), nullable=True)  # Çoktan seçmeli sorular için
     answer_text = db.Column(db.Text, nullable=False)
     is_correct = db.Column(db.Boolean, default=False)
     points_earned = db.Column(db.Float, default=0)
+    
+    # İlişkiler
+    selected_option = db.relationship('QuizOption', backref=db.backref('answers', lazy=True))
 
 class Assignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -272,11 +278,12 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
+    type = db.Column(db.String(50), nullable=False)  # 'new_lesson', 'grade_posted', etc.
     title = db.Column(db.String(200), nullable=False)
     message = db.Column(db.Text, nullable=False)
-    type = db.Column(db.String(50), nullable=False)  # 'new_lesson', 'new_assignment', etc.
     is_read = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    read_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     
     # İlişkiler
     user = db.relationship('User', backref=db.backref('notifications', lazy=True))
@@ -285,11 +292,12 @@ class Notification(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'course_id': self.course_id,
-            'course_title': self.course.title,
+            'type': self.type,
             'title': self.title,
             'message': self.message,
-            'type': self.type,
             'is_read': self.is_read,
-            'created_at': self.created_at.isoformat()
+            'read_at': self.read_at.isoformat() if self.read_at else None,
+            'created_at': self.created_at.isoformat(),
+            'course_id': self.course_id,
+            'course_title': self.course.title if self.course else None
         } 

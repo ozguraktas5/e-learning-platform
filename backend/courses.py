@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from models import db, Course, Lesson, User, Enrollment, Review, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Assignment, AssignmentSubmission, LessonDocument, Notification
 from sqlalchemy import or_
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from utils import upload_video_to_gcs, upload_document_to_gcs, upload_file_to_gcs
 import os
 from dotenv import load_dotenv
@@ -52,32 +52,78 @@ def create_course():
 @courses.route('/<int:course_id>', methods=['PUT'])
 @jwt_required()
 def update_course(course_id):
-    # Kursu bul
-    course = Course.query.get_or_404(course_id) 
-    
-    # Kullanıcının kursun sahibi olup olmadığını kontrol et
-    user_id = get_jwt_identity()
-    if str(course.instructor_id) != str(user_id):
-        return jsonify({'error': 'You can only edit your own courses'}), 403
-    
-    data = request.get_json()
-    
-    # Alanları güncelle
-    if 'title' in data:
-        course.title = data['title']
-    if 'description' in data:
-        course.description = data['description']
-    
-    db.session.commit() # Değişiklikleri kaydediyoruz.
-    
-    return jsonify({
-        'message': 'Course updated successfully',
-        'course': {
-            'id': course.id,
-            'title': course.title,
-            'description': course.description
-        }
-    })
+    try:
+        # Eğitmen kontrolü
+        current_user_id = get_jwt_identity()
+        course = Course.query.get_or_404(course_id)
+        
+        if str(course.instructor_id) != current_user_id:
+            return jsonify({'message': 'Bu kursu güncelleme yetkiniz yok'}), 403
+        
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'message': 'Güncelleme için veri gerekli'}), 400
+        
+        # Değişiklikleri kaydet
+        changes = []
+        if 'title' in data and data['title'] != course.title:
+            old_title = course.title
+            course.title = data['title']
+            changes.append(f'Kurs başlığı "{old_title}" -> "{data["title"]}"')
+            
+        if 'description' in data and data['description'] != course.description:
+            course.description = data['description']
+            changes.append('Kurs açıklaması güncellendi')
+            
+        if 'price' in data and float(data['price']) != course.price:
+            old_price = course.price
+            course.price = float(data['price'])
+            changes.append(f'Kurs fiyatı {old_price}₺ -> {data["price"]}₺')
+            
+        if 'category' in data and data['category'] != course.category:
+            old_category = course.category
+            course.category = data['category']
+            changes.append(f'Kurs kategorisi "{old_category}" -> "{data["category"]}"')
+            
+        if 'level' in data and data['level'] != course.level:
+            old_level = course.level
+            course.level = data['level']
+            changes.append(f'Kurs seviyesi "{old_level}" -> "{data["level"]}"')
+        
+        # Eğer değişiklik varsa, bildirim gönder
+        if changes:
+            course.updated_at = datetime.now(UTC)
+            
+            # Kursa kayıtlı öğrencilere bildirim gönder
+            enrolled_students = Enrollment.query.filter_by(course_id=course_id).all()
+            
+            for enrollment in enrolled_students:
+                notification = Notification(
+                    user_id=enrollment.student_id,
+                    course_id=course_id,
+                    type='course_update',
+                    title=f'Kurs Güncellendi: {course.title}',
+                    message=f'{course.title} kursunda yapılan değişiklikler:\n' + '\n'.join(f'• {change}' for change in changes),
+                    is_read=False,
+                    created_at=datetime.now(UTC)
+                )
+                db.session.add(notification)
+        
+        try:
+            db.session.commit()
+            return jsonify({
+                'message': 'Kurs başarıyla güncellendi',
+                'course': course.to_dict(),
+                'changes': changes,
+                'notifications_sent': len(enrolled_students) if changes else 0
+            })
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'message': f'Kurs güncellenirken bir hata oluştu: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
 @courses.route('/<int:course_id>', methods=['DELETE'])
 @jwt_required()
@@ -412,115 +458,151 @@ def upload_lesson_media(course_id, lesson_id):
 @courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz', methods=['POST'])
 @jwt_required()
 def create_quiz(course_id, lesson_id):
-    """Ders için quiz oluştur"""
-    current_user_id = int(get_jwt_identity())
-    lesson = Lesson.query.get_or_404(lesson_id)
-    course = Course.query.get_or_404(course_id)
-    
-    # Kullanıcının kursun eğitmeni olup olmadığını kontrol et
-    if course.instructor_id != current_user_id:
-        return jsonify({'error': 'Bu derse quiz ekleyemezsiniz.'}), 403
-    
-    data = request.get_json()
-    
-    if not data or 'title' not in data or 'questions' not in data:
-        return jsonify({'error': 'Quiz başlığı ve sorular zorunludur.'}), 400
-    
-    # Önce quiz'i oluştur ve kaydet
-    quiz = Quiz(
-        title=data['title'],
-        description=data.get('description'),
-        lesson_id=lesson_id
-    )
-    db.session.add(quiz)
-    db.session.commit()  # Quiz'i kaydet ve ID al
-    
-    # Sonra soruları ekle
-    for q in data['questions']:
-        question = QuizQuestion(
-            quiz_id=quiz.id,  # Artık quiz.id mevcut
-            question_text=q['text'],
-            question_type=q['type'],
-            points=q.get('points', 1)
-        )
-        db.session.add(question)
-        db.session.flush()  # Question ID'yi al
+    try:
+        # Eğitmen kontrolü
+        current_user_id = get_jwt_identity()
+        course = Course.query.get_or_404(course_id)
         
-        if q['type'] == 'multiple_choice' and 'options' in q:
-            for opt in q['options']:
-                option = QuizOption(
-                    question_id=question.id,
-                    option_text=opt['text'],
-                    is_correct=opt.get('is_correct', False)
-                )
-                db.session.add(option)
-    
-    db.session.commit()
-    return jsonify({
-        'message': 'Quiz başarıyla oluşturuldu',
-        'quiz_id': quiz.id
-    })
+        if str(course.instructor_id) != current_user_id:
+            return jsonify({'message': 'Bu derse quiz ekleme yetkiniz yok'}), 403
+        
+        lesson = Lesson.query.get_or_404(lesson_id)
+        if lesson.course_id != course_id:
+            return jsonify({'message': 'Ders bu kursa ait değil'}), 400
+        
+        data = request.get_json()
+        if not data or not data.get('title') or not data.get('questions'):
+            return jsonify({'message': 'Quiz başlığı ve en az bir soru gerekli'}), 400
+        
+        # Quiz'i oluştur
+        quiz = Quiz(
+            lesson_id=lesson_id,
+            title=data['title'],
+            description=data.get('description', ''),
+            time_limit=data.get('time_limit'),  # Dakika cinsinden
+            passing_score=data.get('passing_score', 60)  # Varsayılan geçme notu: 60
+        )
+        db.session.add(quiz)
+        
+        # Soruları ekle
+        for q_data in data['questions']:
+            question = QuizQuestion(
+                quiz=quiz,
+                question_text=q_data['question_text'],
+                question_type=q_data.get('question_type', 'multiple_choice'),
+                points=q_data.get('points', 10)  # Varsayılan puan: 10
+            )
+            db.session.add(question)
+            
+            # Çoktan seçmeli soru seçeneklerini ekle
+            if question.question_type == 'multiple_choice' and 'options' in q_data:
+                for opt_data in q_data['options']:
+                    option = QuizOption(
+                        question=question,
+                        option_text=opt_data['text'],
+                        is_correct=opt_data.get('is_correct', False)
+                    )
+                    db.session.add(option)
+        
+        try:
+            db.session.commit()
+            return jsonify({
+                'message': 'Quiz başarıyla oluşturuldu',
+                'quiz': {
+                    'id': quiz.id,
+                    'title': quiz.title,
+                    'description': quiz.description,
+                    'time_limit': quiz.time_limit,
+                    'passing_score': quiz.passing_score,
+                    'question_count': len(data['questions'])
+                }
+            }), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'message': f'Quiz oluşturulurken bir hata oluştu: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
-@courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz/<int:quiz_id>', methods=['POST'])
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz/<int:quiz_id>/submit', methods=['POST'])
 @jwt_required()
 def submit_quiz(course_id, lesson_id, quiz_id):
-    """Quiz'i tamamla ve sonuçları kaydet"""
-    current_user_id = int(get_jwt_identity())
-    quiz = Quiz.query.get_or_404(quiz_id)
-    
-    # Kullanıcının kursa kayıtlı olup olmadığını kontrol et
-    enrollment = Enrollment.query.filter_by(
-        student_id=current_user_id,
-        course_id=course_id
-    ).first()
-    
-    if not enrollment:
-        return jsonify({'error': 'Bu quizi çözmek için kursa kayıtlı olmalısınız.'}), 403
-    
-    data = request.get_json()
-    
-    if not data or 'answers' not in data:
-        return jsonify({'error': 'Cevaplar zorunludur.'}), 400
-    
-    attempt = QuizAttempt(
-        quiz_id=quiz_id,
-        user_id=current_user_id
-    )
-    db.session.add(attempt)
-    
-    total_score = 0
-    for answer in data['answers']:
-        question = QuizQuestion.query.get(answer['question_id'])
-        if not question:
-            continue
-            
-        quiz_answer = QuizAnswer(
-            attempt_id=attempt.id,
-            question_id=question.id,
-            answer_text=answer['text']
+    try:
+        # Öğrenci kontrolü
+        current_user_id = get_jwt_identity()
+        
+        # Kursa kayıt kontrolü
+        enrollment = Enrollment.query.filter_by(
+            student_id=current_user_id,
+            course_id=course_id
+        ).first()
+        
+        if not enrollment:
+            return jsonify({'message': 'Bu quizi çözmek için kursa kayıtlı olmalısınız'}), 403
+        
+        # Quiz kontrolü
+        quiz = Quiz.query.get_or_404(quiz_id)
+        if quiz.lesson_id != lesson_id:
+            return jsonify({'message': 'Quiz bu derse ait değil'}), 400
+        
+        data = request.get_json()
+        if not data or not data.get('answers'):
+            return jsonify({'message': 'Cevaplar gerekli'}), 400
+        
+        # Yeni deneme oluştur
+        attempt = QuizAttempt(
+            quiz_id=quiz_id,
+            user_id=current_user_id,
+            started_at=datetime.now(UTC)
         )
+        db.session.add(attempt)
         
-        if question.question_type == 'multiple_choice':
-            correct_option = QuizOption.query.filter_by(
-                question_id=question.id,
-                is_correct=True
-            ).first()
+        # Cevapları kaydet ve puanla
+        total_points = 0
+        max_points = 0
+        
+        for answer_data in data['answers']:
+            question = QuizQuestion.query.get_or_404(answer_data['question_id'])
+            max_points += question.points
             
-            if correct_option and answer['text'] == correct_option.option_text:
-                quiz_answer.is_correct = True
-                quiz_answer.points_earned = question.points
-                total_score += question.points
+            answer = QuizAnswer(
+                attempt=attempt,
+                question_id=question.id,
+                selected_option_id=answer_data.get('selected_option_id'),
+                answer_text=answer_data.get('text', '')
+            )
+            
+            # Çoktan seçmeli soru kontrolü
+            if question.question_type == 'multiple_choice' and answer.selected_option_id:
+                selected_option = QuizOption.query.get(answer.selected_option_id)
+                if selected_option and selected_option.is_correct:
+                    answer.is_correct = True
+                    answer.points_earned = question.points
+                    total_points += question.points
+            
+            db.session.add(answer)
         
-        db.session.add(quiz_answer)
-    
-    attempt.score = total_score
-    attempt.completed_at = datetime.utcnow()
-    db.session.commit()
-    
-    return jsonify({
-        'message': 'Quiz başarıyla tamamlandı',
-        'score': total_score
-    })
+        # Quiz denemesini tamamla
+        attempt.completed_at = datetime.now(UTC)
+        attempt.score = (total_points / max_points * 100) if max_points > 0 else 0
+        
+        try:
+            db.session.commit()
+            return jsonify({
+                'message': 'Quiz başarıyla tamamlandı',
+                'attempt': {
+                    'id': attempt.id,
+                    'score': attempt.score,
+                    'started_at': attempt.started_at.isoformat(),
+                    'completed_at': attempt.completed_at.isoformat()
+                }
+            })
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'message': f'Quiz kaydedilirken bir hata oluştu: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
 @courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignment', methods=['POST'])
 @jwt_required()
@@ -638,36 +720,58 @@ def grade_assignment(course_id, lesson_id, assignment_id):
 @courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>/submission/<int:submission_id>/grade', methods=['POST'])
 @jwt_required()
 def grade_assignment_submission(course_id, lesson_id, assignment_id, submission_id):
-    """Ödevi değerlendir"""
-    current_user_id = int(get_jwt_identity())
-    assignment = Assignment.query.get_or_404(assignment_id)
-    course = Course.query.get_or_404(course_id)
-    
-    # Kullanıcının kursun eğitmeni olup olmadığını kontrol et
-    if course.instructor_id != current_user_id:
-        return jsonify({'error': 'Bu ödevi değerlendiremezsiniz.'}), 403
-    
-    data = request.get_json()
-    
-    if not data or 'grade' not in data:
-        return jsonify({'error': 'Değerlendirme bilgileri zorunludur.'}), 400
-    
-    submission = AssignmentSubmission.query.get_or_404(submission_id)
-    
-    if submission.assignment_id != assignment_id:
-        return jsonify({'error': 'Geçersiz ödev gönderimi.'}), 400
-    
-    submission.grade = data['grade']
-    submission.feedback = data.get('feedback')
-    submission.graded_at = datetime.utcnow()
-    
-    db.session.commit()
-    
-    return jsonify({
-        'message': 'Ödev başarıyla değerlendirildi',
-        'grade': submission.grade,
-        'feedback': submission.feedback
-    })
+    try:
+        # Eğitmen kontrolü
+        current_user_id = get_jwt_identity()
+        course = Course.query.get_or_404(course_id)
+        
+        if str(course.instructor_id) != current_user_id:
+            return jsonify({'message': 'Bu ödevi değerlendirme yetkiniz yok'}), 403
+        
+        submission = AssignmentSubmission.query.get_or_404(submission_id)
+        
+        if submission.assignment_id != assignment_id:
+            return jsonify({'message': 'Ödev ID uyuşmazlığı'}), 400
+        
+        data = request.get_json()
+        if not data or 'grade' not in data:
+            return jsonify({'message': 'Not ve geri bildirim gerekli'}), 400
+        
+        # Notu ve geri bildirimi güncelle
+        submission.grade = float(data['grade'])
+        submission.feedback = data.get('feedback', '')
+        submission.graded_at = datetime.now(UTC)
+        
+        # Öğrenciye bildirim gönder
+        notification = Notification(
+            user_id=submission.user_id,
+            course_id=course_id,
+            type='assignment_graded',
+            title=f'Ödev Değerlendirildi: {submission.assignment.title}',
+            message=f'{course.title} kursundaki {submission.assignment.title} ödevinden {submission.grade:.1f} puan aldınız.' + 
+                    (f'\n\nGeri Bildirim:\n{submission.feedback}' if submission.feedback else ''),
+            is_read=False,
+            created_at=datetime.now(UTC)
+        )
+        db.session.add(notification)
+        
+        try:
+            db.session.commit()
+            return jsonify({
+                'message': 'Ödev değerlendirmesi başarıyla kaydedildi',
+                'submission': {
+                    'id': submission.id,
+                    'grade': submission.grade,
+                    'feedback': submission.feedback,
+                    'graded_at': submission.graded_at.isoformat()
+                }
+            })
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'message': f'Ödev değerlendirmesi kaydedilirken bir hata oluştu: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
 @courses.route('/<int:course_id>/enroll', methods=['POST'])
 @jwt_required()
@@ -852,21 +956,48 @@ def get_unread_notifications():
 @courses.route('/notifications/<int:notification_id>/mark-read', methods=['POST'])
 @jwt_required()
 def mark_notification_read(notification_id):
-    """Bildirimi okundu olarak işaretle"""
-    current_user_id = get_jwt_identity()
-    
-    notification = Notification.query.get_or_404(notification_id)
-    
-    if notification.user_id != int(current_user_id):
-        return jsonify({'error': 'Bu bildirimi işaretleme yetkiniz yok'}), 403
-    
-    notification.is_read = True
-    db.session.commit()
-    
-    return jsonify({
-        'message': 'Bildirim okundu olarak işaretlendi',
-        'notification': notification.to_dict()
-    })
+    try:
+        # Kullanıcı kimliğini al
+        current_user_id = get_jwt_identity()
+        
+        # Bildirimi bul
+        notification = Notification.query.filter_by(
+            id=notification_id,
+            user_id=current_user_id
+        ).first()
+        
+        if not notification:
+            return jsonify({
+                'message': 'Bildirim bulunamadı veya bu bildirime erişim yetkiniz yok'
+            }), 404
+        
+        # Bildirimi okundu olarak işaretle
+        notification.is_read = True
+        notification.read_at = datetime.now(UTC)
+        
+        try:
+            db.session.commit()
+            return jsonify({
+                'message': 'Bildirim okundu olarak işaretlendi',
+                'notification': {
+                    'id': notification.id,
+                    'title': notification.title,
+                    'message': notification.message,
+                    'is_read': notification.is_read,
+                    'read_at': notification.read_at.isoformat() if notification.read_at else None,
+                    'created_at': notification.created_at.isoformat()
+                }
+            })
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                'message': f'Bildirim güncellenirken bir hata oluştu: {str(e)}'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'message': f'Bir hata oluştu: {str(e)}'
+        }), 500
 
 @courses.route('/notifications/mark-all-read', methods=['POST'])
 @jwt_required()
@@ -883,4 +1014,57 @@ def mark_all_notifications_read():
     
     return jsonify({
         'message': 'Tüm bildirimler okundu olarak işaretlendi'
-    }) 
+    })
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz/<int:quiz_id>/attempts/<int:attempt_id>/grade', methods=['POST'])
+@jwt_required()
+def grade_quiz_attempt(course_id, lesson_id, quiz_id, attempt_id):
+    try:
+        # Eğitmen kontrolü
+        current_user_id = get_jwt_identity()
+        course = Course.query.get_or_404(course_id)
+        
+        if str(course.instructor_id) != current_user_id:
+            return jsonify({'message': 'Bu quizi değerlendirme yetkiniz yok'}), 403
+        
+        quiz_attempt = QuizAttempt.query.get_or_404(attempt_id)
+        
+        if quiz_attempt.quiz_id != quiz_id:
+            return jsonify({'message': 'Quiz ID uyuşmazlığı'}), 400
+        
+        data = request.get_json()
+        if not data or 'score' not in data:
+            return jsonify({'message': 'Puan gerekli'}), 400
+        
+        # Puanı güncelle
+        quiz_attempt.score = float(data['score'])
+        quiz_attempt.completed_at = datetime.now(UTC)
+        
+        # Öğrenciye bildirim gönder
+        notification = Notification(
+            user_id=quiz_attempt.user_id,
+            course_id=course_id,
+            type='quiz_graded',
+            title=f'Quiz Değerlendirildi: {quiz_attempt.quiz.title}',
+            message=f'{course.title} kursundaki {quiz_attempt.quiz.title} quizinden {quiz_attempt.score:.1f} puan aldınız.',
+            is_read=False,
+            created_at=datetime.now(UTC)
+        )
+        db.session.add(notification)
+        
+        try:
+            db.session.commit()
+            return jsonify({
+                'message': 'Quiz değerlendirmesi başarıyla kaydedildi',
+                'attempt': {
+                    'id': quiz_attempt.id,
+                    'score': quiz_attempt.score,
+                    'completed_at': quiz_attempt.completed_at.isoformat()
+                }
+            })
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'message': f'Quiz değerlendirmesi kaydedilirken bir hata oluştu: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500 
