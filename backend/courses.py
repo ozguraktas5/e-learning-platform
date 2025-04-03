@@ -729,6 +729,7 @@ def grade_assignment_submission(course_id, lesson_id, assignment_id, submission_
             return jsonify({'message': 'Bu ödevi değerlendirme yetkiniz yok'}), 403
         
         submission = AssignmentSubmission.query.get_or_404(submission_id)
+        assignment = Assignment.query.get_or_404(assignment_id)
         
         if submission.assignment_id != assignment_id:
             return jsonify({'message': 'Ödev ID uyuşmazlığı'}), 400
@@ -747,8 +748,8 @@ def grade_assignment_submission(course_id, lesson_id, assignment_id, submission_
             user_id=submission.user_id,
             course_id=course_id,
             type='assignment_graded',
-            title=f'Ödev Değerlendirildi: {submission.assignment.title}',
-            message=f'{course.title} kursundaki {submission.assignment.title} ödevinden {submission.grade:.1f} puan aldınız.' + 
+            title=f'Ödev Değerlendirildi: {assignment.title}',
+            message=f'{course.title} kursundaki {assignment.title} ödevinden {submission.grade:.1f} puan aldınız.' + 
                     (f'\n\nGeri Bildirim:\n{submission.feedback}' if submission.feedback else ''),
             is_read=False,
             created_at=datetime.now(UTC)
@@ -1065,6 +1066,86 @@ def grade_quiz_attempt(course_id, lesson_id, quiz_id, attempt_id):
         except Exception as e:
             db.session.rollback()
             return jsonify({'message': f'Quiz değerlendirmesi kaydedilirken bir hata oluştu: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
+
+# Ödev teslim tarihi yaklaşan öğrencilere bildirim gönder
+@courses.route('/check-assignment-due-dates', methods=['POST'])
+@jwt_required()
+def check_assignment_due_dates():
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if user.role != 'student':
+            return jsonify({'message': 'Bu endpoint sadece öğrenciler için geçerlidir'}), 403
+            
+        # Öğrencinin kayıtlı olduğu kursları bul
+        enrollments = Enrollment.query.filter_by(student_id=current_user_id).all()
+        course_ids = [enrollment.course_id for enrollment in enrollments]
+        
+        # Yaklaşan ödevleri bul (3 gün içinde teslim tarihi olanlar)
+        now = datetime.now(UTC)
+        three_days_later = now + timedelta(days=3)
+        
+        upcoming_assignments = Assignment.query.join(Lesson).filter(
+            Lesson.course_id.in_(course_ids),
+            Assignment.due_date > now,
+            Assignment.due_date <= three_days_later
+        ).all()
+        
+        # Teslim edilmemiş ödevler için bildirim oluştur
+        notifications_created = 0
+        for assignment in upcoming_assignments:
+            # Ödev zaten teslim edilmiş mi kontrol et
+            submission = AssignmentSubmission.query.filter_by(
+                assignment_id=assignment.id,
+                user_id=current_user_id
+            ).first()
+            
+            if not submission:
+                # Aynı ödev için daha önce bildirim gönderilmiş mi kontrol et
+                existing_notification = Notification.query.filter_by(
+                    user_id=current_user_id,
+                    type='assignment_due',
+                    course_id=assignment.lesson.course_id,
+                    reference_id=assignment.id
+                ).first()
+                
+                if not existing_notification:
+                    time_diff = assignment.due_date - now
+                    days_left = time_diff.days
+                    hours_left = (time_diff.seconds // 3600)
+                    
+                    notification = Notification(
+                        user_id=current_user_id,
+                        course_id=assignment.lesson.course_id,
+                        type='assignment_due',
+                        reference_id=assignment.id,
+                        title=f'Ödev Teslim Tarihi Yaklaşıyor: {assignment.title}',
+                        message=f'{assignment.lesson.course.title} kursundaki {assignment.title} ödevinin teslim tarihine {days_left} gün {hours_left} saat kaldı.',
+                        is_read=False,
+                        created_at=now
+                    )
+                    db.session.add(notification)
+                    notifications_created += 1
+        
+        if notifications_created > 0:
+            try:
+                db.session.commit()
+                return jsonify({
+                    'message': f'{notifications_created} adet yaklaşan ödev bildirimi oluşturuldu',
+                    'notifications_count': notifications_created
+                })
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'message': f'Bildirimler kaydedilirken bir hata oluştu: {str(e)}'}), 500
+        else:
+            return jsonify({
+                'message': 'Yaklaşan teslim tarihli ödev bulunamadı',
+                'notifications_count': 0
+            })
             
     except Exception as e:
         return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500 

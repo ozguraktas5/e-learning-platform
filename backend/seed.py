@@ -150,6 +150,7 @@ def seed_database():
         print('5. Ödevler oluşturuluyor...')
         # Ödevler
         python_assignment = Assignment(
+            id=1,
             title='Python Liste İşlemleri',
             description='Listeler üzerinde temel işlemler yapan bir program yazın',
             lesson_id=python_lessons[1].id,
@@ -159,6 +160,7 @@ def seed_database():
         )
         
         web_assignment = Assignment(
+            id=2,
             title='Kişisel Web Sayfası',
             description='HTML ve CSS kullanarak kişisel web sayfası oluşturun',
             lesson_id=web_lessons[1].id,
@@ -166,8 +168,19 @@ def seed_database():
             max_points=100,
             created_at=datetime.now(UTC)
         )
+
+        # Yakın tarihli ödev
+        urgent_assignment = Assignment(
+            id=3,
+            title='Python Döngüler ve Koşullar',
+            description='For, while döngüleri ve if-else koşulları kullanarak örnek programlar yazın',
+            lesson_id=python_lessons[1].id,
+            due_date=datetime.now(UTC) + timedelta(days=2),  # 2 gün sonra teslim
+            max_points=100,
+            created_at=datetime.now(UTC)
+        )
         
-        db.session.add_all([python_assignment, web_assignment])
+        db.session.add_all([python_assignment, web_assignment, urgent_assignment])
         db.session.commit()
         
         print('6. Ders dökümanları oluşturuluyor...')

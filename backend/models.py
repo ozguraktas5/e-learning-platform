@@ -238,12 +238,24 @@ class Assignment(db.Model):
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
     lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
-    due_date = db.Column(db.DateTime, nullable=False)
+    due_date = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(UTC))
     max_points = db.Column(db.Integer, nullable=False, default=100)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     
     # İlişkiler
     submissions = db.relationship('AssignmentSubmission', backref='assignment', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'lesson_id': self.lesson_id,
+            'due_date': self.due_date.isoformat(),
+            'max_points': self.max_points,
+            'created_at': self.created_at.isoformat(),
+            'submission_count': len(self.submissions)
+        }
 
 class AssignmentSubmission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -278,12 +290,13 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
-    type = db.Column(db.String(50), nullable=False)  # 'new_lesson', 'grade_posted', etc.
+    type = db.Column(db.String(50), nullable=False)  # 'course_update', 'new_assignment', 'quiz_graded', 'assignment_graded', 'assignment_due'
     title = db.Column(db.String(200), nullable=False)
     message = db.Column(db.Text, nullable=False)
     is_read = db.Column(db.Boolean, default=False)
     read_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    reference_id = db.Column(db.Integer, nullable=True)  # İlgili ödev, quiz vb. ID'si
     
     # İlişkiler
     user = db.relationship('User', backref=db.backref('notifications', lazy=True))
@@ -292,12 +305,14 @@ class Notification(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'user_id': self.user_id,
+            'course_id': self.course_id,
+            'course_title': self.course.title,
             'type': self.type,
             'title': self.title,
             'message': self.message,
             'is_read': self.is_read,
             'read_at': self.read_at.isoformat() if self.read_at else None,
             'created_at': self.created_at.isoformat(),
-            'course_id': self.course_id,
-            'course_title': self.course.title if self.course else None
+            'reference_id': self.reference_id
         } 
