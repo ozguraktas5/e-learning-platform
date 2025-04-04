@@ -1,5 +1,6 @@
 import os # Python'un işletim sistemi ile iletişim kurmak için kullanılır.
 from dotenv import load_dotenv # .env dosyasındaki değişkenleri yüklemek için kullanılır.
+from datetime import UTC
 
 load_dotenv() # .env dosyasındaki değişkenleri yüklemek için kullanılır.
 
@@ -13,8 +14,14 @@ ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'webm', 'mkv'}
 ALLOWED_FILE_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'}
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key' # SECRET_KEY değişkenini oluşturuyoruz ve .env dosyasındaki SECRET_KEY değişkenini yüklüyoruz.
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///elearning.db' # SQLALCHEMY_DATABASE_URI değişkenini oluşturuyoruz ve .env dosyasındaki DATABASE_URL değişkenini yüklüyoruz.
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///instance/elearning.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-key'
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'connect_args': {'check_same_thread': False},
+        'timezone': UTC
+    }
     
 class DevelopmentConfig(Config): # DevelopmentConfig sınıfını oluşturuyoruz ve Config sınıfını miras alıyoruz.
     DEBUG = True # DEBUG değişkenini True yapıyoruz.

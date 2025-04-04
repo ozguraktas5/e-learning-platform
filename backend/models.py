@@ -238,9 +238,9 @@ class Assignment(db.Model):
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
     lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
-    due_date = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(UTC))
+    due_date = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
     max_points = db.Column(db.Integer, nullable=False, default=100)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(UTC))
     
     # İlişkiler
     submissions = db.relationship('AssignmentSubmission', backref='assignment', lazy=True)

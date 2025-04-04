@@ -1076,42 +1076,50 @@ def grade_quiz_attempt(course_id, lesson_id, quiz_id, attempt_id):
 def check_assignment_due_dates():
     try:
         current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
+        user = db.session.get(User, current_user_id)
         
         if user.role != 'student':
             return jsonify({'message': 'Bu endpoint sadece öğrenciler için geçerlidir'}), 403
             
         # Öğrencinin kayıtlı olduğu kursları bul
-        enrollments = Enrollment.query.filter_by(student_id=current_user_id).all()
+        enrollments = db.session.scalars(
+            db.select(Enrollment).filter_by(student_id=current_user_id)
+        ).all()
         course_ids = [enrollment.course_id for enrollment in enrollments]
         
         # Yaklaşan ödevleri bul (3 gün içinde teslim tarihi olanlar)
         now = datetime.now(UTC)
         three_days_later = now + timedelta(days=3)
         
-        upcoming_assignments = Assignment.query.join(Lesson).filter(
-            Lesson.course_id.in_(course_ids),
-            Assignment.due_date > now,
-            Assignment.due_date <= three_days_later
+        upcoming_assignments = db.session.scalars(
+            db.select(Assignment).join(Lesson).filter(
+                Lesson.course_id.in_(course_ids),
+                Assignment.due_date > now,
+                Assignment.due_date <= three_days_later
+            )
         ).all()
         
         # Teslim edilmemiş ödevler için bildirim oluştur
         notifications_created = 0
         for assignment in upcoming_assignments:
             # Ödev zaten teslim edilmiş mi kontrol et
-            submission = AssignmentSubmission.query.filter_by(
-                assignment_id=assignment.id,
-                user_id=current_user_id
-            ).first()
+            submission = db.session.scalar(
+                db.select(AssignmentSubmission).filter_by(
+                    assignment_id=assignment.id,
+                    user_id=current_user_id
+                )
+            )
             
             if not submission:
                 # Aynı ödev için daha önce bildirim gönderilmiş mi kontrol et
-                existing_notification = Notification.query.filter_by(
-                    user_id=current_user_id,
-                    type='assignment_due',
-                    course_id=assignment.lesson.course_id,
-                    reference_id=assignment.id
-                ).first()
+                existing_notification = db.session.scalar(
+                    db.select(Notification).filter_by(
+                        user_id=current_user_id,
+                        type='assignment_due',
+                        course_id=assignment.lesson.course_id,
+                        reference_id=assignment.id
+                    )
+                )
                 
                 if not existing_notification:
                     time_diff = assignment.due_date - now
