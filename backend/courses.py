@@ -6,9 +6,27 @@ from datetime import datetime, timedelta, UTC
 from utils import upload_video_to_gcs, upload_document_to_gcs, upload_file_to_gcs
 import os
 from dotenv import load_dotenv
+import bleach  # HTML temizleme için
 
 # Load environment variables
 load_dotenv()
+
+# Güvenli HTML etiketleri ve özellikleri
+ALLOWED_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'strong', 'em', 'u', 'br', 'ul', 'ol', 'li']
+ALLOWED_ATTRIBUTES = {'*': ['class']}
+
+def sanitize_html(content):
+    """HTML içeriğini temizle ve güvenli hale getir"""
+    # Eğer içerik HTML etiketleri içermiyorsa, olduğu gibi döndür
+    if not any(f'<{tag}' in content.lower() for tag in ALLOWED_TAGS + ['script', 'style', 'iframe']):
+        return content
+        
+    return bleach.clean(
+        content,
+        tags=ALLOWED_TAGS,
+        attributes=ALLOWED_ATTRIBUTES,
+        strip=True
+    )
 
 courses = Blueprint('courses', __name__)
 
@@ -941,81 +959,177 @@ def get_notifications():
 @courses.route('/notifications/unread', methods=['GET'])
 @jwt_required()
 def get_unread_notifications():
-    """Kullanıcının okunmamış bildirimlerini getir"""
-    current_user_id = get_jwt_identity()
-    
-    notifications = Notification.query.filter_by(
-        user_id=current_user_id,
-        is_read=False
-    ).order_by(Notification.created_at.desc()).all()
-    
-    return jsonify({
-        'notifications': [notification.to_dict() for notification in notifications],
-        'count': len(notifications)
-    })
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Sayfalandırma parametrelerini al ve doğrula
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        if page < 1:
+            return jsonify({'message': 'Sayfa numarası 1 veya daha büyük olmalıdır'}), 400
+        if per_page < 1:
+            return jsonify({'message': 'Sayfa boyutu 1 veya daha büyük olmalıdır'}), 400
+        
+        # Filtreleme parametrelerini al
+        course_id = request.args.get('course_id', type=int)
+        notification_type = request.args.get('type')
+        since = request.args.get('since')
+        
+        # Base query oluştur
+        base_query = db.select(Notification).filter_by(
+            user_id=current_user_id,
+            is_read=False
+        )
+        
+        # Kurs filtresi
+        if course_id:
+            base_query = base_query.filter_by(course_id=course_id)
+            
+        # Tip filtresi
+        if notification_type:
+            base_query = base_query.filter_by(type=notification_type)
+            
+        # Tarih filtresi
+        if since:
+            now = datetime.now(UTC)
+            if since == '24h':
+                since_date = now - timedelta(hours=24)
+            elif since == '7d':
+                since_date = now - timedelta(days=7)
+            elif since == '30d':
+                since_date = now - timedelta(days=30)
+            else:
+                return jsonify({'message': 'Geçersiz tarih filtresi. Geçerli değerler: 24h, 7d, 30d'}), 400
+            
+            # Tarih aralığı kontrolü
+            since_date = since_date.replace(microsecond=0)
+            now = now.replace(microsecond=0)
+            base_query = base_query.filter(Notification.created_at >= since_date)
+        
+        # Toplam kayıt sayısını al
+        count_query = db.select(db.func.count()).select_from(Notification)
+        for criterion in base_query.whereclause.clauses:
+            count_query = count_query.where(criterion)
+        total_count = db.session.scalar(count_query)
+        
+        # Sayfalandırılmış ve sıralanmış sonuçları al
+        notifications = db.session.scalars(
+            base_query.order_by(Notification.created_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+        ).all()
+        
+        # Bildirimleri temizle ve dönüştür
+        notification_list = []
+        for notification in notifications:
+            notification_dict = notification.to_dict()
+            notification_dict['message'] = sanitize_html(notification_dict['message'])
+            notification_list.append(notification_dict)
+        
+        # Toplam sayfa sayısını hesapla
+        total_pages = (total_count + per_page - 1) // per_page
+        
+        return jsonify({
+            'notifications': notification_list,
+            'count': len(notification_list),
+            'total_count': total_count,
+            'current_page': page,
+            'total_pages': total_pages,
+            'per_page': per_page
+        })
+        
+    except Exception as e:
+        print(f"Error in get_unread_notifications: {str(e)}")  # Debug için
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/notifications/mark-selected-read', methods=['POST'])
+@jwt_required()
+def mark_selected_notifications_read():
+    try:
+        current_user_id = get_jwt_identity()
+        notification_ids = request.json.get('notification_ids', [])
+        
+        if not notification_ids:
+            return jsonify({'message': 'İşaretlenecek bildirim seçilmedi'}), 400
+            
+        now = datetime.now(UTC)
+        
+        # Seçili bildirimleri güncelle
+        result = db.session.execute(
+            db.update(Notification)
+            .where(
+                Notification.id.in_(notification_ids),
+                Notification.user_id == current_user_id,
+                Notification.is_read == False
+            )
+            .values(is_read=True, read_at=now)
+        )
+        
+        db.session.commit()
+        
+        updated_count = result.rowcount
+        return jsonify({
+            'message': f'{updated_count} bildirim okundu olarak işaretlendi',
+            'updated_count': updated_count
+        })
+        
+    except Exception as e:
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
 @courses.route('/notifications/<int:notification_id>/mark-read', methods=['POST'])
 @jwt_required()
 def mark_notification_read(notification_id):
     try:
-        # Kullanıcı kimliğini al
         current_user_id = get_jwt_identity()
         
         # Bildirimi bul
-        notification = Notification.query.filter_by(
-            id=notification_id,
-            user_id=current_user_id
-        ).first()
-        
+        notification = db.session.get(Notification, notification_id)
         if not notification:
-            return jsonify({
-                'message': 'Bildirim bulunamadı veya bu bildirime erişim yetkiniz yok'
-            }), 404
+            return jsonify({'message': 'Bildirim bulunamadı'}), 404
+            
+        # Yetki kontrolü
+        if str(notification.user_id) != str(current_user_id):
+            return jsonify({'message': 'Bu bildirimi görüntüleme yetkiniz yok'}), 403
         
         # Bildirimi okundu olarak işaretle
         notification.is_read = True
         notification.read_at = datetime.now(UTC)
+        db.session.commit()
         
-        try:
-            db.session.commit()
-            return jsonify({
-                'message': 'Bildirim okundu olarak işaretlendi',
-                'notification': {
-                    'id': notification.id,
-                    'title': notification.title,
-                    'message': notification.message,
-                    'is_read': notification.is_read,
-                    'read_at': notification.read_at.isoformat() if notification.read_at else None,
-                    'created_at': notification.created_at.isoformat()
-                }
-            })
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({
-                'message': f'Bildirim güncellenirken bir hata oluştu: {str(e)}'
-            }), 500
-            
+        return jsonify({'message': 'Bildirim okundu olarak işaretlendi'})
+        
     except Exception as e:
-        return jsonify({
-            'message': f'Bir hata oluştu: {str(e)}'
-        }), 500
+        print(f"Error in mark_notification_read: {str(e)}")  # Debug için
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
 @courses.route('/notifications/mark-all-read', methods=['POST'])
 @jwt_required()
 def mark_all_notifications_read():
-    """Tüm bildirimleri okundu olarak işaretle"""
-    current_user_id = get_jwt_identity()
-    
-    Notification.query.filter_by(
-        user_id=current_user_id,
-        is_read=False
-    ).update({'is_read': True})
-    
-    db.session.commit()
-    
-    return jsonify({
-        'message': 'Tüm bildirimler okundu olarak işaretlendi'
-    })
+    try:
+        current_user_id = get_jwt_identity()
+        now = datetime.now(UTC)
+        
+        # Tüm okunmamış bildirimleri güncelle
+        result = db.session.execute(
+            db.update(Notification)
+            .where(
+                Notification.user_id == current_user_id,
+                Notification.is_read == False
+            )
+            .values(is_read=True, read_at=now)
+        )
+        
+        db.session.commit()
+        
+        updated_count = result.rowcount
+        return jsonify({
+            'message': f'{updated_count} bildirim okundu olarak işaretlendi',
+            'updated_count': updated_count
+        })
+        
+    except Exception as e:
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
 @courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz/<int:quiz_id>/attempts/<int:attempt_id>/grade', methods=['POST'])
 @jwt_required()
@@ -1087,73 +1201,108 @@ def check_assignment_due_dates():
         ).all()
         course_ids = [enrollment.course_id for enrollment in enrollments]
         
+        if not course_ids:
+            return jsonify({'message': 'Kayıtlı olduğunuz kurs bulunmamaktadır'}), 404
+        
         # Yaklaşan ödevleri bul (3 gün içinde teslim tarihi olanlar)
         now = datetime.now(UTC)
         three_days_later = now + timedelta(days=3)
         
-        upcoming_assignments = db.session.scalars(
-            db.select(Assignment).join(Lesson).filter(
-                Lesson.course_id.in_(course_ids),
-                Assignment.due_date > now,
-                Assignment.due_date <= three_days_later
-            )
-        ).all()
+        try:
+            upcoming_assignments = db.session.scalars(
+                db.select(Assignment)
+                .join(Lesson)
+                .options(db.joinedload(Assignment.lesson).joinedload(Lesson.course))
+                .filter(
+                    Lesson.course_id.in_(course_ids),
+                    Assignment.due_date > now,
+                    Assignment.due_date <= three_days_later
+                )
+            ).all()
+            
+            print(f"Bulunan ödev sayısı: {len(upcoming_assignments)}")  # Debug için
+            for assignment in upcoming_assignments:
+                print(f"Ödev: {assignment.title}, Due Date: {assignment.due_date}, Now: {now}")  # Debug için
+                
+        except Exception as e:
+            print(f"Hata: Ödevler yüklenirken hata oluştu: {str(e)}")
+            return jsonify({'message': f'Ödevler yüklenirken hata oluştu: {str(e)}'}), 500
         
         # Teslim edilmemiş ödevler için bildirim oluştur
         notifications_created = 0
+        created_notifications = []  # Oluşturulan bildirimleri takip et
+        
         for assignment in upcoming_assignments:
-            # Ödev zaten teslim edilmiş mi kontrol et
-            submission = db.session.scalar(
-                db.select(AssignmentSubmission).filter_by(
-                    assignment_id=assignment.id,
-                    user_id=current_user_id
-                )
-            )
-            
-            if not submission:
-                # Aynı ödev için daha önce bildirim gönderilmiş mi kontrol et
-                existing_notification = db.session.scalar(
-                    db.select(Notification).filter_by(
-                        user_id=current_user_id,
-                        type='assignment_due',
-                        course_id=assignment.lesson.course_id,
-                        reference_id=assignment.id
+            try:
+                # Ödev zaten teslim edilmiş mi kontrol et
+                submission = db.session.scalar(
+                    db.select(AssignmentSubmission).filter_by(
+                        assignment_id=assignment.id,
+                        user_id=current_user_id
                     )
                 )
                 
-                if not existing_notification:
-                    time_diff = assignment.due_date - now
-                    days_left = time_diff.days
-                    hours_left = (time_diff.seconds // 3600)
-                    
-                    notification = Notification(
-                        user_id=current_user_id,
-                        course_id=assignment.lesson.course_id,
-                        type='assignment_due',
-                        reference_id=assignment.id,
-                        title=f'Ödev Teslim Tarihi Yaklaşıyor: {assignment.title}',
-                        message=f'{assignment.lesson.course.title} kursundaki {assignment.title} ödevinin teslim tarihine {days_left} gün {hours_left} saat kaldı.',
-                        is_read=False,
-                        created_at=now
+                if not submission:
+                    # Aynı ödev için daha önce bildirim gönderilmiş mi kontrol et
+                    existing_notification = db.session.scalar(
+                        db.select(Notification).filter_by(
+                            user_id=current_user_id,
+                            type='assignment_due',
+                            course_id=assignment.lesson.course_id,
+                            reference_id=assignment.id
+                        )
                     )
-                    db.session.add(notification)
-                    notifications_created += 1
+                    
+                    if not existing_notification:
+                        # Tarihleri UTC'ye çevir
+                        due_date = assignment.due_date if assignment.due_date.tzinfo else assignment.due_date.replace(tzinfo=UTC)
+                        time_diff = due_date - now
+                        days_left = time_diff.days
+                        hours_left = (time_diff.seconds // 3600)
+                        
+                        try:
+                            notification = Notification(
+                                user_id=current_user_id,
+                                course_id=assignment.lesson.course_id,
+                                type='assignment_due',
+                                reference_id=assignment.id,
+                                title=f'Ödev Teslim Tarihi Yaklaşıyor: {assignment.title}',
+                                message=f'{assignment.lesson.course.title} kursundaki {assignment.title} ödevinin teslim tarihine {days_left} gün {hours_left} saat kaldı.',
+                                is_read=False,
+                                created_at=now
+                            )
+                            db.session.add(notification)
+                            notifications_created += 1
+                            created_notifications.append(assignment.title)  # Ödev başlığını listeye ekle
+                            print(f"Bildirim oluşturuldu: {notification.title}")  # Debug için
+                        except Exception as e:
+                            print(f"Hata: Bildirim oluşturulurken hata oluştu: {str(e)}")
+                            continue
+            except Exception as e:
+                print(f"Hata: Ödev kontrolü sırasında hata oluştu: {str(e)}")
+                continue
         
         if notifications_created > 0:
             try:
                 db.session.commit()
+                # Oluşturulan bildirimlerin ödev başlıklarını mesaja ekle
+                assignments_str = ", ".join(created_notifications)
                 return jsonify({
-                    'message': f'{notifications_created} adet yaklaşan ödev bildirimi oluşturuldu',
-                    'notifications_count': notifications_created
+                    'message': f'{notifications_created} adet yaklaşan ödev bildirimi oluşturuldu: {assignments_str}',
+                    'notifications_count': notifications_created,
+                    'assignments': created_notifications  # Ödev başlıklarını da döndür
                 })
             except Exception as e:
                 db.session.rollback()
+                print(f"Hata: Bildirimler kaydedilirken hata oluştu: {str(e)}")
                 return jsonify({'message': f'Bildirimler kaydedilirken bir hata oluştu: {str(e)}'}), 500
         else:
             return jsonify({
                 'message': 'Yaklaşan teslim tarihli ödev bulunamadı',
-                'notifications_count': 0
+                'notifications_count': 0,
+                'assignments': []  # Boş ödev listesi döndür
             })
             
     except Exception as e:
+        print(f"Hata: Genel bir hata oluştu: {str(e)}")
         return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500 

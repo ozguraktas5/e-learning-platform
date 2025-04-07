@@ -47,7 +47,7 @@ class Course(db.Model):
     level = db.Column(db.String(20))  # 'Beginner', 'Intermediate', 'Advanced'
     
     # İlişkiler
-    lessons = db.relationship('Lesson', backref='course', lazy=True, cascade='all, delete-orphan')
+    lessons = db.relationship('Lesson', back_populates='course', lazy=True, cascade='all, delete-orphan')
     enrollments = db.relationship('Enrollment', backref='course', lazy=True, cascade='all, delete-orphan')
     reviews = db.relationship('Review', backref='course', lazy=True, cascade='all, delete-orphan')
 
@@ -83,8 +83,9 @@ class Lesson(db.Model):
     # İlişkiler
     progress_records = db.relationship('Progress', backref='lesson', lazy=True)
     quiz = db.relationship('Quiz', backref='lesson', uselist=False, lazy=True)
-    assignments = db.relationship('Assignment', backref='lesson', lazy=True)
+    assignments = db.relationship('Assignment', back_populates='lesson', lazy=True)
     documents = db.relationship('LessonDocument', backref='lesson', lazy=True, cascade='all, delete-orphan')
+    course = db.relationship('Course', back_populates='lessons', lazy=True)
 
     def to_dict(self):
         return {
@@ -238,12 +239,18 @@ class Assignment(db.Model):
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
     lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
-    due_date = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
+    due_date = db.Column(db.DateTime(timezone=True), nullable=False)
     max_points = db.Column(db.Integer, nullable=False, default=100)
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(UTC))
     
     # İlişkiler
     submissions = db.relationship('AssignmentSubmission', backref='assignment', lazy=True)
+    lesson = db.relationship('Lesson', back_populates='assignments')
+
+    def __init__(self, **kwargs):
+        if 'due_date' in kwargs and kwargs['due_date'].tzinfo is None:
+            kwargs['due_date'] = kwargs['due_date'].replace(tzinfo=UTC)
+        super(Assignment, self).__init__(**kwargs)
 
     def to_dict(self):
         return {
@@ -251,6 +258,8 @@ class Assignment(db.Model):
             'title': self.title,
             'description': self.description,
             'lesson_id': self.lesson_id,
+            'lesson_title': self.lesson.title if self.lesson else None,
+            'course_title': self.lesson.course.title if self.lesson else None,
             'due_date': self.due_date.isoformat(),
             'max_points': self.max_points,
             'created_at': self.created_at.isoformat(),
