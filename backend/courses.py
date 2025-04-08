@@ -7,6 +7,12 @@ from utils import upload_video_to_gcs, upload_document_to_gcs, upload_file_to_gc
 import os
 from dotenv import load_dotenv
 import bleach  # HTML temizleme için
+import json
+import time
+import re
+import html
+import string
+from sqlalchemy import exc
 
 # Load environment variables
 load_dotenv()
@@ -1002,10 +1008,16 @@ def get_unread_notifications():
             else:
                 return jsonify({'message': 'Geçersiz tarih filtresi. Geçerli değerler: 24h, 7d, 30d'}), 400
             
-            # Tarih aralığı kontrolü
-            since_date = since_date.replace(microsecond=0)
-            now = now.replace(microsecond=0)
+            # Debug için yazdır
+            print(f"Now: {now}")
+            print(f"Since date: {since_date}")
+            
+            # Tarih aralığı kontrolü - tam gün karşılaştırması için
+            since_date = since_date.replace(hour=0, minute=0, second=0, microsecond=0)
             base_query = base_query.filter(Notification.created_at >= since_date)
+            
+            # Debug için sorguyu yazdır
+            print(f"Query: {base_query}")
         
         # Toplam kayıt sayısını al
         count_query = db.select(db.func.count()).select_from(Notification)
@@ -1013,12 +1025,18 @@ def get_unread_notifications():
             count_query = count_query.where(criterion)
         total_count = db.session.scalar(count_query)
         
+        print(f"Total count: {total_count}")  # Debug için
+        
         # Sayfalandırılmış ve sıralanmış sonuçları al
         notifications = db.session.scalars(
             base_query.order_by(Notification.created_at.desc())
             .offset((page - 1) * per_page)
             .limit(per_page)
         ).all()
+        
+        print(f"Retrieved notifications: {len(notifications)}")  # Debug için
+        for notif in notifications:
+            print(f"Notification date: {notif.created_at}")  # Debug için
         
         # Bildirimleri temizle ve dönüştür
         notification_list = []
@@ -1077,31 +1095,55 @@ def mark_selected_notifications_read():
     except Exception as e:
         return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
-@courses.route('/notifications/<int:notification_id>/mark-read', methods=['POST'])
+@courses.route('/notifications/<int:notification_id>/read', methods=['POST'])
 @jwt_required()
 def mark_notification_read(notification_id):
+    """Mark a notification as read with concurrency control"""
     try:
         current_user_id = get_jwt_identity()
-        
-        # Bildirimi bul
-        notification = db.session.get(Notification, notification_id)
-        if not notification:
-            return jsonify({'message': 'Bildirim bulunamadı'}), 404
+
+        # Start a transaction explicitly
+        db.session.begin()
+
+        try:
+            # Get notification with row-level locking
+            notification = db.session.execute(
+                db.select(Notification)
+                .filter_by(id=notification_id)
+                .with_for_update(nowait=True)
+            ).scalar_one()
+
+            # Convert current_user_id to int for comparison
+            if int(current_user_id) != notification.user_id:
+                db.session.rollback()
+                return jsonify({'message': 'You do not have permission to read this notification'}), 403
+
+            if notification.is_read:
+                db.session.rollback()
+                return jsonify({'message': 'Notification is already marked as read'}), 409
+
+            # Mark as read
+            notification.is_read = True
+            notification.read_at = datetime.now(UTC)
             
-        # Yetki kontrolü
-        if str(notification.user_id) != str(current_user_id):
-            return jsonify({'message': 'Bu bildirimi görüntüleme yetkiniz yok'}), 403
-        
-        # Bildirimi okundu olarak işaretle
-        notification.is_read = True
-        notification.read_at = datetime.now(UTC)
-        db.session.commit()
-        
-        return jsonify({'message': 'Bildirim okundu olarak işaretlendi'})
-        
+            # Commit the transaction
+            db.session.commit()
+            return jsonify({'message': 'Notification marked as read'}), 200
+
+        except exc.NoResultFound:
+            db.session.rollback()
+            return jsonify({'message': 'Notification not found'}), 404
+        except exc.OperationalError as e:
+            db.session.rollback()
+            if 'could not obtain lock' in str(e).lower():
+                return jsonify({'message': 'Notification is being processed by another request'}), 409
+            raise
+
     except Exception as e:
-        print(f"Error in mark_notification_read: {str(e)}")  # Debug için
-        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
+        if db.session.is_active:
+            db.session.rollback()
+        print(f"Error marking notification as read: {str(e)}")
+        return jsonify({'message': 'An error occurred while processing the request'}), 500
 
 @courses.route('/notifications/mark-all-read', methods=['POST'])
 @jwt_required()
@@ -1305,4 +1347,193 @@ def check_assignment_due_dates():
             
     except Exception as e:
         print(f"Hata: Genel bir hata oluştu: {str(e)}")
-        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500 
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/notifications/performance-test', methods=['POST'])
+@jwt_required()
+def create_test_notifications():
+    """Performans testi için çok sayıda bildirim oluştur"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        if not user:
+            return jsonify({'message': 'Kullanıcı bulunamadı'}), 404
+
+        # İstek parametrelerini al
+        data = request.get_json()
+        count = data.get('count', 100)  # Varsayılan 100 bildirim
+        if count > 1000:  # Maksimum limit
+            return jsonify({'message': 'En fazla 1000 test bildirimi oluşturulabilir'}), 400
+
+        # Test bildirimlerini oluştur
+        notifications = []
+        now = datetime.now(UTC)
+        for i in range(count):
+            notification = Notification(
+                user_id=current_user_id,
+                course_id=data.get('course_id'),
+                type='performance_test',
+                title=f'Performance Test Notification {i+1}',
+                message=f'Test Message {i+1}',
+                is_read=False,
+                created_at=now - timedelta(minutes=i)  # Her bildirim 1 dakika arayla
+            )
+            notifications.append(notification)
+
+        # Bildirimleri veritabanına kaydet
+        db.session.add_all(notifications)
+        db.session.commit()
+
+        # Performans metriklerini hesapla
+        end_time = datetime.now(UTC)
+        creation_time = (end_time - now).total_seconds()
+
+        return jsonify({
+            'message': f'{count} test bildirimi başarıyla oluşturuldu',
+            'metrics': {
+                'notification_count': count,
+                'creation_time_seconds': creation_time,
+                'notifications_per_second': count / creation_time if creation_time > 0 else count
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in create_test_notifications: {str(e)}")
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/notifications/create-mixed', methods=['POST'])
+@jwt_required()
+def create_mixed_content_notification():
+    """Farklı içerik türleri içeren bildirimler oluştur"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        if not user:
+            return jsonify({'message': 'Kullanıcı bulunamadı'}), 404
+
+        data = request.get_json()
+        if not data or 'content' not in data:
+            return jsonify({'message': 'İçerik gerekli'}), 400
+
+        content = data['content']
+        content_type = data.get('content_type', 'text')  # Varsayılan tip: text
+
+        # Tehlikeli SQL anahtar kelimelerini kontrol et
+        sql_keywords = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'UNION', 'ALTER', '--']
+        if any(keyword.lower() in str(content).lower() for keyword in sql_keywords):
+            return jsonify({'message': 'Güvenlik ihlali: SQL komutları içeremez'}), 400
+
+        # İçerik tipine göre doğrulama ve temizleme
+        if content_type == 'json':
+            try:
+                if isinstance(content, str):
+                    content = json.loads(content)
+                # JSON içeriğini recursive olarak kontrol et
+                def sanitize_json(obj):
+                    if isinstance(obj, dict):
+                        return {k: sanitize_json(v) for k, v in obj.items()}
+                    elif isinstance(obj, list):
+                        return [sanitize_json(item) for item in obj]
+                    elif isinstance(obj, str):
+                        # String içindeki tehlikeli karakterleri escape et
+                        return html.escape(obj)
+                    return obj
+                content = sanitize_json(content)
+                content = json.dumps(content)
+            except json.JSONDecodeError:
+                return jsonify({'message': 'Geçersiz JSON içeriği'}), 400
+
+        elif content_type == 'html':
+            # HTML içeriğini güvenli etiketlerle sınırla
+            allowed_tags = ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'ul', 'ol', 'li']
+            content = bleach.clean(content, tags=allowed_tags, strip=True)
+
+        elif content_type == 'markdown':
+            # Markdown içeriğindeki tehlikeli karakterleri escape et
+            content = html.escape(content)
+            # Kod bloklarını güvenli hale getir
+            content = re.sub(r'```.*?```', lambda m: html.escape(m.group(0)), content, flags=re.DOTALL)
+
+        elif content_type == 'url':
+            # URL formatını ve güvenliğini kontrol et
+            if not content.startswith(('http://', 'https://')):
+                return jsonify({'message': 'Sadece HTTP ve HTTPS URL\'leri kabul edilir'}), 400
+            # URL'deki tehlikeli karakterleri kontrol et
+            if re.search(r'[<>"\']', content):
+                return jsonify({'message': 'URL geçersiz karakterler içeriyor'}), 400
+            # URL uzunluğunu kontrol et
+            if len(content) > 2048:
+                return jsonify({'message': 'URL çok uzun'}), 400
+
+        elif content_type == 'base64':
+            # Base64 formatını kontrol et
+            try:
+                if not content.startswith('data:'):
+                    return jsonify({'message': 'Geçersiz Base64 formatı'}), 400
+                # Base64 içeriğini decode et ve kontrol et
+                header, encoded = content.split(',', 1)
+                if not all(c in string.printable for c in encoded):
+                    return jsonify({'message': 'Geçersiz Base64 içeriği'}), 400
+            except Exception:
+                return jsonify({'message': 'Geçersiz Base64 içeriği'}), 400
+
+        # Bildirimi oluştur
+        notification = Notification(
+            user_id=current_user_id,
+            course_id=data.get('course_id'),
+            type=f'mixed_content_{content_type}',
+            title=html.escape(data.get('title', f'Mixed Content: {content_type.upper()}')),
+            message=content,
+            is_read=False
+        )
+        
+        db.session.add(notification)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Bildirim başarıyla oluşturuldu',
+            'notification': notification.to_dict()
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in create_mixed_content_notification: {str(e)}")
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/notifications/cleanup', methods=['POST'])
+@jwt_required()
+def cleanup_old_notifications():
+    """Clean up old notifications based on a threshold date"""
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        days_threshold = data.get('days_threshold', 90)  # Default 90 days
+
+        if not isinstance(days_threshold, (int, float)) or days_threshold <= 0:
+            return jsonify({'message': 'days_threshold must be a positive number'}), 400
+
+        threshold_date = datetime.now(UTC) - timedelta(days=days_threshold)
+
+        # Delete old notifications that are read
+        result = db.session.execute(
+            db.delete(Notification)
+            .where(
+                Notification.user_id == current_user_id,
+                Notification.is_read == True,
+                Notification.created_at < threshold_date
+            )
+        )
+        
+        deleted_count = result.rowcount
+        db.session.commit()
+
+        return jsonify({
+            'message': f'Successfully deleted {deleted_count} old notifications',
+            'deleted_count': deleted_count
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error cleaning up old notifications: {str(e)}")
+        return jsonify({'message': 'An error occurred while cleaning up notifications'}), 500 
