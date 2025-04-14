@@ -132,34 +132,39 @@ def test_unread_notifications(test_client, setup_test_data, session):
     assert data['count'] == 1
 
 def test_mark_notification_read(test_client, setup_test_data, session):
-    # Test bildirimi oluştur
+    """Test marking a notification as read"""
+    # Create a test notification for the student
     notification = Notification(
         user_id=setup_test_data['student'].id,
         course_id=setup_test_data['course'].id,
         type='test_notification',
         title='Test Notification',
         message='Test Message',
-        is_read=False
+        is_read=False,
+        created_at=datetime.now(UTC)
     )
     session.add(notification)
     session.commit()
-    
-    # Öğrenci olarak giriş yap
+
+    # Login as student
     login_response = test_client.post('/api/auth/login', json={
         'email': 'student@test.com',
         'password': 'password123'
     })
+    assert login_response.status_code == 200
     token = login_response.get_json()['access_token']
-    
-    # Bildirimi okundu olarak işaretle
+
+    # Mark notification as read
     response = test_client.post(
         f'/api/courses/notifications/{notification.id}/read',
         headers={'Authorization': f'Bearer {token}'}
     )
-    
+
     assert response.status_code == 200
-    
-    # Bildirimin okundu olarak işaretlendiğini kontrol et
+    data = response.get_json()
+    assert data['message'] == 'Notification marked as read successfully'
+
+    # Verify the notification is marked as read
     updated_notification = session.get(Notification, notification.id)
     assert updated_notification.is_read == True
     assert updated_notification.read_at is not None
@@ -923,17 +928,8 @@ def test_notification_html_content(test_client, setup_test_data, session):
     # HTML içeriğin escape edilip edilmediğini kontrol et
     assert '<script>' not in data['notifications'][0]['message']
 
-def test_concurrent_read_notification(test_client, test_app, setup_test_data, session):
+def test_concurrent_read_notification(test_client, setup_test_data, session, test_app):
     """Test concurrent read operations on a notification"""
-    # Get student token
-    login_response = test_client.post('/api/auth/login', json={
-        'email': 'student@test.com',
-        'password': 'password123'
-    })
-    assert login_response.status_code == 200, f"Login failed: {login_response.get_json()}"
-    token = login_response.get_json()['access_token']
-    headers = {'Authorization': f'Bearer {token}'}
-
     # Create a test notification
     notification = Notification(
         user_id=setup_test_data['student'].id,
@@ -949,18 +945,28 @@ def test_concurrent_read_notification(test_client, test_app, setup_test_data, se
     notification_id = notification.id
     print(f"\nCreated test notification with ID: {notification_id}")
 
+    # Login as student
+    login_response = test_client.post('/api/auth/login', json={
+        'email': 'student@test.com',
+        'password': 'password123'
+    })
+    assert login_response.status_code == 200, f"Login failed: {login_response.get_json()}"
+    token = login_response.get_json()['access_token']
+    headers = {'Authorization': f'Bearer {token}'}
+
     # Queue to store results from threads
     results = Queue()
 
     def make_request(thread_id):
         try:
             print(f"Thread {thread_id} starting request...")
-            response = test_client.post(
-                f'/api/courses/notifications/{notification_id}/read',
-                headers=headers
-            )
-            print(f"Thread {thread_id} response: {response.status_code} - {response.get_json()}")
-            results.put(response.status_code)
+            with test_app.test_client() as client:
+                response = client.post(
+                    f'/api/courses/notifications/{notification_id}/read',
+                    headers=headers
+                )
+                print(f"Thread {thread_id} response: {response.status_code} - {response.get_json()}")
+                results.put(response.status_code)
         except Exception as e:
             print(f"Thread {thread_id} error: {str(e)}")
             results.put(500)
@@ -1163,7 +1169,7 @@ def test_notification_stress_concurrent_reads(test_client, setup_test_data, sess
         try:
             print(f"Thread {thread_id} starting request...")
             response = test_client.post(
-                f'/api/courses/notifications/{notification_id}/read',  # Correct endpoint
+                f'/api/courses/notifications/{notification_id}/read',
                 headers=headers
             )
             print(f"Thread {thread_id} response: {response.status_code} - {response.get_json()}")
@@ -1280,7 +1286,12 @@ def test_notification_cleanup_old_notifications(test_client, setup_test_data, se
     ).all()
     
     assert len(remaining) == 2  # Sadece 1 ay önce ve bugünkü bildirimler kalmalı
-    assert all(n.created_at > (now - timedelta(days=90)) for n in remaining)
+    
+    # Tarihleri karşılaştırmadan önce UTC'ye çevir
+    threshold_date = (now - timedelta(days=90))
+    for notification in remaining:
+        created_at = notification.created_at if notification.created_at.tzinfo else notification.created_at.replace(tzinfo=UTC)
+        assert created_at > threshold_date
 
 def test_notification_bulk_status_update(test_client, setup_test_data, session):
     """Toplu bildirim durumu güncelleme testi"""

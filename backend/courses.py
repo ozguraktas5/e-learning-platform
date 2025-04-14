@@ -13,6 +13,8 @@ import re
 import html
 import string
 from sqlalchemy import exc
+from sqlalchemy.exc import OperationalError
+from flask import current_app
 
 # Load environment variables
 load_dotenv()
@@ -1098,51 +1100,41 @@ def mark_selected_notifications_read():
 @courses.route('/notifications/<int:notification_id>/read', methods=['POST'])
 @jwt_required()
 def mark_notification_read(notification_id):
-    """Mark a notification as read with concurrency control"""
     try:
         current_user_id = get_jwt_identity()
-
-        # Start a transaction explicitly
-        db.session.begin()
-
+        
+        # Get notification with row-level locking
+        stmt = db.select(Notification).where(
+            Notification.id == notification_id
+        ).with_for_update(nowait=True)
+        
         try:
-            # Get notification with row-level locking
-            notification = db.session.execute(
-                db.select(Notification)
-                .filter_by(id=notification_id)
-                .with_for_update(nowait=True)
-            ).scalar_one()
-
-            # Convert current_user_id to int for comparison
-            if int(current_user_id) != notification.user_id:
-                db.session.rollback()
-                return jsonify({'message': 'You do not have permission to read this notification'}), 403
-
-            if notification.is_read:
-                db.session.rollback()
-                return jsonify({'message': 'Notification is already marked as read'}), 409
-
-            # Mark as read
-            notification.is_read = True
-            notification.read_at = datetime.now(UTC)
-            
-            # Commit the transaction
-            db.session.commit()
-            return jsonify({'message': 'Notification marked as read'}), 200
-
+            notification = db.session.execute(stmt).scalar_one()
         except exc.NoResultFound:
-            db.session.rollback()
             return jsonify({'message': 'Notification not found'}), 404
         except exc.OperationalError as e:
-            db.session.rollback()
             if 'could not obtain lock' in str(e).lower():
                 return jsonify({'message': 'Notification is being processed by another request'}), 409
             raise
-
+            
+        # Check if the user owns this notification
+        if str(notification.user_id) != str(current_user_id):
+            return jsonify({'message': 'You do not have permission to read this notification'}), 403
+            
+        # Check if notification is already read
+        if notification.is_read:
+            return jsonify({'message': 'Notification is already marked as read'}), 409
+            
+        # Mark as read
+        notification.is_read = True
+        notification.read_at = datetime.now(UTC)
+        db.session.commit()
+        
+        return jsonify({'message': 'Notification marked as read successfully'}), 200
+        
     except Exception as e:
-        if db.session.is_active:
-            db.session.rollback()
-        print(f"Error marking notification as read: {str(e)}")
+        db.session.rollback()
+        current_app.logger.error(f"Error marking notification as read: {str(e)}")
         return jsonify({'message': 'An error occurred while processing the request'}), 500
 
 @courses.route('/notifications/mark-all-read', methods=['POST'])
@@ -1513,6 +1505,7 @@ def cleanup_old_notifications():
         if not isinstance(days_threshold, (int, float)) or days_threshold <= 0:
             return jsonify({'message': 'days_threshold must be a positive number'}), 400
 
+        # Ensure we use UTC for all datetime operations
         threshold_date = datetime.now(UTC) - timedelta(days=days_threshold)
 
         # Delete old notifications that are read
@@ -1530,10 +1523,63 @@ def cleanup_old_notifications():
 
         return jsonify({
             'message': f'Successfully deleted {deleted_count} old notifications',
-            'deleted_count': deleted_count
+            'deleted_count': deleted_count,
+            'threshold_date': threshold_date.isoformat()
         }), 200
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error cleaning up old notifications: {str(e)}")
-        return jsonify({'message': 'An error occurred while cleaning up notifications'}), 500 
+        current_app.logger.error(f"Error cleaning up old notifications: {str(e)}")
+        return jsonify({'message': 'An error occurred while cleaning up notifications'}), 500
+
+@courses.route('/notifications/bulk-update', methods=['POST'])
+@jwt_required()
+def bulk_update_notifications():
+    """Toplu bildirim güncelleme endpoint'i"""
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        if not data or 'notification_ids' not in data:
+            return jsonify({'message': 'notification_ids gereklidir'}), 400
+            
+        notification_ids = data.get('notification_ids', [])
+        is_read = data.get('is_read')
+        notification_type = data.get('type')
+        
+        if not notification_ids:
+            return jsonify({'message': 'En az bir bildirim IDsi gereklidir'}), 400
+            
+        # Bildirimleri güncelle
+        update_data = {}
+        if is_read is not None:
+            update_data['is_read'] = is_read
+            if is_read:
+                update_data['read_at'] = datetime.now(UTC)
+        if notification_type:
+            update_data['type'] = notification_type
+            
+        if not update_data:
+            return jsonify({'message': 'Güncellenecek alan belirtilmedi'}), 400
+            
+        # Kullanıcının bildirimlerini güncelle
+        result = db.session.execute(
+            db.update(Notification)
+            .where(
+                Notification.id.in_(notification_ids),
+                Notification.user_id == current_user_id
+            )
+            .values(**update_data)
+        )
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Bildirimler başarıyla güncellendi',
+            'updated_count': result.rowcount
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating notifications: {str(e)}")
+        return jsonify({'message': 'Bildirimler güncellenirken bir hata oluştu'}), 500 
