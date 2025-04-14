@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
+# Ortam değişkenlerini yükle
 load_dotenv()
 
 auth = Blueprint('auth', __name__)

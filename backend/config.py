@@ -1,6 +1,6 @@
 import os # Python'un işletim sistemi ile iletişim kurmak için kullanılır.
 from dotenv import load_dotenv # .env dosyasındaki değişkenleri yüklemek için kullanılır.
-from datetime import UTC
+from datetime import UTC # Zaman dilimi için kullanılır.
 
 load_dotenv() # .env dosyasındaki değişkenleri yüklemek için kullanılır.
 

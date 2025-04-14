@@ -2,10 +2,10 @@ import os
 import sys
 from pathlib import Path
 
-# Add the backend directory to Python path
+# Arka uç dizinini Python yoluna ekleyin
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify 
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from models import db, User, Course, Lesson, Enrollment, Progress
@@ -13,7 +13,7 @@ from flask_migrate import Migrate
 from datetime import timedelta
 from dotenv import load_dotenv
 
-# Load environment variables
+# Ortam değişkenlerini yükle
 load_dotenv()
 
 def create_app():
@@ -29,19 +29,19 @@ def create_app():
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')  
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 
-    # Initialize extensions
+    # Uzantıları başlat
     jwt = JWTManager(app)
     db.init_app(app)
     migrate = Migrate(app, db)
 
-    # Register blueprints
+    # Planları kaydedin
     from auth import auth
     from courses import courses
 
     app.register_blueprint(auth, url_prefix='/api/auth')
     app.register_blueprint(courses, url_prefix='/api/courses')
 
-    # Create tables
+    # Tablolar oluştur
     with app.app_context():
         try:
             db.create_all()

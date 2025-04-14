@@ -1,9 +1,9 @@
-from werkzeug.utils import secure_filename
-import os
-from google.cloud import storage
-from config import GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_BUCKET, GOOGLE_APPLICATION_CREDENTIALS
-from config import ALLOWED_VIDEO_EXTENSIONS, ALLOWED_FILE_EXTENSIONS
-from datetime import datetime, timedelta
+from werkzeug.utils import secure_filename # Dosya adını güvenli hale getir 
+import os # Dosya yollarını oluşturmak için kullanılır.
+from google.cloud import storage # Google Cloud Storage'a bağlanmak için kullanılır.
+from config import GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_BUCKET, GOOGLE_APPLICATION_CREDENTIALS # Google Cloud projesini, bucket'ı ve kimlik bilgilerini yükle
+from config import ALLOWED_VIDEO_EXTENSIONS, ALLOWED_FILE_EXTENSIONS # İzin verilen video ve dosya uzantılarını yükle
+from datetime import datetime, timedelta # Zaman dilimi için kullanılır.
 
 def allowed_video_file(filename):
     """Video dosya uzantısının geçerli olup olmadığını kontrol et"""

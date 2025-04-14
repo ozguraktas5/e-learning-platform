@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, UTC
 from werkzeug.security import generate_password_hash, check_password_hash # werkzeug.security: Şifre hashleme işlemlerini yapmak için kullanılır.
 
-# Initialize SQLAlchemy
+# SQLAlchemy'yi başlat
 db = SQLAlchemy()
 
 class User(db.Model):
