@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_cors import CORS
 from models import db, User
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,6 +11,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 auth = Blueprint('auth', __name__)
+CORS(auth, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 @auth.route('/register', methods=['POST'])
 def register():

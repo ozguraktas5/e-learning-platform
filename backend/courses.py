@@ -1582,4 +1582,31 @@ def bulk_update_notifications():
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error updating notifications: {str(e)}")
-        return jsonify({'message': 'Bildirimler güncellenirken bir hata oluştu'}), 500 
+        return jsonify({'message': 'Bildirimler güncellenirken bir hata oluştu'}), 500
+
+@courses.route('/', methods=['GET'])
+@jwt_required()
+def get_courses():
+    try:
+        # Veritabanı sorgusunu try-except bloğu içine al
+        courses = db.session.execute(
+            db.select(Course)
+        ).scalars().all()
+
+        return jsonify([{
+            'id': course.id,
+            'title': course.title,
+            'description': course.description,
+            'instructor_id': course.instructor_id,
+            'instructor_name': course.instructor.username,
+            'created_at': course.created_at.isoformat() if course.created_at else None,
+            'image_url': course.image_url if hasattr(course, 'image_url') else None,
+            'price': course.price,
+            'category': course.category,
+            'level': course.level
+        } for course in courses]), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error fetching courses: {str(e)}")
+        return jsonify({'message': 'Kurslar yüklenirken bir hata oluştu'}), 500 

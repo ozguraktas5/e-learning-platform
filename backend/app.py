@@ -29,6 +29,15 @@ def create_app():
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')  
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 
+    # CORS yapılandırması
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": ["http://localhost:3000"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
+
     # Uzantıları başlat
     jwt = JWTManager(app)
     db.init_app(app)
