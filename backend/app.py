@@ -1,6 +1,8 @@
 import os
 import sys
 from pathlib import Path
+import logging
+from logging.handlers import RotatingFileHandler
 
 # Arka uç dizinini Python yoluna ekleyin
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -19,44 +21,59 @@ load_dotenv()
 def create_app():
     app = Flask(__name__)
     
-    # Backend klasörü içinde instance klasörünü oluştur
-    instance_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance')
-    os.makedirs(instance_path, exist_ok=True)
+    # Debug modu aktif et
+    app.config['DEBUG'] = True
     
-    # Veritabanı yapılandırması
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'elearning.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key')  
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+    # Logging konfigürasyonu
+    if not os.path.exists('logs'):
+        os.mkdir('logs')
+    file_handler = RotatingFileHandler('logs/app.log', maxBytes=10000, backupCount=3)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    ))
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(logging.INFO)
+    app.logger.info('E-Learning Platform startup')
 
-    # CORS yapılandırması
+    # SQLite veritabanı konfigürasyonu
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///elearning.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # JWT konfigürasyonu
+    app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Güvenli bir secret key kullanın
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)  # Token 1 gün geçerli
+    
+    # CORS ayarları
     CORS(app, resources={
-        r"/api/*": {
+        r"/*": {
             "origins": ["http://localhost:3000"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
         }
     })
-
-    # Uzantıları başlat
-    jwt = JWTManager(app)
+    
+    # Veritabanını başlat
     db.init_app(app)
-    migrate = Migrate(app, db)
-
-    # Planları kaydedin
+    
+    # JWT yöneticisini başlat
+    jwt = JWTManager(app)
+    
+    # Blueprint'leri kaydet
     from auth import auth
     from courses import courses
 
-    app.register_blueprint(auth, url_prefix='/api/auth')
-    app.register_blueprint(courses, url_prefix='/api/courses')
-
-    # Tablolar oluştur
+    app.register_blueprint(auth, url_prefix='/auth')
+    app.register_blueprint(courses, url_prefix='/courses')
+    
+    # Veritabanı tablolarını oluştur
     with app.app_context():
         try:
             db.create_all()
+            app.logger.info('Database tables created successfully')
         except Exception as e:
-            print(f"Error creating tables: {e}")
-
+            app.logger.error(f'Error creating database tables: {str(e)}')
+    
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
         return jsonify({
@@ -86,4 +103,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)

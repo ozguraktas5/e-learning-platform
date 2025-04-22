@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from models import db, Course, Lesson, User, Enrollment, Review, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Assignment, AssignmentSubmission, LessonDocument, Notification
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from datetime import datetime, timedelta, UTC
 from utils import upload_video_to_gcs, upload_document_to_gcs, upload_file_to_gcs
 import os
@@ -218,65 +218,135 @@ def add_lesson(course_id):
     }), 201
 
 @courses.route('/search', methods=['GET'])
+@jwt_required()
 def search_courses():
-    # Arama parametrelerini al
-    query = request.args.get('q', '')  # Arama terimi
-    category = request.args.get('category')  # Kategori
-    instructor_id = request.args.get('instructor_id')  # Eğitmen ID
-    sort_by = request.args.get('sort_by', 'created_at')  # Sıralama kriteri
-    order = request.args.get('order', 'desc')  # Sıralama yönü
+    try:
+        # Arama parametrelerini al
+        query = request.args.get('q', '').strip()
+        category = request.args.get('category')
+        level = request.args.get('level')
+        min_price = request.args.get('min_price', type=float)
+        max_price = request.args.get('max_price', type=float)
+        instructor_id = request.args.get('instructor_id', type=int)
+        sort_by = request.args.get('sort_by', 'created_at')  # created_at, title, price, popularity
+        order = request.args.get('order', 'desc')  # asc, desc
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
 
-    # Temel sorguyu oluştur
-    base_query = Course.query
+        # Sayfalama parametrelerini doğrula
+        if page < 1:
+            return jsonify({'message': 'Sayfa numarası 1 veya daha büyük olmalıdır'}), 400
+        if per_page < 1 or per_page > 50:
+            return jsonify({'message': 'Sayfa boyutu 1-50 arasında olmalıdır'}), 400
 
-    # Arama terimi varsa, başlık, açıklama ve eğitmen adında ara
-    if query:
-        base_query = base_query.join(User).filter(
-            or_(
+        # Temel sorguyu oluştur
+        base_query = db.select(Course, User).join(User, Course.instructor_id == User.id)
+
+        # Arama filtrelerini uygula
+        filters = []
+        if query:
+            search_filter = or_(
                 Course.title.ilike(f'%{query}%'),
                 Course.description.ilike(f'%{query}%'),
                 User.username.ilike(f'%{query}%')
             )
+            filters.append(search_filter)
+
+        if category:
+            filters.append(Course.category == category)
+
+        if level:
+            filters.append(Course.level == level)
+
+        if min_price is not None:
+            filters.append(Course.price >= min_price)
+
+        if max_price is not None:
+            filters.append(Course.price <= max_price)
+
+        if instructor_id:
+            filters.append(Course.instructor_id == instructor_id)
+
+        # Filtreleri sorguya ekle
+        if filters:
+            base_query = base_query.where(db.and_(*filters))
+
+        # Sıralama
+        if sort_by == 'title':
+            order_column = Course.title
+        elif sort_by == 'price':
+            order_column = Course.price
+        elif sort_by == 'popularity':
+            # Popülerlik için kayıt sayısına göre sıralama
+            enrollment_count = (
+                db.select(db.func.count(Enrollment.id))
+                .where(Enrollment.course_id == Course.id)
+                .scalar_subquery()
+            )
+            base_query = base_query.add_columns(enrollment_count.label('enrollment_count'))
+            order_column = 'enrollment_count'
+        else:  # default: created_at
+            order_column = Course.created_at
+
+        # Sıralama yönünü uygula
+        if isinstance(order_column, str):
+            base_query = base_query.order_by(text(f"{order_column} {'DESC' if order == 'desc' else 'ASC'}"))
+        else:
+            base_query = base_query.order_by(order_column.desc() if order == 'desc' else order_column.asc())
+
+        # Toplam kayıt sayısını al
+        total_query = db.select(db.func.count()).select_from(
+            db.select(Course.id).join(User, Course.instructor_id == User.id)
+            .where(db.and_(*filters) if filters else True)
+            .subquery()
         )
+        total = db.session.scalar(total_query)
 
-    # Kategori filtresi
-    if category:
-        base_query = base_query.filter(Course.category == category)
+        # Sayfalama uygula
+        base_query = base_query.offset((page - 1) * per_page).limit(per_page)
 
-    # Eğitmen filtresi
-    if instructor_id:
-        base_query = base_query.filter(Course.instructor_id == instructor_id)
+        # Sorguyu çalıştır
+        courses = db.session.execute(base_query).all()
 
-    # Sıralama
-    if sort_by == 'title':
-        base_query = base_query.order_by(Course.title.desc() if order == 'desc' else Course.title.asc())
-    elif sort_by == 'created_at':
-        base_query = base_query.order_by(Course.created_at.desc() if order == 'desc' else Course.created_at.asc())
-    elif sort_by == 'popularity':
-        # Popülerlik için kayıt sayısına göre sıralama
-        base_query = base_query.outerjoin(Enrollment).group_by(Course.id).order_by(
-            db.func.count(Enrollment.id).desc() if order == 'desc' else db.func.count(Enrollment.id).asc()
-        )
-    elif sort_by == 'price':
-        # Fiyata göre sıralama
-        base_query = base_query.order_by(Course.price.desc() if order == 'desc' else Course.price.asc())
+        # Sonuçları formatla
+        results = []
+        for row in courses:
+            course_dict = {
+                'id': row.Course.id,
+                'title': row.Course.title,
+                'description': row.Course.description,
+                'category': row.Course.category,
+                'level': row.Course.level,
+                'price': row.Course.price,
+                'created_at': row.Course.created_at.isoformat(),
+                'instructor': {
+                    'id': row.User.id,
+                    'username': row.User.username
+                }
+            }
+            
+            # Popülerliğe göre sıralama yapılıyorsa enrollment_count'u ekle
+            if sort_by == 'popularity':
+                course_dict['enrollment_count'] = row.enrollment_count
+            else:
+                # Enrollment sayısını Course.enrollments üzerinden al
+                course_dict['enrollment_count'] = len(row.Course.enrollments)
+            
+            results.append(course_dict)
 
-    # Kursları getir
-    courses = base_query.all()
+        return jsonify({
+            'courses': results,
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': (total + per_page - 1) // per_page,
+            'has_next': page * per_page < total,
+            'has_prev': page > 1
+        })
 
-    # Sonuçları formatla
-    return jsonify([{
-        'id': course.id,
-        'title': course.title,
-        'description': course.description,
-        'category': course.category,
-        'instructor': {
-            'id': course.instructor.id,
-            'username': course.instructor.username
-        },
-        'created_at': course.created_at.isoformat(),
-        'enrollment_count': len(course.enrollments)
-    } for course in courses])
+    except Exception as e:
+        current_app.logger.error(f"Error in search_courses: {str(e)}")
+        return jsonify({'message': 'Kurslar aranırken bir hata oluştu'}), 500
 
 @courses.route('/categories', methods=['GET'])
 def get_categories():

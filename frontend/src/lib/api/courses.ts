@@ -1,58 +1,70 @@
-import api from '../api';
+import api from '@/lib/axios';
 
-export interface Course {
-  id: number;
-  title: string;
-  description: string;
-  instructor_id: number;
-  instructor_name: string;
-  created_at: string;
-  image_url?: string;
-  price?: number;
+export interface CourseSearchParams {
+  query?: string;
   category?: string;
   level?: string;
+  min_price?: number;
+  max_price?: number;
+  instructor_id?: string;
+  sort_by?: string;
+  order?: 'asc' | 'desc';
+  page?: number;
+  per_page?: number;
 }
 
-export interface CreateCourseData {
+export interface Course {
+  id: string;
   title: string;
   description: string;
-  price?: number;
-  category?: string;
-  level?: string;
+  price: number;
+  instructor_id: string;
+  created_at: string;
+  updated_at: string;
+  category: string;
+  level: string;
+  image_url?: string;
+}
+
+export interface SearchResponse {
+  courses: Course[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
 }
 
 export const coursesApi = {
-  getCourses: async (): Promise<Course[]> => {
-    const token = localStorage.getItem('token');
-    const response = await api.get('/api/courses/', {
+  searchCourses: async (params: CourseSearchParams = {}): Promise<SearchResponse> => {
+    const response = await api.get('/courses/search', { params });
+    return response.data;
+  },
+
+  getCourseById: async (courseId: string): Promise<Course> => {
+    const response = await api.get(`/courses/${courseId}`);
+    return response.data;
+  },
+
+  createCourse: async (courseData: FormData): Promise<Course> => {
+    const response = await api.post('/courses', courseData, {
       headers: {
-        'Authorization': `Bearer ${token}`
-      }
+        'Content-Type': 'multipart/form-data',
+      },
     });
     return response.data;
   },
 
-  createCourse: async (data: CreateCourseData): Promise<Course> => {
-    const token = localStorage.getItem('token');
-    const response = await api.post('/api/courses/', data, {
+  updateCourse: async (courseId: string, courseData: FormData): Promise<Course> => {
+    const response = await api.put(`/courses/${courseId}`, courseData, {
       headers: {
-        'Authorization': `Bearer ${token}`
-      }
+        'Content-Type': 'multipart/form-data',
+      },
     });
     return response.data;
   },
 
-  getCourse: async (id: number): Promise<Course> => {
-    const response = await api.get(`/api/courses/${id}`);
+  deleteCourse: async (courseId: string): Promise<void> => {
+    const response = await api.delete(`/courses/${courseId}`);
     return response.data;
-  },
-
-  updateCourse: async (id: number, data: Partial<CreateCourseData>): Promise<Course> => {
-    const response = await api.put(`/api/courses/${id}`, data);
-    return response.data;
-  },
-
-  deleteCourse: async (id: number): Promise<void> => {
-    await api.delete(`/api/courses/${id}`);
   },
 };

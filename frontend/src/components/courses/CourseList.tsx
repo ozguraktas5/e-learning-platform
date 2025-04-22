@@ -1,76 +1,75 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { coursesApi } from '@/lib/api/courses';
-import CourseCard from './CourseCard';
-import { Suspense } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'react-toastify';
-import { AxiosError } from 'axios';
+import { Course } from '@/lib/api/courses';
 
-export default function CourseList() {
-  const router = useRouter();
-  
-  const { data: courses = [], isLoading, error } = useQuery({
-    queryKey: ['courses'],
-    queryFn: async () => {
-      try {
-        return await coursesApi.getCourses();
-      } catch (error) {
-        if (error instanceof AxiosError && error.response?.status === 401) {
-          toast.error('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');
-          router.push('/auth/login');
-          return [];
-        }
-        console.error('Kurslar yüklenirken hata:', error);
-        throw error;
-      }
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-  });
+interface CourseListProps {
+  courses: Course[];
+  pagination: {
+    total: number;
+    page: number;
+    per_page: number;
+    total_pages: number;
+  };
+  onPageChange: (page: number) => void;
+}
 
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-md h-64 animate-pulse" />
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <div className="text-red-600 mb-2">
-          Kurslar yüklenirken bir hata oluştu
-        </div>
-      </div>
-    );
-  }
-
+export default function CourseList({ courses, pagination, onPageChange }: CourseListProps) {
   if (courses.length === 0) {
     return (
       <div className="text-center py-8">
-        <div className="text-lg text-gray-600 mb-2">
-          Henüz hiç kurs bulunmuyor
-        </div>
-        <div className="text-sm text-gray-500">
-          Daha sonra tekrar kontrol edin
-        </div>
+        <p className="text-gray-600">Henüz hiç kurs bulunmuyor.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {courses.map((course) => (
-        <Suspense key={course.id} fallback={<div className="bg-white rounded-lg shadow-md h-64 animate-pulse" />}>
-          <CourseCard course={course} />
-        </Suspense>
-      ))}
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {courses.map((course) => (
+          <div
+            key={course.id}
+            className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+          >
+            {course.image_url && (
+              <img
+                src={course.image_url}
+                alt={course.title}
+                className="w-full h-48 object-cover"
+              />
+            )}
+            <div className="p-6">
+              <h3 className="text-xl font-semibold mb-2">{course.title}</h3>
+              <p className="text-gray-600 mb-4 line-clamp-2">{course.description}</p>
+              <div className="flex justify-between items-center">
+                <span className="text-blue-600 font-medium">
+                  {course.price ? `${course.price} TL` : 'Ücretsiz'}
+                </span>
+                <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                  Detaylar
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {pagination.total_pages > 1 && (
+        <div className="flex justify-center space-x-2">
+          {Array.from({ length: pagination.total_pages }, (_, i) => i + 1).map((page) => (
+            <button
+              key={page}
+              onClick={() => onPageChange(page)}
+              className={`px-4 py-2 rounded-md ${
+                page === pagination.page
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 } 

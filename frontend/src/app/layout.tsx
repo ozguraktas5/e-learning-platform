@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from './providers';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Navbar from '@/components/Navbar';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body suppressHydrationWarning className="antialiased">
+        <Navbar />
         <Providers>{children}</Providers>
         <ToastContainer />
       </body>
