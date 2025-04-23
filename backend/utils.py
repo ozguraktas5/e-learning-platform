@@ -4,6 +4,7 @@ from google.cloud import storage # Google Cloud Storage'a bağlanmak için kulla
 from config import GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_BUCKET, GOOGLE_APPLICATION_CREDENTIALS # Google Cloud projesini, bucket'ı ve kimlik bilgilerini yükle
 from config import ALLOWED_VIDEO_EXTENSIONS, ALLOWED_FILE_EXTENSIONS # İzin verilen video ve dosya uzantılarını yükle
 from datetime import datetime, timedelta # Zaman dilimi için kullanılır.
+import uuid
 
 def allowed_video_file(filename):
     """Video dosya uzantısının geçerli olup olmadığını kontrol et"""
@@ -18,42 +19,28 @@ def get_storage_client():
     credentials_path = os.path.join(os.path.dirname(__file__), GOOGLE_APPLICATION_CREDENTIALS)
     return storage.Client.from_service_account_json(credentials_path)
 
-def upload_file_to_gcs(file, folder='general'):
-    """Dosyayı Google Cloud Storage'a yükle"""
-    if file.filename == '':
-        return None
-        
-    try:
-        # Güvenli dosya adı oluştur
-        filename = secure_filename(file.filename)
-        
-        # Dosya yolu oluştur (folder/filename)
-        file_path = f"{folder}/{filename}"
-        
-        # Storage istemcisi oluştur
-        storage_client = get_storage_client()
-        bucket = storage_client.bucket(GOOGLE_CLOUD_BUCKET)
-        
-        # Yeni bir blob oluştur
-        blob = bucket.blob(file_path)
-        
-        # Dosyayı yükle
-        blob.upload_from_file(
-            file,
-            content_type=file.content_type
-        )
-        
-        # Geçici URL oluştur (24 saat geçerli)
-        url = blob.generate_signed_url(
-            version="v4",
-            expiration=timedelta(hours=24),
-            method="GET"
-        )
-        return url
-        
-    except Exception as e:
-        print(f"Google Cloud Storage yükleme hatası: {e}")
-        return None
+def upload_file_to_gcs(file):
+    """
+    Dosyayı yerel uploads klasörüne kaydet
+    Not: Gerçek bir uygulamada bu fonksiyon Google Cloud Storage'a yükleme yapacaktır
+    """
+    # Uploads klasörünü oluştur
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+    
+    # Güvenli dosya adı oluştur
+    filename = secure_filename(file.filename)
+    # Benzersiz bir isim oluştur
+    unique_filename = f"{uuid.uuid4()}_{filename}"
+    # Dosya yolunu oluştur
+    file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+    
+    # Dosyayı kaydet
+    file.save(file_path)
+    
+    # URL'i döndür (gerçek uygulamada bu bir CDN URL'i olacaktır)
+    return f"http://localhost:5000/uploads/{unique_filename}"
 
 def upload_video_to_gcs(video_file):
     """Video dosyasını Google Cloud Storage'a yükle"""

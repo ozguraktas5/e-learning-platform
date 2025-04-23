@@ -1,6 +1,7 @@
 'use client';
 
 import { Course } from '@/lib/api/courses';
+import Link from 'next/link';
 
 interface CourseListProps {
   courses: Course[];
@@ -13,8 +14,8 @@ interface CourseListProps {
   onPageChange: (page: number) => void;
 }
 
-export default function CourseList({ courses, pagination, onPageChange }: CourseListProps) {
-  if (courses.length === 0) {
+export default function CourseList({ courses = [], pagination, onPageChange }: CourseListProps) {
+  if (!Array.isArray(courses) || courses.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-600">Henüz hiç kurs bulunmuyor.</p>
@@ -44,9 +45,12 @@ export default function CourseList({ courses, pagination, onPageChange }: Course
                 <span className="text-blue-600 font-medium">
                   {course.price ? `${course.price} TL` : 'Ücretsiz'}
                 </span>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                <Link
+                  href={`/courses/${course.id}`}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                >
                   Detaylar
-                </button>
+                </Link>
               </div>
             </div>
           </div>

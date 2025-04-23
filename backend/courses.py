@@ -15,6 +15,7 @@ import string
 from sqlalchemy import exc
 from sqlalchemy.exc import OperationalError
 from flask import current_app
+from flask_cors import CORS
 
 # Load environment variables
 load_dotenv()
@@ -37,43 +38,94 @@ def sanitize_html(content):
     )
 
 courses = Blueprint('courses', __name__)
+CORS(courses, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
 
 def is_instructor(user_id): # Kullanıcının eğitmen olup olmadığını kontrol et
     user = User.query.get(user_id)
     return user and user.role == 'instructor'
 
-@courses.route('/', methods=['POST'])  # /courses yerine / kullanıyoruz çünkü prefix zaten /api/courses
+@courses.route('/', methods=['POST'])
 @jwt_required()
 def create_course():
-    # Kullanıcının eğitmen olup olmadığını kontrol et
-    user_id = get_jwt_identity()
-    if not is_instructor(user_id):
-        return jsonify({'error': 'Only instructors can create courses'}), 403
+    try:
+        # Kullanıcının eğitmen olup olmadığını kontrol et
+        user_id = get_jwt_identity()
+        current_app.logger.info(f'Creating course request from user: {user_id}')
+        
+        if not is_instructor(user_id):
+            current_app.logger.warning(f'User {user_id} is not an instructor')
+            return jsonify({'error': 'Only instructors can create courses'}), 403
 
-    data = request.get_json()
-    
-    # Gerekli alanları kontrol et
-    if not all(k in data for k in ['title', 'description']):
-        return jsonify({'error': 'Missing required fields'}), 400
-    
-    # Yeni kurs oluştur
-    course = Course(
-        title=data['title'],
-        description=data['description'],
-        instructor_id=user_id
-    )
-    
-    db.session.add(course) # Kursu veritabanına ekliyoruz.
-    db.session.commit() # Değişiklikleri kaydediyoruz.
-    
-    return jsonify({
-        'message': 'Course created successfully',
-        'course': {
-            'id': course.id,
-            'title': course.title,
-            'description': course.description
-        }
-    }), 201
+        # Form verilerini al
+        title = request.form.get('title')
+        description = request.form.get('description')
+        price = request.form.get('price', 0)
+        category = request.form.get('category')
+        level = request.form.get('level')
+        
+        # Gerekli alanları kontrol et
+        if not title or not description:
+            current_app.logger.warning('Missing required fields in request')
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        # Resim dosyasını kontrol et ve yükle
+        image_url = None
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                try:
+                    image_url = upload_file_to_gcs(file)
+                except Exception as e:
+                    current_app.logger.error(f'Error uploading image: {str(e)}')
+                    return jsonify({'error': 'Error uploading image'}), 500
+        
+        # Yeni kurs oluştur
+        course = Course(
+            title=title,
+            description=sanitize_html(description),
+            instructor_id=user_id,
+            price=float(price),
+            category=category,
+            level=level,
+            image_url=image_url
+        )
+        
+        current_app.logger.info(f'Created course object: {course.title}')
+        
+        try:
+            db.session.add(course)
+            current_app.logger.info('Added course to session')
+            db.session.commit()
+            current_app.logger.info(f'Successfully committed course to database with ID: {course.id}')
+            
+            # Veritabanından kursu tekrar kontrol et
+            saved_course = Course.query.get(course.id)
+            if saved_course:
+                current_app.logger.info(f'Verified course in database: {saved_course.title}')
+            else:
+                current_app.logger.error('Course not found in database after commit!')
+            
+            return jsonify({
+                'message': 'Course created successfully',
+                'course': course.to_dict()
+            }), 201
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f'Database error while creating course: {str(e)}')
+            return jsonify({'error': f'Database error: {str(e)}'}), 500
+            
+    except Exception as e:
+        current_app.logger.error(f'Error in create_course: {str(e)}')
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @courses.route('/<int:course_id>', methods=['PUT'])
 @jwt_required()
@@ -240,98 +292,71 @@ def search_courses():
             return jsonify({'message': 'Sayfa boyutu 1-50 arasında olmalıdır'}), 400
 
         # Temel sorguyu oluştur
-        base_query = db.select(Course, User).join(User, Course.instructor_id == User.id)
+        query_obj = Course.query.join(User, Course.instructor_id == User.id)
 
         # Arama filtrelerini uygula
-        filters = []
         if query:
             search_filter = or_(
                 Course.title.ilike(f'%{query}%'),
                 Course.description.ilike(f'%{query}%'),
                 User.username.ilike(f'%{query}%')
             )
-            filters.append(search_filter)
+            query_obj = query_obj.filter(search_filter)
 
         if category:
-            filters.append(Course.category == category)
+            query_obj = query_obj.filter(Course.category == category)
 
         if level:
-            filters.append(Course.level == level)
+            query_obj = query_obj.filter(Course.level == level)
 
         if min_price is not None:
-            filters.append(Course.price >= min_price)
+            query_obj = query_obj.filter(Course.price >= min_price)
 
         if max_price is not None:
-            filters.append(Course.price <= max_price)
+            query_obj = query_obj.filter(Course.price <= max_price)
 
         if instructor_id:
-            filters.append(Course.instructor_id == instructor_id)
-
-        # Filtreleri sorguya ekle
-        if filters:
-            base_query = base_query.where(db.and_(*filters))
+            query_obj = query_obj.filter(Course.instructor_id == instructor_id)
 
         # Sıralama
         if sort_by == 'title':
-            order_column = Course.title
+            query_obj = query_obj.order_by(Course.title.desc() if order == 'desc' else Course.title.asc())
         elif sort_by == 'price':
-            order_column = Course.price
+            query_obj = query_obj.order_by(Course.price.desc() if order == 'desc' else Course.price.asc())
         elif sort_by == 'popularity':
             # Popülerlik için kayıt sayısına göre sıralama
-            enrollment_count = (
-                db.select(db.func.count(Enrollment.id))
-                .where(Enrollment.course_id == Course.id)
-                .scalar_subquery()
-            )
-            base_query = base_query.add_columns(enrollment_count.label('enrollment_count'))
-            order_column = 'enrollment_count'
+            query_obj = query_obj.outerjoin(Enrollment).group_by(Course.id, User.id)
+            if order == 'desc':
+                query_obj = query_obj.order_by(db.func.count(Enrollment.id).desc())
+            else:
+                query_obj = query_obj.order_by(db.func.count(Enrollment.id).asc())
         else:  # default: created_at
-            order_column = Course.created_at
-
-        # Sıralama yönünü uygula
-        if isinstance(order_column, str):
-            base_query = base_query.order_by(text(f"{order_column} {'DESC' if order == 'desc' else 'ASC'}"))
-        else:
-            base_query = base_query.order_by(order_column.desc() if order == 'desc' else order_column.asc())
+            query_obj = query_obj.order_by(Course.created_at.desc() if order == 'desc' else Course.created_at.asc())
 
         # Toplam kayıt sayısını al
-        total_query = db.select(db.func.count()).select_from(
-            db.select(Course.id).join(User, Course.instructor_id == User.id)
-            .where(db.and_(*filters) if filters else True)
-            .subquery()
-        )
-        total = db.session.scalar(total_query)
+        total = query_obj.count()
 
         # Sayfalama uygula
-        base_query = base_query.offset((page - 1) * per_page).limit(per_page)
-
-        # Sorguyu çalıştır
-        courses = db.session.execute(base_query).all()
+        courses = query_obj.offset((page - 1) * per_page).limit(per_page).all()
 
         # Sonuçları formatla
         results = []
-        for row in courses:
+        for course in courses:
             course_dict = {
-                'id': row.Course.id,
-                'title': row.Course.title,
-                'description': row.Course.description,
-                'category': row.Course.category,
-                'level': row.Course.level,
-                'price': row.Course.price,
-                'created_at': row.Course.created_at.isoformat(),
+                'id': course.id,
+                'title': course.title,
+                'description': course.description,
+                'category': course.category,
+                'level': course.level,
+                'price': course.price,
+                'image_url': course.image_url,
+                'created_at': course.created_at.isoformat() if course.created_at else None,
                 'instructor': {
-                    'id': row.User.id,
-                    'username': row.User.username
-                }
+                    'id': course.instructor.id,
+                    'username': course.instructor.username
+                },
+                'enrollment_count': len(course.enrollments)
             }
-            
-            # Popülerliğe göre sıralama yapılıyorsa enrollment_count'u ekle
-            if sort_by == 'popularity':
-                course_dict['enrollment_count'] = row.enrollment_count
-            else:
-                # Enrollment sayısını Course.enrollments üzerinden al
-                course_dict['enrollment_count'] = len(row.Course.enrollments)
-            
             results.append(course_dict)
 
         return jsonify({
@@ -339,14 +364,12 @@ def search_courses():
             'total': total,
             'page': page,
             'per_page': per_page,
-            'total_pages': (total + per_page - 1) // per_page,
-            'has_next': page * per_page < total,
-            'has_prev': page > 1
+            'total_pages': (total + per_page - 1) // per_page
         })
 
     except Exception as e:
         current_app.logger.error(f"Error in search_courses: {str(e)}")
-        return jsonify({'message': 'Kurslar aranırken bir hata oluştu'}), 500
+        return jsonify({'message': 'Kurslar aranırken bir hata oluştu', 'error': str(e)}), 500
 
 @courses.route('/categories', methods=['GET'])
 def get_categories():
@@ -1658,25 +1681,61 @@ def bulk_update_notifications():
 @jwt_required()
 def get_courses():
     try:
+        current_app.logger.info('Getting all courses')
+        
         # Veritabanı sorgusunu try-except bloğu içine al
         courses = db.session.execute(
-            db.select(Course)
+            db.select(Course).order_by(Course.created_at.desc())
         ).scalars().all()
+        
+        current_app.logger.info(f'Found {len(courses)} courses')
+        
+        # Her bir kurs için detaylı bilgi logla
+        course_list = []
+        for course in courses:
+            course_data = {
+                'id': course.id,
+                'title': course.title,
+                'description': course.description,
+                'instructor_id': course.instructor_id,
+                'instructor_name': course.instructor.username,
+                'created_at': course.created_at.isoformat() if course.created_at else None,
+                'image_url': course.image_url if hasattr(course, 'image_url') else None,
+                'price': course.price,
+                'category': course.category,
+                'level': course.level
+            }
+            current_app.logger.info(f'Course details: {course_data}')
+            course_list.append(course_data)
 
-        return jsonify([{
-            'id': course.id,
-            'title': course.title,
-            'description': course.description,
-            'instructor_id': course.instructor_id,
-            'instructor_name': course.instructor.username,
-            'created_at': course.created_at.isoformat() if course.created_at else None,
-            'image_url': course.image_url if hasattr(course, 'image_url') else None,
-            'price': course.price,
-            'category': course.category,
-            'level': course.level
-        } for course in courses]), 200
+        return jsonify(course_list), 200
 
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error fetching courses: {str(e)}")
-        return jsonify({'message': 'Kurslar yüklenirken bir hata oluştu'}), 500 
+        return jsonify({'message': 'Kurslar yüklenirken bir hata oluştu', 'error': str(e)}), 500
+
+@courses.route('/<int:course_id>', methods=['GET'])
+@jwt_required()
+def get_course(course_id):
+    try:
+        course = Course.query.get_or_404(course_id)
+        instructor = User.query.get(course.instructor_id)
+        
+        # Kurs detaylarını döndür
+        return jsonify({
+            'id': course.id,
+            'title': course.title,
+            'description': course.description,
+            'category': course.category,
+            'level': course.level,
+            'price': course.price,
+            'instructor_id': course.instructor_id,
+            'instructor_name': instructor.username if instructor else None,
+            'created_at': course.created_at.isoformat() if course.created_at else None,
+            'updated_at': course.updated_at.isoformat() if course.updated_at else None,
+            'image_url': getattr(course, 'image_url', None)  # Güvenli bir şekilde image_url'i al
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error fetching course {course_id}: {str(e)}")
+        return jsonify({'error': 'Failed to fetch course details'}), 500 

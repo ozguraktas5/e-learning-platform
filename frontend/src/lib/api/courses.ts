@@ -14,16 +14,24 @@ export interface CourseSearchParams {
 }
 
 export interface Course {
-  id: string;
+  id: number;
   title: string;
   description: string;
-  price: number;
-  instructor_id: string;
-  created_at: string;
-  updated_at: string;
   category: string;
   level: string;
+  price: number;
+  instructor_id: number;
+  instructor_name: string;
   image_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CourseEnrollment {
+  id: number;
+  course_id: number;
+  user_id: number;
+  enrolled_at: string;
 }
 
 export interface SearchResponse {
@@ -34,10 +42,36 @@ export interface SearchResponse {
   total_pages: number;
 }
 
+export interface CreateCourseData {
+  title: string;
+  description: string;
+  category: string;
+  level: string;
+  price: number;
+  instructor_id: number;
+  image_url?: string;
+}
+
 export const coursesApi = {
   searchCourses: async (params: CourseSearchParams = {}): Promise<SearchResponse> => {
-    const response = await api.get('/courses/search', { params });
-    return response.data;
+    try {
+      const response = await api.get('/courses/search', { 
+        params,
+        // Hata durumunda bile yanıtı almak için
+        validateStatus: function (status) {
+          return status >= 200 && status < 600;
+        }
+      });
+      
+      if (response.status >= 400) {
+        throw new Error(response.data.message || 'Failed to search courses');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error searching courses:', error);
+      throw error;
+    }
   },
 
   getCourseById: async (courseId: string): Promise<Course> => {
@@ -67,4 +101,14 @@ export const coursesApi = {
     const response = await api.delete(`/courses/${courseId}`);
     return response.data;
   },
+
+  getCourse: async (courseId: number): Promise<Course> => {
+    const response = await api.get(`/courses/${courseId}`);
+    return response.data;
+  },
+
+  enrollInCourse: async (courseId: number): Promise<CourseEnrollment> => {
+    const response = await api.post(`/courses/${courseId}/enroll`);
+    return response.data;
+  }
 };

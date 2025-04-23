@@ -46,10 +46,22 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
-    console.error('Response error:', {
+    // Detaylı hata loglaması
+    console.error('Response error details:', {
       message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
+      response: {
+        data: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        headers: error.response?.headers,
+      },
+      request: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        data: error.config?.data,
+      },
+      stack: error.stack
     });
     
     if (error.response?.status === 401) {

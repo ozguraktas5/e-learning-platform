@@ -45,6 +45,7 @@ class Course(db.Model):
     price = db.Column(db.Float, nullable=False, default=0.0)
     category = db.Column(db.String(50))
     level = db.Column(db.String(20))  # 'Beginner', 'Intermediate', 'Advanced'
+    image_url = db.Column(db.String(500), nullable=True)  # Kurs resmi için URL
     
     # İlişkiler
     lessons = db.relationship('Lesson', back_populates='course', lazy=True, cascade='all, delete-orphan')
@@ -62,6 +63,7 @@ class Course(db.Model):
             'price': self.price,
             'category': self.category,
             'level': self.level,
+            'image_url': self.image_url,
             'lesson_count': len(self.lessons),
             'enrollment_count': len(self.enrollments),
             'review_count': len(self.reviews)

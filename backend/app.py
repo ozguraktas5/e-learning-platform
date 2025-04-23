@@ -3,11 +3,11 @@ import sys
 from pathlib import Path
 import logging
 from logging.handlers import RotatingFileHandler
+from flask import Flask, jsonify, send_from_directory
 
 # Arka uç dizinini Python yoluna ekleyin
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from flask import Flask, jsonify 
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from models import db, User, Course, Lesson, Enrollment, Progress
@@ -23,6 +23,24 @@ def create_app():
     
     # Debug modu aktif et
     app.config['DEBUG'] = True
+    
+    # URL sonundaki eğik çizgi yönlendirmesini devre dışı bırak
+    app.url_map.strict_slashes = False
+    
+    # Uploads klasörünü oluştur
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+    # Uploads klasörü için özel route ekle
+    @app.route('/uploads/<path:filename>')
+    def uploaded_file(filename):
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Statik dosya yolunu ayarla
+    app.config['STATIC_FOLDER'] = UPLOAD_FOLDER
+    app.config['STATIC_URL_PATH'] = '/uploads'
     
     # Logging konfigürasyonu
     if not os.path.exists('logs'):
@@ -42,14 +60,16 @@ def create_app():
     
     # JWT konfigürasyonu
     app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Güvenli bir secret key kullanın
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)  # Token 1 gün geçerli
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)  # Token 1 saat geçerli
     
     # CORS ayarları
     CORS(app, resources={
         r"/*": {
             "origins": ["http://localhost:3000"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"]
+            "allow_headers": ["Content-Type", "Authorization"],
+            "expose_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
         }
     })
     

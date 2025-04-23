@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { coursesApi, type Course } from '@/lib/api/courses';
 import CourseList from '@/components/courses/CourseList';
 import CourseListSkeleton from '@/components/courses/CourseListSkeleton';
 import { useAuth } from '@/contexts/AuthContext';
+import { AxiosError } from 'axios';
 
 export default function CoursesPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const isInstructor = user?.role === 'instructor';
   const searchParams = useSearchParams();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -23,6 +25,11 @@ export default function CoursesPage() {
   });
 
   useEffect(() => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
     const fetchCourses = async () => {
       try {
         setLoading(true);
@@ -45,14 +52,22 @@ export default function CoursesPage() {
         });
       } catch (err) {
         console.error('Error fetching courses:', err);
-        setError('Kurslar yüklenirken bir hata oluştu');
+        if (err instanceof AxiosError && err.response?.status === 401) {
+          router.push('/login');
+        } else {
+          setError('Kurslar yüklenirken bir hata oluştu');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchCourses();
-  }, [searchParams]);
+  }, [searchParams, user, router]);
+
+  if (!user) {
+    return null; // Yönlendirme yapılırken boş sayfa göster
+  }
 
   if (loading) {
     return <CourseListSkeleton />;
@@ -82,8 +97,7 @@ export default function CoursesPage() {
       <CourseList 
         courses={courses}
         pagination={pagination}
-        onPageChange={(page) => {
-          // URL'i güncelle
+        onPageChange={(page: number) => {
           const url = new URL(window.location.href);
           url.searchParams.set('page', page.toString());
           window.history.pushState({}, '', url);
