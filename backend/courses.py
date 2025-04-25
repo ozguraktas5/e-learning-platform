@@ -138,9 +138,12 @@ def update_course(course_id):
         if str(course.instructor_id) != current_user_id:
             return jsonify({'message': 'Bu kursu güncelleme yetkiniz yok'}), 403
         
-        data = request.get_json()
-        
-        if not data:
+        # Support both JSON and multipart/form-data for updates
+        if request.mimetype and request.mimetype.startswith('multipart/form-data'):
+            data = request.form.to_dict()
+        else:
+            data = request.get_json() or {}
+        if not data and 'image' not in request.files:
             return jsonify({'message': 'Güncelleme için veri gerekli'}), 400
         
         # Değişiklikleri kaydet
@@ -169,7 +172,18 @@ def update_course(course_id):
             course.level = data['level']
             changes.append(f'Kurs seviyesi "{old_level}" -> "{data["level"]}"')
         
-        # Eğer değişiklik varsa, bildirim gönder
+        # Handle optional image update
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                try:
+                    new_url = upload_file_to_gcs(file)
+                    course.image_url = new_url
+                    changes.append('Kurs görseli güncellendi')
+                except Exception as e:
+                    current_app.logger.error(f'Error uploading new image: {str(e)}')
+        
+        # If there are any changes, send notifications
         if changes:
             course.updated_at = datetime.now(UTC)
             
@@ -351,6 +365,8 @@ def search_courses():
                 'price': course.price,
                 'image_url': course.image_url,
                 'created_at': course.created_at.isoformat() if course.created_at else None,
+                'instructor_id': course.instructor.id,
+                'instructor_name': course.instructor.username,
                 'instructor': {
                     'id': course.instructor.id,
                     'username': course.instructor.username

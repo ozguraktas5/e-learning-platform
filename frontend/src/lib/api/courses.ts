@@ -110,5 +110,15 @@ export const coursesApi = {
   enrollInCourse: async (courseId: number): Promise<CourseEnrollment> => {
     const response = await api.post(`/courses/${courseId}/enroll`);
     return response.data;
-  }
+  },
+
+  getCategories: async (): Promise<string[]> => {
+    const response = await api.get('/courses/categories');
+    return response.data;
+  },
+
+  getInstructors: async (): Promise<{ id: number; username: string; email: string }[]> => {
+    const response = await api.get('/courses/instructors');
+    return response.data;
+  },
 };

@@ -82,9 +82,11 @@ def create_app():
     # Blueprint'leri kaydet
     from auth import auth
     from courses import courses
+    from profiles import profiles
 
     app.register_blueprint(auth, url_prefix='/auth')
     app.register_blueprint(courses, url_prefix='/courses')
+    app.register_blueprint(profiles)
     
     # Veritabanı tablolarını oluştur
     with app.app_context():

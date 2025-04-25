@@ -1,84 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { coursesApi, type Course } from '@/lib/api/courses';
-import CourseList from '@/components/courses/CourseList';
-import CourseListSkeleton from '@/components/courses/CourseListSkeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { AxiosError } from 'axios';
+import CourseSearch from '@/components/courses/CourseSearch';
 
 export default function CoursesPage() {
   const { user } = useAuth();
   const router = useRouter();
   const isInstructor = user?.role === 'instructor';
-  const searchParams = useSearchParams();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    total: 0,
-    page: 1,
-    per_page: 10,
-    total_pages: 0,
-  });
 
   useEffect(() => {
     if (!user) {
       router.push('/login');
-      return;
     }
-
-    const fetchCourses = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const params = {
-          sort_by: searchParams.get('sort_by') || 'created_at',
-          order: (searchParams.get('order') || 'desc') as 'asc' | 'desc',
-          page: Number(searchParams.get('page')) || 1,
-          per_page: Number(searchParams.get('per_page')) || 10,
-        };
-
-        const response = await coursesApi.searchCourses(params);
-        setCourses(response.courses);
-        setPagination({
-          total: response.total,
-          page: response.page,
-          per_page: response.per_page,
-          total_pages: response.total_pages,
-        });
-      } catch (err) {
-        console.error('Error fetching courses:', err);
-        if (err instanceof AxiosError && err.response?.status === 401) {
-          router.push('/login');
-        } else {
-          setError('Kurslar yüklenirken bir hata oluştu');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCourses();
-  }, [searchParams, user, router]);
+  }, [user, router]);
 
   if (!user) {
-    return null; // Yönlendirme yapılırken boş sayfa göster
-  }
-
-  if (loading) {
-    return <CourseListSkeleton />;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center text-red-600 p-4">
-        <p>{error}</p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -94,15 +34,9 @@ export default function CoursesPage() {
           </Link>
         )}
       </div>
-      <CourseList 
-        courses={courses}
-        pagination={pagination}
-        onPageChange={(page: number) => {
-          const url = new URL(window.location.href);
-          url.searchParams.set('page', page.toString());
-          window.history.pushState({}, '', url);
-        }}
-      />
+      <div className="mb-6">
+        <CourseSearch />
+      </div>
     </main>
   );
 }

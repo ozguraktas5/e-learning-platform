@@ -22,9 +22,7 @@ export default function CourseCard({ course }: CourseCardProps) {
         </div>
         <div className="p-4">
           <h2 className="text-xl font-semibold mb-2">{course.title}</h2>
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-            {course.description}
-          </p>
+          <p className="text-gray-600 text-sm mb-4 line-clamp-2" dangerouslySetInnerHTML={{ __html: course.description }} />
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-500">
               Eğitmen: {course.instructor_name}

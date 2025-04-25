@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { coursesApi, Course } from '@/lib/api/courses';
 import { useAuth } from '@/hooks/useAuth';
+import Link from 'next/link';
 
 export default function CourseDetail() {
   const { courseId } = useParams();
+  const router = useRouter();
   const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,8 +59,36 @@ export default function CourseDetail() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">{course.title}</h1>
-      <p className="mb-4">{course.description}</p>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">{course.title}</h1>
+        {user?.role === 'instructor' && (
+          <div className="flex space-x-2">
+            <Link
+              href={`/courses/${course.id}/edit`}
+              className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+            >
+              Düzenle
+            </Link>
+            <button
+              onClick={async () => {
+                if (!confirm('Bu kursu silmek istediğinize emin misiniz?')) return;
+                try {
+                  await coursesApi.deleteCourse(course.id.toString());
+                  toast.success('Kurs başarıyla silindi');
+                  router.push('/courses');
+                } catch (err) {
+                  toast.error('Kurs silme işlemi başarısız');
+                  console.error(err);
+                }
+              }}
+              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              Sil
+            </button>
+          </div>
+        )}
+      </div>
+      <p className="mb-4" dangerouslySetInnerHTML={{ __html: course.description }} />
       <div className="mb-4">
         <p>Kategori: {course.category}</p>
         <p>Seviye: {course.level}</p>

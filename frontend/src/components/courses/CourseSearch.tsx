@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { coursesApi } from '@/lib/api/courses';
 import { useDebounce } from '@/hooks/useDebounce';
-import { toast } from 'react-toastify';
+import { coursesApi, type CourseSearchParams, type SearchResponse } from '@/lib/api/courses';
+import Link from 'next/link';
 
 const LEVELS = ['Başlangıç', 'Orta', 'İleri'];
 const SORT_OPTIONS = [
@@ -18,6 +18,7 @@ interface SearchFilters {
   q: string;
   category?: string;
   level?: string;
+  instructor_id?: number;
   min_price?: number;
   max_price?: number;
   sort_by: string;
@@ -29,13 +30,16 @@ interface SearchFilters {
 export default function CourseSearch() {
   const [filters, setFilters] = useState<SearchFilters>({
     q: '',
+    category: undefined,
+    level: undefined,
+    instructor_id: undefined,
     sort_by: 'created_at',
     order: 'desc',
     page: 1,
     per_page: 10
   });
 
-  const debouncedSearch = useDebounce(filters.q, 300);
+  // only debounce price filter
   const debouncedPrice = useDebounce({ min: filters.min_price, max: filters.max_price }, 300);
 
   // Kategorileri getir
@@ -47,31 +51,53 @@ export default function CourseSearch() {
     }
   });
 
-  // Kursları getir
-  const {
-    data: searchResults,
-    isLoading,
-    error
-  } = useQuery({
-    queryKey: ['courses', 'search', debouncedSearch, filters.category, filters.level, debouncedPrice, filters.sort_by, filters.order, filters.page],
+  // Eğitmenleri getir
+  const { data: instructors = [] } = useQuery({
+    queryKey: ['instructors'],
     queryFn: async () => {
-      try {
-        const response = await coursesApi.searchCourses(filters);
-        return response;
-      } catch (error) {
-        toast.error('Kurslar yüklenirken bir hata oluştu');
-        throw error;
-      }
+      return await coursesApi.getInstructors();
     }
   });
 
+  // Helper to get instructor username by ID
+  const getInstructorName = (id: number) => instructors.find(instr => instr.id === id)?.username || 'Bilinmiyor';
+
+  // Kursları getir
+  const { data: searchResults, isLoading, error } = useQuery<SearchResponse, Error>({
+    queryKey: ['courses', 'search', filters.q, filters.category, filters.level, filters.instructor_id, debouncedPrice, filters.sort_by, filters.order, filters.page],
+    queryFn: () => {
+      const params: CourseSearchParams = {
+        query: filters.q,
+        category: filters.category,
+        level: filters.level,
+        instructor_id: filters.instructor_id?.toString(),
+        min_price: filters.min_price,
+        max_price: filters.max_price,
+        sort_by: filters.sort_by,
+        order: filters.order,
+        page: filters.page,
+        per_page: filters.per_page,
+      };
+      return coursesApi.searchCourses(params);
+    }
+  });
+
+  // Apply client-side filter on the raw search input (filters.q) for both title and description
+  const filteredCourses = searchResults?.courses.filter(course => {
+    const term = filters.q.toLowerCase();
+    return (
+      course.title.toLowerCase().includes(term) ||
+      course.description.toLowerCase().includes(term)
+    );
+  }) ?? [];
+
   // Filtreleri güncelle
-  const handleFilterChange = (name: keyof SearchFilters, value: any) => {
+  const handleFilterChange = <K extends keyof SearchFilters>(name: K, value: SearchFilters[K]) => {
     setFilters(prev => ({
       ...prev,
       [name]: value,
-      page: name === 'page' ? value : 1 // Filtre değiştiğinde sayfa 1'e dön
-    }));
+      page: name === 'page' ? (value as number) : 1
+    } as SearchFilters));
   };
 
   // Sıralama yönünü değiştir
@@ -124,6 +150,22 @@ export default function CourseSearch() {
             {LEVELS.map((level) => (
               <option key={level} value={level}>
                 {level}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Eğitmen Filtresi */}
+        <div>
+          <select
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            value={filters.instructor_id || ''}
+            onChange={(e) => handleFilterChange('instructor_id', e.target.value ? Number(e.target.value) : undefined)}
+          >
+            <option value="">Tüm Eğitmenler</option>
+            {instructors.map((instr) => (
+              <option key={instr.id} value={instr.id}>
+                {instr.username}
               </option>
             ))}
           </select>
@@ -186,24 +228,49 @@ export default function CourseSearch() {
       {searchResults && (
         <div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {searchResults.courses.map((course) => (
-              <div key={course.id} className="border rounded-lg p-4">
-                <h3 className="text-lg font-semibold">{course.title}</h3>
-                <p className="text-gray-600 text-sm mt-2 line-clamp-2">{course.description}</p>
-                <div className="mt-4 flex justify-between items-center">
-                  <span className="text-sm text-gray-500">{course.instructor.username}</span>
-                  <span className="text-sm font-semibold">{course.price ? `${course.price}₺` : 'Ücretsiz'}</span>
+            {filteredCourses.map((course) => (
+              <div
+                key={course.id}
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+              >
+                {course.image_url && (
+                  <img
+                    src={course.image_url}
+                    alt={course.title}
+                    className="w-full h-48 object-cover"
+                  />
+                )}
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-2">{course.title}</h3>
+                  <p className="text-gray-700 text-sm mb-3">
+                    Eğitmen: {getInstructorName(course.instructor_id)}
+                  </p>
+                  <p
+                    className="text-gray-600 mb-4 line-clamp-2"
+                    dangerouslySetInnerHTML={{ __html: course.description }}
+                  />
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-600 font-medium">
+                      {course.price ? `${course.price} TL` : 'Ücretsiz'}
+                    </span>
+                    <Link
+                      href={`/courses/${course.id}`}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      Detaylar
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Sayfalama */}
-          {searchResults.total_pages > 1 && (
+          {filteredCourses.length > 0 && searchResults.total_pages > 1 && (
             <div className="flex justify-center space-x-2 mt-8">
               <button
                 className="px-4 py-2 border rounded-lg disabled:opacity-50"
-                disabled={!searchResults.has_prev}
+                disabled={filters.page <= 1}
                 onClick={() => handleFilterChange('page', filters.page - 1)}
               >
                 Önceki
@@ -213,7 +280,7 @@ export default function CourseSearch() {
               </span>
               <button
                 className="px-4 py-2 border rounded-lg disabled:opacity-50"
-                disabled={!searchResults.has_next}
+                disabled={filters.page >= searchResults.total_pages}
                 onClick={() => handleFilterChange('page', filters.page + 1)}
               >
                 Sonraki

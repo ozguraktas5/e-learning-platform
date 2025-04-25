@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash  # imported for model compatibility, but using User methods
 from models import db, User
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
@@ -66,10 +66,10 @@ def change_password():
     if not data or 'current_password' not in data or 'new_password' not in data: # Şifre değiştirme için gerekli veri yoksa hata döndür
         return jsonify({'message': 'Current password and new password are required'}), 400
     
-    if not check_password_hash(current_user.password, data['current_password']): # Şifre yanlışsa hata döndür
+    if not current_user.check_password(data['current_password']): # Şifre yanlışsa hata döndür
         return jsonify({'message': 'Current password is incorrect'}), 401
     
-    current_user.password = generate_password_hash(data['new_password']) # Yeni şifreyi hash'liyoruz.
+    current_user.set_password(data['new_password']) # Yeni şifreyi hash'liyoruz.
     db.session.commit() # Değişiklikleri kaydediyoruz.
     
     return jsonify({'message': 'Password updated successfully'}) # Şifre değiştirme işlemi başarılıysa mesaj döndür
