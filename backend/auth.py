@@ -21,7 +21,7 @@ CORS(auth, resources={
     }
 })
 
-@auth.route('/register', methods=['POST'])
+@auth.route('/register', methods=['POST', 'OPTIONS'])
 def register():
     data = request.get_json()
     
@@ -61,7 +61,7 @@ def register():
         db.session.rollback()
         return jsonify({'message': f'Error registering user: {str(e)}'}), 500
 
-@auth.route('/login', methods=['POST'])
+@auth.route('/login', methods=['POST', 'OPTIONS'])
 def login():
     try:
         data = request.get_json()
@@ -109,7 +109,7 @@ def login():
         print("Login error:", str(e))  # Debug log
         return jsonify({'message': f'Login error: {str(e)}'}), 500
 
-@auth.route('/me', methods=['GET'])
+@auth.route('/me', methods=['GET', 'OPTIONS'])
 @jwt_required()
 def get_current_user():
     current_user_id = get_jwt_identity()

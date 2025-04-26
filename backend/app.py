@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 
 # Arka uç dizinini Python yoluna ekleyin
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -62,16 +62,14 @@ def create_app():
     app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Güvenli bir secret key kullanın
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)  # Token 1 saat geçerli
     
-    # CORS ayarları
-    CORS(app, resources={
-        r"/*": {
-            "origins": ["http://localhost:3000"],
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "expose_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": True
-        }
-    })
+    # CORS ayarları: tüm rotalar için preflight dahil her isteği otomatik olarak destekle
+    CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
+    
+    # Preflight OPTIONS isteklerini yakala ve 200 dön
+    @app.before_request
+    def handle_preflight():
+        if request.method == 'OPTIONS':
+            return ('', 200)
     
     # Veritabanını başlat
     db.init_app(app)
@@ -83,10 +81,12 @@ def create_app():
     from auth import auth
     from courses import courses
     from profiles import profiles
+    from enrollments import enrollments
 
-    app.register_blueprint(auth, url_prefix='/auth')
+    app.register_blueprint(auth, url_prefix='/api/auth')
     app.register_blueprint(courses, url_prefix='/courses')
     app.register_blueprint(profiles)
+    app.register_blueprint(enrollments)
     
     # Veritabanı tablolarını oluştur
     with app.app_context():

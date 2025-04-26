@@ -1,9 +1,19 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_cors import CORS
 from models import db, Course, Enrollment, Progress, Lesson, User
 from datetime import datetime, UTC
 
 enrollments = Blueprint('enrollments', __name__) # Enrollments blueprint'ini oluşturuyoruz.
+CORS(enrollments, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
 
 def is_student(user_id): # Kullanıcının öğrenci olup olmadığını kontrol et
     user = User.query.get(user_id)

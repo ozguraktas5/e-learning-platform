@@ -24,7 +24,7 @@ export interface Course {
   instructor_name: string;
   image_url?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface CourseEnrollment {
@@ -119,6 +119,11 @@ export const coursesApi = {
 
   getInstructors: async (): Promise<{ id: number; username: string; email: string }[]> => {
     const response = await api.get('/courses/instructors');
+    return response.data;
+  },
+
+  getAllCourses: async (): Promise<Course[]> => {
+    const response = await api.get('/courses');
     return response.data;
   },
 };
