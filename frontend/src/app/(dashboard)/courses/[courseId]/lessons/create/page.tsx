@@ -6,7 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { lessonApi } from '@/lib/api/lessons';
-import { CreateLessonData } from '@/types/lesson';
+import { CreateLessonData, Lesson } from '@/types/lesson';
+import { toast } from 'react-hot-toast';
 
 const lessonSchema = z.object({
   title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
@@ -19,38 +20,55 @@ export default function CreateLessonPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<CreateLessonData>({
     resolver: zodResolver(lessonSchema)
   });
 
+  const numericCourseId = Number(courseId);
+
   const onSubmit = async (data: CreateLessonData) => {
+    if (isNaN(numericCourseId)) {
+      setError('Geçersiz Kurs ID');
+      return;
+    }
+  
+    setLoading(true);
+    setError(null);
+    let newLesson: Lesson | null = null;
+
     try {
-      setLoading(true);
-      const lesson = await lessonApi.createLesson(Number(courseId), data);
-      router.push(`/courses/${courseId}/lessons/${lesson.id}`);
-    } catch (err) {
-      setError('Ders oluşturulurken bir hata oluştu');
+      newLesson = await lessonApi.createLesson(numericCourseId, data);
+      toast.success(`Ders '${newLesson.title}' oluşturuldu.`);
+
+      if (selectedFile && newLesson && newLesson.id) {
+        const formData = new FormData();
+        formData.append('video', selectedFile);
+        
+        await lessonApi.uploadMedia(numericCourseId, newLesson.id, formData);
+        toast.success(`Video '${selectedFile.name}' başarıyla yüklendi.`);
+      }
+
+      router.push(`/courses/${courseId}/lessons`);
+
+    } catch (err: unknown) {
+      console.error('Error during lesson creation or upload process:', err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(`Ders oluşturulurken bir hata oluştu: ${errorMessage || 'Bilinmeyen hata'}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      setUploadProgress(0);
-      const response = await lessonApi.uploadMedia(Number(courseId), 0, formData);
-      // Dosya yükleme başarılı
-      setUploadProgress(100);
-    } catch (err) {
-      setError('Dosya yüklenirken bir hata oluştu');
+    if (file) {
+      setSelectedFile(file);
+      setError(null);
+      console.log('File selected:', file.name);
+    } else {
+      setSelectedFile(null);
     }
   };
 
@@ -70,7 +88,7 @@ export default function CreateLessonPage() {
           <input
             {...register('title')}
             type="text"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
           {errors.title && (
             <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
@@ -78,11 +96,11 @@ export default function CreateLessonPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">İçerik</label>
+          <label className="block text-sm font-medium text-gray-700">İçerik (HTML destekler)</label>
           <textarea
             {...register('content')}
             rows={6}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
           {errors.content && (
             <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>
@@ -95,7 +113,7 @@ export default function CreateLessonPage() {
             {...register('order', { valueAsNumber: true })}
             type="number"
             min="1"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
           {errors.order && (
             <p className="mt-1 text-sm text-red-600">{errors.order.message}</p>
@@ -103,20 +121,15 @@ export default function CreateLessonPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Video</label>
+          <label className="block text-sm font-medium text-gray-700">Video (İsteğe bağlı)</label>
           <input
             type="file"
             accept="video/*"
-            onChange={handleFileUpload}
-            className="mt-1 block w-full"
+            onChange={handleFileChange}
+            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
-          {uploadProgress > 0 && uploadProgress < 100 && (
-            <div className="mt-2 h-2 bg-gray-200 rounded-full">
-              <div
-                className="h-full bg-blue-600 rounded-full"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
+          {selectedFile && (
+             <p className="mt-1 text-sm text-green-600">Seçilen dosya: {selectedFile.name}</p>
           )}
         </div>
 
@@ -124,14 +137,14 @@ export default function CreateLessonPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 transition duration-150 ease-in-out"
           >
             {loading ? 'Oluşturuluyor...' : 'Ders Oluştur'}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300"
+            className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-150 ease-in-out"
           >
             İptal
           </button>

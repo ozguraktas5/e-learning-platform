@@ -83,7 +83,7 @@ def create_app():
     from profiles import profiles
     from enrollments import enrollments
 
-    app.register_blueprint(auth, url_prefix='/api/auth')
+    app.register_blueprint(auth, url_prefix='/auth')
     app.register_blueprint(courses, url_prefix='/courses')
     app.register_blueprint(profiles)
     app.register_blueprint(enrollments)

@@ -19,28 +19,38 @@ def get_storage_client():
     credentials_path = os.path.join(os.path.dirname(__file__), GOOGLE_APPLICATION_CREDENTIALS)
     return storage.Client.from_service_account_json(credentials_path)
 
-def upload_file_to_gcs(file):
+def upload_file_to_gcs(file, folder=None):
     """
-    Dosyayı yerel uploads klasörüne kaydet
+    Dosyayı yerel uploads klasörüne (veya belirtilen alt klasöre) kaydet
     Not: Gerçek bir uygulamada bu fonksiyon Google Cloud Storage'a yükleme yapacaktır
     """
-    # Uploads klasörünü oluştur
-    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
+    # Base uploads folder
+    base_upload_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+    
+    # Determine the target folder
+    target_folder = base_upload_folder
+    if folder:
+        target_folder = os.path.join(base_upload_folder, folder)
+    
+    # Create the target folder if it doesn't exist
+    if not os.path.exists(target_folder):
+        os.makedirs(target_folder)
     
     # Güvenli dosya adı oluştur
     filename = secure_filename(file.filename)
     # Benzersiz bir isim oluştur
     unique_filename = f"{uuid.uuid4()}_{filename}"
-    # Dosya yolunu oluştur
-    file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+    # Dosya yolunu oluştur (target_folder kullanarak)
+    file_path = os.path.join(target_folder, unique_filename)
     
     # Dosyayı kaydet
     file.save(file_path)
     
-    # URL'i döndür (gerçek uygulamada bu bir CDN URL'i olacaktır)
-    return f"http://localhost:5000/uploads/{unique_filename}"
+    # URL'i döndür (klasör yapısını da içerecek şekilde)
+    relative_path = os.path.join(folder, unique_filename) if folder else unique_filename
+    # Ensure forward slashes for URL
+    url_path = relative_path.replace('\\', '/') 
+    return f"http://localhost:5000/uploads/{url_path}"
 
 def upload_video_to_gcs(video_file):
     """Video dosyasını Google Cloud Storage'a yükle"""

@@ -90,6 +90,12 @@ class Lesson(db.Model):
     course = db.relationship('Course', back_populates='lessons', lazy=True)
 
     def to_dict(self):
+        # İlişkilerin None olup olmadığını kontrol et
+        doc_count = len(self.documents) if self.documents is not None else 0
+        # quiz ilişkisi uselist=False olduğu için varlığını kontrol et
+        quiz_count = 1 if self.quiz is not None else 0 
+        assign_count = len(self.assignments) if self.assignments is not None else 0
+        
         return {
             'id': self.id,
             'title': self.title,
@@ -97,9 +103,9 @@ class Lesson(db.Model):
             'order': self.order,
             'video_url': self.video_url,
             'created_at': self.created_at.isoformat(),
-            'document_count': len(self.documents),
-            'quiz_count': len(self.quiz),
-            'assignment_count': len(self.assignments)
+            'document_count': doc_count,
+            'quiz_count': quiz_count,          # Düzeltilmiş quiz sayımı
+            'assignment_count': assign_count
         }
 
 class LessonDocument(db.Model):

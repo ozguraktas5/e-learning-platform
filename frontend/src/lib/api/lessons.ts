@@ -17,7 +17,12 @@ export const lessonApi = {
   // Yeni ders oluştur
   createLesson: async (courseId: number, data: CreateLessonData): Promise<Lesson> => {
     const response = await api.post(`/courses/${courseId}/lessons`, data);
-    return response.data;
+    if (response.data && response.data.lesson) {
+      return response.data.lesson;
+    } else {
+      console.error('Unexpected response structure from createLesson API:', response.data);
+      throw new Error('Failed to create lesson: Invalid API response');
+    }
   },
 
   // Ders güncelle

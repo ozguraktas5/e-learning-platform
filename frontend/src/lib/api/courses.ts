@@ -52,6 +52,19 @@ export interface CreateCourseData {
   image_url?: string;
 }
 
+export interface Lesson {
+  id: number;
+  title: string;
+  content: string;
+  order: number;
+  video_url?: string | null; // Optional based on model nullable=True
+  created_at: string; // ISO date string
+  document_count?: number; // Optional, might not always be present
+  quiz_count?: number; // Optional, might not always be present
+  assignment_count?: number; // Optional, might not always be present
+  // course_id is available in the model but not in to_dict, add if needed
+} 
+
 export const coursesApi = {
   searchCourses: async (params: CourseSearchParams = {}): Promise<SearchResponse> => {
     try {
@@ -125,5 +138,17 @@ export const coursesApi = {
   getAllCourses: async (): Promise<Course[]> => {
     const response = await api.get('/courses');
     return response.data;
+  },
+
+  getCourseLessons: async (courseId: number): Promise<Lesson[]> => {
+    try {
+      const response = await api.get(`/courses/${courseId}/lessons`);
+      // Ensure the response data is an array, default to empty array if not
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      console.error(`Error fetching lessons for course ${courseId}:`, error);
+      // Re-throw the error or return an empty array/handle as needed
+      throw error; 
+    }
   },
 };

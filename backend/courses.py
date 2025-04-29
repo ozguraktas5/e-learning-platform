@@ -283,6 +283,33 @@ def add_lesson(course_id):
         }
     }), 201
 
+@courses.route('/<int:course_id>/lessons', methods=['GET'])
+@jwt_required() # Genellikle ders listesi için giriş yapmak gerekir
+def get_course_lessons(course_id):
+    """Bir kursa ait tüm dersleri getirir."""
+    try:
+        # Kursun var olup olmadığını kontrol et
+        course = Course.query.get_or_404(course_id)
+        
+        # Opsiyonel: Kullanıcının bu kursu görme yetkisi var mı? 
+        # Örneğin, sadece kayıtlı öğrenciler veya eğitmen mi görmeli?
+        # current_user_id = get_jwt_identity()
+        # enrollment = Enrollment.query.filter_by(student_id=current_user_id, course_id=course_id).first()
+        # if not enrollment and str(course.instructor_id) != str(current_user_id):
+        #     return jsonify({'error': 'Bu kursun derslerini görme yetkiniz yok'}), 403
+
+        # Kursa ait dersleri getir ve sırala (örneğin 'order' alanına göre)
+        lessons = Lesson.query.filter_by(course_id=course_id).order_by(Lesson.order.asc()).all()
+        
+        # Dersleri dictionary formatına çevir
+        lesson_list = [lesson.to_dict() for lesson in lessons]
+        
+        return jsonify(lesson_list), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching lessons for course {course_id}: {str(e)}")
+        return jsonify({'error': 'Dersler getirilirken bir hata oluştu'}), 500
+
 @courses.route('/search', methods=['GET'])
 @jwt_required()
 def search_courses():
