@@ -5,6 +5,7 @@ from config import GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_BUCKET, GOOGLE_APPLICATION
 from config import ALLOWED_VIDEO_EXTENSIONS, ALLOWED_FILE_EXTENSIONS # İzin verilen video ve dosya uzantılarını yükle
 from datetime import datetime, timedelta # Zaman dilimi için kullanılır.
 import uuid
+from flask import current_app # For logging
 
 def allowed_video_file(filename):
     """Video dosya uzantısının geçerli olup olmadığını kontrol et"""
@@ -21,45 +22,50 @@ def get_storage_client():
 
 def upload_file_to_gcs(file, folder=None):
     """
-    Dosyayı yerel uploads klasörüne (veya belirtilen alt klasöre) kaydet
-    Not: Gerçek bir uygulamada bu fonksiyon Google Cloud Storage'a yükleme yapacaktır
+    Uploads a file to the local uploads directory.
+    Returns ONLY the relative URL path.
     """
-    # Base uploads folder
     base_upload_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
-    
-    # Determine the target folder
     target_folder = base_upload_folder
     if folder:
         target_folder = os.path.join(base_upload_folder, folder)
     
-    # Create the target folder if it doesn't exist
     if not os.path.exists(target_folder):
         os.makedirs(target_folder)
     
-    # Güvenli dosya adı oluştur
     filename = secure_filename(file.filename)
-    # Benzersiz bir isim oluştur
-    unique_filename = f"{uuid.uuid4()}_{filename}"
-    # Dosya yolunu oluştur (target_folder kullanarak)
-    file_path = os.path.join(target_folder, unique_filename)
+    unique_filename = f"{uuid.uuid4().hex}_{filename}"
+    local_file_path = os.path.join(target_folder, unique_filename)
     
-    # Dosyayı kaydet
-    file.save(file_path)
+    try:
+        file.save(local_file_path)
+    except Exception as e:
+        current_app.logger.error(f"Error saving file {local_file_path}: {e}")
+        return None # Return None if saving fails
     
-    # URL'i döndür (klasör yapısını da içerecek şekilde)
     relative_path = os.path.join(folder, unique_filename) if folder else unique_filename
-    # Ensure forward slashes for URL
-    url_path = relative_path.replace('\\', '/') 
-    return f"http://localhost:5000/uploads/{url_path}"
+    url_path = relative_path.replace('\\', '/')
+    # Use /media/ prefix
+    full_url = f"/media/{url_path}" 
+    
+    current_app.logger.info(f"File uploaded locally to: {local_file_path}, URL: {full_url}")
+    return full_url # Return only the URL
 
 def upload_video_to_gcs(video_file):
-    """Video dosyasını Google Cloud Storage'a yükle"""
+    """Uploads video file and returns its URL."""
     if not allowed_video_file(video_file.filename):
         return None
-    return upload_file_to_gcs(video_file, folder='videos')
+
+    # Call upload_file_to_gcs which now only returns the URL
+    video_url = upload_file_to_gcs(video_file, folder='videos')
+    
+    # No thumbnail generation needed
+    return video_url # Return only the video URL
 
 def upload_document_to_gcs(file):
-    """Döküman dosyasını Google Cloud Storage'a yükle"""
+    """Uploads document file and returns its URL."""
     if not allowed_file(file.filename):
         return None
-    return upload_file_to_gcs(file, folder='documents') 
+    # Call upload_file_to_gcs which now only returns the URL
+    doc_url = upload_file_to_gcs(file, folder='documents') 
+    return doc_url # Return only the document URL 

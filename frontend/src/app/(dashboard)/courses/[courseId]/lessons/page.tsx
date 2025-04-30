@@ -77,20 +77,25 @@ export default function CourseLessonsPage() {
               key={lesson.id} 
               className="border rounded-lg overflow-hidden shadow hover:shadow-md transition-shadow duration-200 bg-white flex flex-col"
             >
-              {/* Conditional Image Display */}
-              <div className="aspect-video bg-gray-200 flex items-center justify-center">
+              {/* Conditional Video/Image Display */}
+              <div className="aspect-video bg-gray-200 flex items-center justify-center overflow-hidden">
                 {lesson.video_url ? (
-                  <img 
-                    // Using a placeholder for video for now. Replace with actual thumbnail logic if available.
-                    src={`https://via.placeholder.com/400x225.png/007bff/ffffff?text=Video+Available`}
-                    alt="Video available placeholder"
-                    className="object-cover w-full h-full"
-                  />
-                ) : (
+                  <video 
+                    src={lesson.video_url} 
+                    controls 
+                    muted // Start muted to avoid autoplay issues
+                    playsInline // Important for mobile playback
+                    preload="metadata" // Load only metadata initially for faster page load
+                    className="object-cover w-full h-full" // Use object-cover for aspect ratio
+                    title={lesson.title} // Add title for accessibility
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                ) : ( // Show no_video image if no video exists
                   <Image 
                     src={no_video}
-                    alt="No video placeholder"
-                    className="object-cover"
+                    alt="No video available"
+                    className="object-contain w-1/2 h-1/2" 
                   />
                 )}
               </div>

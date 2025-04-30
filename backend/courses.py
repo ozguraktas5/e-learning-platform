@@ -16,6 +16,7 @@ from sqlalchemy import exc
 from sqlalchemy.exc import OperationalError
 from flask import current_app
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
 
 # Load environment variables
 load_dotenv()
@@ -82,10 +83,13 @@ def create_course():
             file = request.files['image']
             if file and file.filename:
                 try:
-                    image_url = upload_file_to_gcs(file)
+                    # upload_file_to_gcs now returns only the URL string
+                    image_url = upload_file_to_gcs(file) 
+                    if image_url is None: # Check if upload failed
+                         raise ValueError("File upload failed.")
                 except Exception as e:
                     current_app.logger.error(f'Error uploading image: {str(e)}')
-                    return jsonify({'error': 'Error uploading image'}), 500
+                    return jsonify({'error': f'Error uploading image: {str(e)}'}), 500
         
         # Yeni kurs oluştur
         course = Course(
@@ -95,7 +99,7 @@ def create_course():
             price=float(price),
             category=category,
             level=level,
-            image_url=image_url
+            image_url=image_url # Now this should be a string or None
         )
         
         current_app.logger.info(f'Created course object: {course.title}')
@@ -582,39 +586,43 @@ def upload_lesson_media(course_id, lesson_id):
     if 'video' not in request.files and 'document' not in request.files:
         return jsonify({'error': 'Video veya döküman yüklenmedi'}), 400
         
-    media_urls = []
+    media_updates = []
     
     # Video yükleme
     if 'video' in request.files:
         video_file = request.files['video']
+        # upload_video_to_gcs now returns only the video_url
         video_url = upload_video_to_gcs(video_file)
         if video_url:
-            # Video URL'ini veritabanına kaydet
+            # Save only the video URL
             lesson.video_url = video_url
-            media_urls.append({'type': 'video', 'url': video_url})
+            # Remove thumbnail logic
+            media_updates.append({'type': 'video', 'url': video_url})
             
     # Döküman yükleme
     if 'document' in request.files:
         document_file = request.files['document']
-        document_url = upload_document_to_gcs(document_file)
+        # upload_document_to_gcs now returns only the doc_url
+        document_url = upload_document_to_gcs(document_file) 
         if document_url:
             # Döküman URL'ini veritabanına kaydet
             new_document = LessonDocument(
                 lesson_id=lesson.id,
                 file_url=document_url,
-                file_name=document_file.filename
+                file_name=secure_filename(document_file.filename) # Use secure_filename
             )
             db.session.add(new_document)
-            media_urls.append({'type': 'document', 'url': document_url})
+            media_updates.append({'type': 'document', 'url': document_url})
     
     try:
         db.session.commit()
         return jsonify({
             'message': 'Medya başarıyla yüklendi',
-            'media': media_urls
+            'media': media_updates
         }), 200
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f"Error uploading media for lesson {lesson_id}: {e}")
         return jsonify({'error': 'Medya yüklenirken bir hata oluştu'}), 500
 
 @courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz', methods=['POST'])

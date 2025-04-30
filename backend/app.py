@@ -18,8 +18,11 @@ from dotenv import load_dotenv
 # Ortam değişkenlerini yükle
 load_dotenv()
 
+migrate = Migrate()
+
 def create_app():
-    app = Flask(__name__)
+    # Explicitly disable Flask's default static folder handling
+    app = Flask(__name__, static_folder=None)
     
     # Debug modu aktif et
     app.config['DEBUG'] = True
@@ -33,15 +36,6 @@ def create_app():
         os.makedirs(UPLOAD_FOLDER)
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-    # Uploads klasörü için özel route ekle
-    @app.route('/uploads/<path:filename>')
-    def uploaded_file(filename):
-        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-    
-    # Statik dosya yolunu ayarla
-    app.config['STATIC_FOLDER'] = UPLOAD_FOLDER
-    app.config['STATIC_URL_PATH'] = '/uploads'
-    
     # Logging konfigürasyonu
     if not os.path.exists('logs'):
         os.mkdir('logs')
@@ -71,13 +65,29 @@ def create_app():
         if request.method == 'OPTIONS':
             return ('', 200)
     
-    # Veritabanını başlat
+    # Initialize extensions
     db.init_app(app)
-    
-    # JWT yöneticisini başlat
+    migrate.init_app(app, db)
     jwt = JWTManager(app)
-    
-    # Blueprint'leri kaydet
+
+    # DEFINE THE MEDIA SERVING ROUTE *BEFORE* BLUEPRINTS
+    @app.route('/media/<path:filename>')
+    def serve_media_file(filename):
+        app.logger.info(f"Attempting to serve file via /media/ route: {filename}")
+        absolute_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        app.logger.info(f"Looking for file at absolute path: {absolute_path}")
+        
+        if not os.path.exists(absolute_path):
+            app.logger.error(f"File does not exist at path: {absolute_path}")
+            return jsonify({"error": "File not found"}), 404 
+            
+        try:
+            return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=False)
+        except Exception as e:
+            app.logger.error(f"Error sending file {filename}: {e}")
+            return jsonify({"error": "Error serving file"}), 500
+
+    # Register Blueprints
     from auth import auth
     from courses import courses
     from profiles import profiles
