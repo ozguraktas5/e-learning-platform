@@ -9,8 +9,11 @@ declare global {
   }
 }
 
+// Export this so it can be used for file URLs
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 const api: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

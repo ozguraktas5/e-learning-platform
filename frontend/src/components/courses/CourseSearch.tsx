@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/useDebounce';
 import { coursesApi, type CourseSearchParams, type SearchResponse } from '@/lib/api/courses';
 import Link from 'next/link';
+import { getFullUrl } from '@/lib/utils';
 
 const LEVELS = ['Başlangıç', 'Orta', 'İleri'];
 const SORT_OPTIONS = [
@@ -233,12 +234,18 @@ export default function CourseSearch() {
                 key={course.id}
                 className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
               >
-                {course.image_url && (
+                {course.image_url ? (
                   <img
-                    src={course.image_url}
+                    src={getFullUrl(course.image_url)}
                     alt={course.title}
                     className="w-full h-48 object-cover"
                   />
+                ) : (
+                  <div 
+                    className="w-full h-48 flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-500 text-white text-4xl font-bold"
+                  >
+                    {course.title.charAt(0).toUpperCase()}
+                  </div>
                 )}
                 <div className="p-6">
                   <h3 className="text-xl font-semibold mb-2">{course.title}</h3>

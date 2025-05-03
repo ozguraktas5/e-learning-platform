@@ -45,8 +45,8 @@ def upload_file_to_gcs(file, folder=None):
     
     relative_path = os.path.join(folder, unique_filename) if folder else unique_filename
     url_path = relative_path.replace('\\', '/')
-    # Use /media/ prefix
-    full_url = f"/media/{url_path}" 
+    # Use /uploads/ prefix
+    full_url = f"/uploads/{url_path}" 
     
     current_app.logger.info(f"File uploaded locally to: {local_file_path}, URL: {full_url}")
     return full_url # Return only the URL

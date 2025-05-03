@@ -94,13 +94,23 @@ export default function CourseDetail() {
         <p>Seviye: {course.level}</p>
         <p>Fiyat: {course.price} TL</p>
       </div>
-      <button
-        onClick={handleEnroll}
-        disabled={enrolling}
-        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
-      >
-        {enrolling ? 'Kayıt Olunuyor...' : 'Şimdi Kayıt Ol'}
-      </button>
+      
+      <div className="flex flex-wrap gap-4 my-6">
+        <button
+          onClick={handleEnroll}
+          disabled={enrolling}
+          className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 font-medium"
+        >
+          {enrolling ? 'Kayıt Olunuyor...' : 'Şimdi Kayıt Ol'}
+        </button>
+        
+        <Link 
+          href={`/courses/${course.id}/lessons`}
+          className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 flex items-center font-medium transition-colors duration-200"
+        >
+          <span className="mr-2">📚</span> İlgili Dersler
+        </Link>
+      </div>
     </div>
   );
 }

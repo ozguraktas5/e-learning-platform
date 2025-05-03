@@ -6,6 +6,7 @@ export interface Quiz {
   time_limit: number | null;
   passing_score: number;
   questions: QuizQuestion[];
+  created_at?: string;
 }
 
 export interface QuizQuestion {

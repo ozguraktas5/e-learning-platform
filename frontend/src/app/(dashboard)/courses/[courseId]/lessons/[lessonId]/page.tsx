@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { lessonApi } from '@/lib/api/lessons';
 import { Lesson } from '@/types/lesson';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LessonDetailPage() {
   const { courseId, lessonId } = useParams();
@@ -13,21 +13,34 @@ export default function LessonDetailPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLessonDetails();
-  }, [courseId, lessonId]);
+    // Debug: Log user role
+    console.log("Current user:", user);
+    setUserRole(user?.role || 'No role');
+  }, [courseId, lessonId, user]);
 
   const fetchLessonDetails = async () => {
     try {
       setLoading(true);
       const data = await lessonApi.getLesson(Number(courseId), Number(lessonId));
       setLesson(data);
-    } catch (err) {
+    } catch (error) {
+      console.error('Error loading lesson details:', error);
       setError('Ders detayları yüklenirken bir hata oluştu');
     } finally {
       setLoading(false);
     }
+  };
+
+  const navigateToQuizzes = () => {
+    router.push(`/courses/${courseId}/lessons/${lessonId}/quizzes`);
+  };
+  
+  const createNewQuiz = () => {
+    router.push(`/courses/${courseId}/lessons/${lessonId}/quiz/create`);
   };
 
   if (loading) return <div className="text-center py-8">Yükleniyor...</div>;
@@ -39,19 +52,30 @@ export default function LessonDetailPage() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="p-8">
-            <h1 className="text-3xl font-bold mb-6">{lesson.title}</h1>
-
-            {lesson.video_url && (
-              <div className="mb-8">
-                <video
-                  controls
-                  className="w-full rounded-lg"
-                  src={lesson.video_url}
-                >
-                  Tarayıcınız video oynatmayı desteklemiyor.
-                </video>
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-bold">{lesson.title}</h1>
+              
+              <div>
+                <p className="text-sm text-gray-500 mb-2">Mevcut Rol: {userRole}</p>
+                {/* Conditionally render buttons for any logged in user */}
+                {user && (
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={navigateToQuizzes}
+                      className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100"
+                    >
+                      Tüm Quizler
+                    </button>
+                    <button 
+                      onClick={createNewQuiz}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    >
+                      Quiz Oluştur
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             <div className="prose max-w-none mb-8">
               {lesson.content}

@@ -288,21 +288,13 @@ def add_lesson(course_id):
     }), 201
 
 @courses.route('/<int:course_id>/lessons', methods=['GET'])
-@jwt_required() # Genellikle ders listesi için giriş yapmak gerekir
 def get_course_lessons(course_id):
     """Bir kursa ait tüm dersleri getirir."""
     try:
         # Kursun var olup olmadığını kontrol et
         course = Course.query.get_or_404(course_id)
         
-        # Opsiyonel: Kullanıcının bu kursu görme yetkisi var mı? 
-        # Örneğin, sadece kayıtlı öğrenciler veya eğitmen mi görmeli?
-        # current_user_id = get_jwt_identity()
-        # enrollment = Enrollment.query.filter_by(student_id=current_user_id, course_id=course_id).first()
-        # if not enrollment and str(course.instructor_id) != str(current_user_id):
-        #     return jsonify({'error': 'Bu kursun derslerini görme yetkiniz yok'}), 403
-
-        # Kursa ait dersleri getir ve sırala (örneğin 'order' alanına göre)
+        # Kursa ait dersleri getir ve sırala
         lessons = Lesson.query.filter_by(course_id=course_id).order_by(Lesson.order.asc()).all()
         
         # Dersleri dictionary formatına çevir
@@ -1790,3 +1782,177 @@ def get_course(course_id):
     except Exception as e:
         current_app.logger.error(f"Error fetching course {course_id}: {str(e)}")
         return jsonify({'error': 'Failed to fetch course details'}), 500 
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>', methods=['DELETE'])
+@jwt_required()
+def delete_lesson(course_id, lesson_id):
+    """Dersi sil"""
+    try:
+        # Kursu ve dersi kontrol et
+        course = Course.query.get_or_404(course_id)
+        lesson = Lesson.query.get_or_404(lesson_id)
+        
+        # Eğitmen yetkisi kontrolü
+        current_user_id = get_jwt_identity()
+        if course.instructor_id != int(current_user_id):
+            return jsonify({'error': 'Bu dersi silme yetkiniz yok'}), 403
+            
+        # İlişkili belgeleri sil
+        documents = LessonDocument.query.filter_by(lesson_id=lesson_id).all()
+        for document in documents:
+            db.session.delete(document)
+            
+        # İlişkili quizleri sil
+        quizzes = Quiz.query.filter_by(lesson_id=lesson_id).all()
+        for quiz in quizzes:
+            # Quiz sorularını ve cevaplarını sil
+            questions = QuizQuestion.query.filter_by(quiz_id=quiz.id).all()
+            for question in questions:
+                # Sorunun şıklarını sil
+                options = QuizOption.query.filter_by(question_id=question.id).all()
+                for option in options:
+                    db.session.delete(option)
+                db.session.delete(question)
+                
+            # Quiz denemelerini sil
+            attempts = QuizAttempt.query.filter_by(quiz_id=quiz.id).all()
+            for attempt in attempts:
+                # Denemeye ait cevapları sil
+                answers = QuizAnswer.query.filter_by(attempt_id=attempt.id).all()
+                for answer in answers:
+                    db.session.delete(answer)
+                db.session.delete(attempt)
+                
+            db.session.delete(quiz)
+            
+        # İlişkili ödevleri sil
+        assignments = Assignment.query.filter_by(lesson_id=lesson_id).all()
+        for assignment in assignments:
+            # Ödev gönderimlerini sil
+            submissions = AssignmentSubmission.query.filter_by(assignment_id=assignment.id).all()
+            for submission in submissions:
+                db.session.delete(submission)
+            db.session.delete(assignment)
+        
+        # Dersi sil
+        db.session.delete(lesson)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Ders ve ilişkili tüm içerikler başarıyla silindi'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting lesson {lesson_id} for course {course_id}: {str(e)}")
+        return jsonify({'error': f'Ders silinirken bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>', methods=['GET'])
+@jwt_required()
+def get_lesson(course_id, lesson_id):
+    """Belirli bir dersin detaylarını getir"""
+    try:
+        # Kursu ve dersi kontrol et
+        course = Course.query.get_or_404(course_id)
+        lesson = Lesson.query.get_or_404(lesson_id)
+        
+        # Dersin bu kursa ait olduğunu kontrol et
+        if lesson.course_id != course_id:
+            return jsonify({'error': 'Bu ders bu kursa ait değil'}), 400
+            
+        # Derse ait belgeleri getir
+        documents = LessonDocument.query.filter_by(lesson_id=lesson_id).all()
+        document_list = [doc.to_dict() for doc in documents]
+        
+        # Derse ait quizleri getir
+        quizzes = Quiz.query.filter_by(lesson_id=lesson_id).all()
+        quiz_list = [quiz.to_dict() for quiz in quizzes]
+        
+        # Derse ait ödevleri getir
+        assignments = Assignment.query.filter_by(lesson_id=lesson_id).all()
+        assignment_list = [assignment.to_dict() for assignment in assignments]
+        
+        # Ders detaylarını döndür
+        lesson_data = lesson.to_dict()
+        lesson_data.update({
+            'documents': document_list,
+            'quizzes': quiz_list,
+            'assignments': assignment_list
+        })
+        
+        return jsonify(lesson_data), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching lesson {lesson_id} for course {course_id}: {str(e)}")
+        return jsonify({'error': f'Ders getirilirken bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>', methods=['PUT'])
+@jwt_required()
+def update_lesson(course_id, lesson_id):
+    """Dersi güncelle"""
+    try:
+        # Kursu ve dersi kontrol et
+        course = Course.query.get_or_404(course_id)
+        lesson = Lesson.query.get_or_404(lesson_id)
+        
+        # Eğitmen yetkisi kontrolü
+        current_user_id = get_jwt_identity()
+        if course.instructor_id != int(current_user_id):
+            return jsonify({'error': 'Bu dersi güncelleme yetkiniz yok'}), 403
+            
+        # Dersin bu kursa ait olduğunu kontrol et
+        if lesson.course_id != course_id:
+            return jsonify({'error': 'Bu ders bu kursa ait değil'}), 400
+            
+        # İstek verilerini al
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Güncelleme için veri gerekli'}), 400
+            
+        # Değişiklikleri kaydet
+        changes = []
+        
+        if 'title' in data and data['title'] != lesson.title:
+            lesson.title = data['title']
+            changes.append('Ders başlığı güncellendi')
+            
+        if 'content' in data and data['content'] != lesson.content:
+            lesson.content = data['content']
+            changes.append('Ders içeriği güncellendi')
+            
+        if 'order' in data and data['order'] != lesson.order:
+            lesson.order = data['order']
+            changes.append('Ders sırası güncellendi')
+            
+        # Değişiklik yapıldıysa
+        if changes:
+            lesson.updated_at = datetime.now(UTC)
+            
+            # Kursa kayıtlı öğrencilere bildirim gönder
+            enrollments = Enrollment.query.filter_by(course_id=course_id).all()
+            for enrollment in enrollments:
+                notification = Notification(
+                    user_id=enrollment.student_id,
+                    course_id=course_id,
+                    type='lesson_update',
+                    title=f'Ders Güncellendi: {lesson.title}',
+                    message=f'{course.title} kursundaki {lesson.title} dersi güncellendi.',
+                    is_read=False,
+                    created_at=datetime.now(UTC)
+                )
+                db.session.add(notification)
+                
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Ders başarıyla güncellendi' if changes else 'Değişiklik yapılmadı',
+            'lesson': lesson.to_dict(),
+            'changes': changes
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error updating lesson {lesson_id} for course {course_id}: {str(e)}")
+        return jsonify({'error': f'Ders güncellenirken bir hata oluştu: {str(e)}'}), 500
+        
+# Ending the file properly

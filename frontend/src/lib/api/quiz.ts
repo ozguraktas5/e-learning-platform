@@ -8,9 +8,26 @@ export const quizApi = {
     return response.data;
   },
 
+  // Dersin tüm quizlerini getir
+  getLessonQuizzes: async (courseId: number, lessonId: number): Promise<Quiz[]> => {
+    const response = await api.get(`/courses/${courseId}/lessons/${lessonId}/quizzes`);
+    return response.data;
+  },
+
   // Yeni quiz oluştur
   createQuiz: async (courseId: number, lessonId: number, data: any): Promise<Quiz> => {
     const response = await api.post(`/courses/${courseId}/lessons/${lessonId}/quiz`, data);
+    return response.data;
+  },
+
+  // Quiz'i sil
+  deleteQuiz: async (courseId: number, lessonId: number, quizId: number): Promise<void> => {
+    await api.delete(`/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}`);
+  },
+
+  // Quiz'i güncelle
+  updateQuiz: async (courseId: number, lessonId: number, quizId: number, data: any): Promise<Quiz> => {
+    const response = await api.put(`/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}`, data);
     return response.data;
   },
 

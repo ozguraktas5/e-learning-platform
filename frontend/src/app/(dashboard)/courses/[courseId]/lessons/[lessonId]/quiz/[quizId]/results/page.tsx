@@ -1,186 +1,254 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { quizApi } from '@/lib/api/quiz';
-import { Quiz, QuizAttempt } from '@/types/quiz';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { Quiz, QuizAttempt, QuizAnswer } from '@/types/quiz';
+import { toast } from 'react-hot-toast';
+import Link from 'next/link';
 
 export default function QuizResultsPage() {
   const { courseId, lessonId, quizId } = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchQuizAndResults();
-  }, []);
-
-  const fetchQuizAndResults = async () => {
-    try {
-      setLoading(true);
-      const [quizData, resultsData] = await Promise.all([
-        quizApi.getQuiz(Number(courseId), Number(lessonId), Number(quizId)),
-        quizApi.getQuizResults(Number(courseId), Number(lessonId), Number(quizId))
-      ]);
-      setQuiz(quizData);
-      setAttempts(resultsData);
-    } catch (err) {
-      setError('Sonuçlar yüklenirken bir hata oluştu');
-    } finally {
-      setLoading(false);
+    async function fetchResults() {
+      try {
+        setLoading(true);
+        
+        // First get the quiz details
+        const quizData = await quizApi.getQuiz(
+          Number(courseId), 
+          Number(lessonId), 
+          Number(quizId)
+        );
+        setQuiz(quizData);
+        
+        // Then get the attempts
+        const attemptsData = await quizApi.getQuizResults(
+          Number(courseId),
+          Number(lessonId),
+          Number(quizId)
+        );
+        setAttempts(attemptsData);
+      } catch (error) {
+        console.error('Error fetching quiz results:', error);
+        toast.error('Sonuçlar yüklenirken bir hata oluştu');
+      } finally {
+        setLoading(false);
+      }
     }
+    
+    fetchResults();
+  }, [courseId, lessonId, quizId]);
+
+  const getScoreColor = (score: number): string => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('tr-TR', {
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('tr-TR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    });
+    }).format(date);
   };
 
-  const calculateTimeSpent = (startDate: string, endDate: string) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffInMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
-    return `${diffInMinutes} dakika`;
-  };
+  // Get the most recent attempt
+  const latestAttempt = attempts.length > 0 
+    ? attempts.sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0] 
+    : null;
 
-  if (loading) return <div className="text-center py-8">Yükleniyor...</div>;
-  if (error) return <div className="text-red-600 text-center py-8">{error}</div>;
-  if (!quiz) return <div className="text-center py-8">Quiz bulunamadı</div>;
+  if (loading) {
+    return (
+      <div className="p-6 flex justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
-  // Öğrenci sadece kendi sonuçlarını görebilir
-  const filteredAttempts = user?.role === 'student' 
-    ? attempts.filter(attempt => attempt.user_id === Number(user.id))
-    : attempts;
+  if (!quiz || !latestAttempt) {
+    return (
+      <div className="p-6">
+        <div className="bg-yellow-50 p-4 rounded-md text-yellow-800">
+          <h3 className="font-medium">Sonuç bulunamadı</h3>
+          <p className="mt-2">Bu sınav için henüz bir sonuç bulunmamaktadır.</p>
+          <Link href={`/courses/${courseId}/lessons/${lessonId}`} className="mt-4 block text-blue-600 hover:underline">
+            Derse geri dön
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if passed the quiz
+  const isPassed = latestAttempt.score >= quiz.passing_score;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="p-6">
-            <h1 className="text-2xl font-bold mb-2">{quiz.title}</h1>
-            <p className="text-gray-600 mb-6">{quiz.description}</p>
-
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-600">Geçme Notu</p>
-                <p className="text-2xl font-bold">%{quiz.passing_score}</p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-sm text-green-600">Toplam Soru</p>
-                <p className="text-2xl font-bold">{quiz.questions.length}</p>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <p className="text-sm text-purple-600">Deneme Sayısı</p>
-                <p className="text-2xl font-bold">{filteredAttempts.length}</p>
-              </div>
+    <div className="p-6 max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">{quiz.title} - Sonuçlar</h1>
+        
+        <div className="flex space-x-2">
+          <Link 
+            href={`/courses/${courseId}/lessons/${lessonId}`}
+            className="px-4 py-2 border rounded-md hover:bg-gray-50"
+          >
+            Derse Dön
+          </Link>
+          
+          <Link 
+            href={`/courses/${courseId}/lessons/${lessonId}/quizzes`}
+            className="px-4 py-2 border rounded-md hover:bg-gray-50"
+          >
+            Tüm Sınavlar
+          </Link>
+        </div>
+      </div>
+      
+      {/* Results Summary */}
+      <div className={`p-6 rounded-lg mb-8 border ${isPassed ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold mb-2">
+              {isPassed ? '🎉 Tebrikler!' : '😕 Tekrar Deneyiniz'}
+            </h2>
+            <p className={`text-lg ${isPassed ? 'text-green-700' : 'text-red-700'}`}>
+              {isPassed 
+                ? 'Bu sınavı başarıyla tamamladınız.'
+                : `Maalesef sınavı geçemediniz. Geçme notu: ${quiz.passing_score}%`
+              }
+            </p>
+          </div>
+          
+          <div className="text-center">
+            <div className={`text-4xl font-bold ${getScoreColor(latestAttempt.score)}`}>
+              %{latestAttempt.score.toFixed(0)}
             </div>
-
-            {filteredAttempts.length > 0 ? (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold">
-                  {user?.role === 'student' ? 'Sonuçlarınız' : 'Tüm Sonuçlar'}
-                </h2>
-                
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        {user?.role === 'instructor' && (
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Öğrenci
-                          </th>
-                        )}
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Başlama Tarihi
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Süre
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Puan
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Durum
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Detay
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredAttempts.map((attempt) => (
-                        <tr key={attempt.id}>
-                          {user?.role === 'instructor' && (
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {attempt.user_id}
-                            </td>
-                          )}
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {formatDate(attempt.started_at)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {attempt.completed_at 
-                              ? calculateTimeSpent(attempt.started_at, attempt.completed_at)
-                              : 'Tamamlanmadı'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="font-medium">%{attempt.score.toFixed(1)}</span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                              ${attempt.score >= quiz.passing_score 
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'}`}>
-                              {attempt.score >= quiz.passing_score ? 'Başarılı' : 'Başarısız'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <button
-                              onClick={() => router.push(`/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}/attempts/${attempt.id}`)}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              Detaylı Sonuç
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                Henüz quiz denemesi bulunmuyor.
-              </div>
-            )}
-
-            <div className="mt-8 flex justify-between">
-              <button
-                onClick={() => router.back()}
-                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
-              >
-                Geri Dön
-              </button>
-              {user?.role === 'student' && (
-                <button
-                  onClick={() => router.push(`/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}`)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                >
-                  Quiz'i Tekrar Çöz
-                </button>
-              )}
+            <div className="text-sm text-gray-500">
+              Final Puanı
             </div>
           </div>
         </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div className="bg-white rounded p-3 shadow-sm">
+            <div className="text-sm text-gray-500">Tarih</div>
+            <div className="font-medium">{formatDate(latestAttempt.completed_at || latestAttempt.started_at)}</div>
+          </div>
+          
+          <div className="bg-white rounded p-3 shadow-sm">
+            <div className="text-sm text-gray-500">Süre</div>
+            <div className="font-medium">
+              {latestAttempt.completed_at 
+                ? `${Math.floor((new Date(latestAttempt.completed_at).getTime() - new Date(latestAttempt.started_at).getTime()) / 60000)} dk.`
+                : 'Tamamlanmadı'
+              }
+            </div>
+          </div>
+          
+          <div className="bg-white rounded p-3 shadow-sm">
+            <div className="text-sm text-gray-500">Doğru Cevaplar</div>
+            <div className="font-medium">
+              {latestAttempt.answers.filter(a => a.is_correct).length} / {latestAttempt.answers.length}
+            </div>
+          </div>
+          
+          <div className="bg-white rounded p-3 shadow-sm">
+            <div className="text-sm text-gray-500">Deneme</div>
+            <div className="font-medium">{attempts.length}</div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Question Review */}
+      <h3 className="text-xl font-medium mb-4">Cevap Analizi</h3>
+      
+      <div className="space-y-6">
+        {quiz.questions.map((question, index) => {
+          const answer = latestAttempt.answers.find(a => a.question_id === question.id) as QuizAnswer;
+          const correctOption = question.options.find(o => o.is_correct);
+          
+          return (
+            <div 
+              key={question.id}
+              className={`border rounded-lg overflow-hidden ${
+                answer?.is_correct ? 'border-green-300' : 'border-red-300'
+              }`}
+            >
+              <div className={`p-4 flex justify-between items-center ${
+                answer?.is_correct ? 'bg-green-50' : 'bg-red-50'
+              }`}>
+                <h4 className="font-medium">
+                  Soru {index + 1}: {question.question_text}
+                </h4>
+                <div className={`font-medium ${answer?.is_correct ? 'text-green-600' : 'text-red-600'}`}>
+                  {answer?.points_earned || 0} / {question.points} puan
+                </div>
+              </div>
+              
+              <div className="p-4 bg-white">
+                <div className="space-y-2">
+                  {question.options.map(option => (
+                    <div 
+                      key={option.id}
+                      className={`p-3 rounded-lg border ${
+                        option.is_correct 
+                          ? 'bg-green-50 border-green-300' 
+                          : option.id === answer?.selected_option_id && !option.is_correct
+                            ? 'bg-red-50 border-red-300'
+                            : 'border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        {option.is_correct && (
+                          <span className="text-green-600 mr-2">✓</span>
+                        )}
+                        {option.id === answer?.selected_option_id && !option.is_correct && (
+                          <span className="text-red-600 mr-2">✗</span>
+                        )}
+                        {option.option_text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {!answer?.is_correct && (
+                  <div className="mt-4 text-sm">
+                    <span className="font-medium">Doğru Cevap: </span>
+                    {correctOption?.option_text}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Actions */}
+      <div className="mt-8 pt-4 border-t flex justify-between">
+        <Link
+          href={`/courses/${courseId}/lessons/${lessonId}`}
+          className="px-4 py-2 bg-gray-100 rounded-md hover:bg-gray-200"
+        >
+          Derse Dön
+        </Link>
+        
+        {!isPassed && (
+          <Link
+            href={`/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}`}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Tekrar Dene
+          </Link>
+        )}
       </div>
     </div>
   );
