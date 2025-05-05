@@ -84,7 +84,7 @@ class Lesson(db.Model):
     
     # İlişkiler
     progress_records = db.relationship('Progress', backref='lesson', lazy=True)
-    quiz = db.relationship('Quiz', backref='lesson', uselist=False, lazy=True)
+    quizzes = db.relationship('Quiz', backref='lesson', lazy=True)
     assignments = db.relationship('Assignment', back_populates='lesson', lazy=True)
     documents = db.relationship('LessonDocument', backref='lesson', lazy=True, cascade='all, delete-orphan')
     course = db.relationship('Course', back_populates='lessons', lazy=True)
@@ -92,8 +92,8 @@ class Lesson(db.Model):
     def to_dict(self):
         # İlişkilerin None olup olmadığını kontrol et
         doc_count = len(self.documents) if self.documents is not None else 0
-        # quiz ilişkisi uselist=False olduğu için varlığını kontrol et
-        quiz_count = 1 if self.quiz is not None else 0 
+        # Dersin sahip olduğu quizlerin sayısını hesapla
+        quiz_count = len(self.quizzes) if self.quizzes is not None else 0 
         assign_count = len(self.assignments) if self.assignments is not None else 0
         
         return {
@@ -190,6 +190,18 @@ class Quiz(db.Model):
     # İlişkiler
     questions = db.relationship('QuizQuestion', backref='quiz', lazy=True)
     attempts = db.relationship('QuizAttempt', backref='quiz', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'lesson_id': self.lesson_id,
+            'created_at': self.created_at.isoformat(),
+            'time_limit': self.time_limit,
+            'passing_score': self.passing_score,
+            'question_count': len(self.questions) if self.questions else 0
+        }
 
 class QuizQuestion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -201,12 +213,30 @@ class QuizQuestion(db.Model):
     # İlişkiler
     options = db.relationship('QuizOption', backref='question', lazy=True)
     answers = db.relationship('QuizAnswer', backref='question', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'quiz_id': self.quiz_id,
+            'question_text': self.question_text,
+            'question_type': self.question_type,
+            'points': self.points,
+            'options': [option.to_dict() for option in self.options] if self.options else []
+        }
 
 class QuizOption(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question_id = db.Column(db.Integer, db.ForeignKey('quiz_question.id'), nullable=False)
     option_text = db.Column(db.String(200), nullable=False)
     is_correct = db.Column(db.Boolean, nullable=False, default=False)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'question_id': self.question_id,
+            'option_text': self.option_text,
+            'is_correct': self.is_correct
+        }
 
 class QuizAttempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -241,6 +271,17 @@ class QuizAnswer(db.Model):
     
     # İlişkiler
     selected_option = db.relationship('QuizOption', backref=db.backref('answers', lazy=True))
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'attempt_id': self.attempt_id,
+            'question_id': self.question_id,
+            'selected_option_id': self.selected_option_id,
+            'answer_text': self.answer_text,
+            'is_correct': self.is_correct,
+            'points_earned': self.points_earned
+        }
 
 class Assignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)

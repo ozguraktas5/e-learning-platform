@@ -1955,4 +1955,191 @@ def update_lesson(course_id, lesson_id):
         current_app.logger.error(f"Error updating lesson {lesson_id} for course {course_id}: {str(e)}")
         return jsonify({'error': f'Ders güncellenirken bir hata oluştu: {str(e)}'}), 500
         
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/quizzes', methods=['GET'])
+@jwt_required()
+def get_lesson_quizzes(course_id, lesson_id):
+    """Derse ait tüm quizleri getir"""
+    try:
+        # Kursu ve dersi kontrol et
+        course = Course.query.get_or_404(course_id)
+        lesson = Lesson.query.get_or_404(lesson_id)
+        
+        # Dersin bu kursa ait olduğunu kontrol et
+        if lesson.course_id != course_id:
+            return jsonify({'error': 'Bu ders bu kursa ait değil'}), 400
+        
+        # Derse ait quizleri getir
+        quizzes = Quiz.query.filter_by(lesson_id=lesson_id).all()
+        quiz_list = [quiz.to_dict() for quiz in quizzes]
+        
+        return jsonify(quiz_list), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching quizzes for lesson {lesson_id} in course {course_id}: {str(e)}")
+        return jsonify({'error': f'Quizler getirilirken bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz/<int:quiz_id>', methods=['DELETE'])
+@jwt_required()
+def delete_quiz(course_id, lesson_id, quiz_id):
+    """Quiz'i sil"""
+    try:
+        # Eğitmen kontrolü
+        current_user_id = get_jwt_identity()
+        course = Course.query.get_or_404(course_id)
+        
+        if str(course.instructor_id) != current_user_id:
+            return jsonify({'message': 'Bu quizi silme yetkiniz yok'}), 403
+        
+        lesson = Lesson.query.get_or_404(lesson_id)
+        if lesson.course_id != course_id:
+            return jsonify({'message': 'Ders bu kursa ait değil'}), 400
+            
+        # Quiz'i bul
+        quiz = Quiz.query.get_or_404(quiz_id)
+        if quiz.lesson_id != lesson_id:
+            return jsonify({'message': 'Quiz bu derse ait değil'}), 400
+        
+        # Quiz'e ait soruları sil
+        questions = QuizQuestion.query.filter_by(quiz_id=quiz_id).all()
+        for question in questions:
+            # Sorunun şıklarını sil
+            options = QuizOption.query.filter_by(question_id=question.id).all()
+            for option in options:
+                db.session.delete(option)
+            db.session.delete(question)
+            
+        # Quiz denemelerini sil
+        attempts = QuizAttempt.query.filter_by(quiz_id=quiz_id).all()
+        for attempt in attempts:
+            # Denemeye ait cevapları sil
+            answers = QuizAnswer.query.filter_by(attempt_id=attempt.id).all()
+            for answer in answers:
+                db.session.delete(answer)
+            db.session.delete(attempt)
+            
+        # Quiz'i sil
+        db.session.delete(quiz)
+        db.session.commit()
+        
+        return jsonify({'message': 'Quiz başarıyla silindi'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting quiz {quiz_id} for lesson {lesson_id}: {str(e)}")
+        return jsonify({'message': f'Quiz silinirken bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz/<int:quiz_id>', methods=['GET'])
+@jwt_required()
+def get_quiz(course_id, lesson_id, quiz_id):
+    """Quiz detaylarını getir"""
+    try:
+        # Kursu ve dersi kontrol et
+        course = Course.query.get_or_404(course_id)
+        lesson = Lesson.query.get_or_404(lesson_id)
+        
+        # Dersin bu kursa ait olduğunu kontrol et
+        if lesson.course_id != course_id:
+            return jsonify({'error': 'Bu ders bu kursa ait değil'}), 400
+            
+        # Quiz'i bul (get_or_404 yerine get kullanılıyor)
+        quiz = Quiz.query.get(quiz_id)
+        if not quiz:
+            return jsonify({'error': 'Quiz bulunamadı', 'not_found': True}), 404
+            
+        if quiz.lesson_id != lesson_id:
+            return jsonify({'error': 'Quiz bu derse ait değil'}), 400
+            
+        # Quiz sorularını ve seçeneklerini getir
+        questions = []
+        for question in quiz.questions:
+            question_data = question.to_dict()
+            questions.append(question_data)
+            
+        # Quiz detaylarını döndür
+        quiz_data = quiz.to_dict()
+        quiz_data['questions'] = questions
+        
+        return jsonify(quiz_data), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching quiz {quiz_id} for lesson {lesson_id}: {str(e)}")
+        return jsonify({'error': f'Quiz getirilirken bir hata oluştu', 'details': str(e)}), 500
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/quiz/<int:quiz_id>', methods=['PUT'])
+@jwt_required()
+def update_quiz(course_id, lesson_id, quiz_id):
+    """Quiz'i güncelle"""
+    try:
+        # Eğitmen kontrolü
+        current_user_id = get_jwt_identity()
+        course = Course.query.get_or_404(course_id)
+        
+        if str(course.instructor_id) != current_user_id:
+            return jsonify({'message': 'Bu quizi güncelleme yetkiniz yok'}), 403
+        
+        lesson = Lesson.query.get_or_404(lesson_id)
+        if lesson.course_id != course_id:
+            return jsonify({'message': 'Ders bu kursa ait değil'}), 400
+            
+        # Quiz'i bul
+        quiz = Quiz.query.get_or_404(quiz_id)
+        if quiz.lesson_id != lesson_id:
+            return jsonify({'message': 'Quiz bu derse ait değil'}), 400
+        
+        data = request.get_json()
+        if not data or not data.get('title') or not data.get('questions'):
+            return jsonify({'message': 'Quiz başlığı ve en az bir soru gerekli'}), 400
+        
+        # Quiz'i güncelle
+        quiz.title = data['title']
+        quiz.description = data.get('description', '')
+        quiz.time_limit = data.get('time_limit')
+        quiz.passing_score = data.get('passing_score', 60)
+        
+        # Mevcut soruları ve seçenekleri sil
+        for question in quiz.questions:
+            for option in question.options:
+                db.session.delete(option)
+            db.session.delete(question)
+        
+        # Yeni soruları ekle
+        for q_data in data['questions']:
+            question = QuizQuestion(
+                quiz=quiz,
+                question_text=q_data['question_text'],
+                question_type=q_data.get('question_type', 'multiple_choice'),
+                points=q_data.get('points', 10)
+            )
+            db.session.add(question)
+            
+            # Çoktan seçmeli soru seçeneklerini ekle
+            if question.question_type == 'multiple_choice' and 'options' in q_data:
+                for opt_data in q_data['options']:
+                    option = QuizOption(
+                        question=question,
+                        option_text=opt_data['text'],
+                        is_correct=opt_data.get('is_correct', False)
+                    )
+                    db.session.add(option)
+        
+        try:
+            db.session.commit()
+            return jsonify({
+                'message': 'Quiz başarıyla güncellendi',
+                'quiz': {
+                    'id': quiz.id,
+                    'title': quiz.title,
+                    'description': quiz.description,
+                    'time_limit': quiz.time_limit,
+                    'passing_score': quiz.passing_score,
+                    'question_count': len(data['questions'])
+                }
+            })
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'message': f'Quiz güncellenirken bir hata oluştu: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
+
 # Ending the file properly

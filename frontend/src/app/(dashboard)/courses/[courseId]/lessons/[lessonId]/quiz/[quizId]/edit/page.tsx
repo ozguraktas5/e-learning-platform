@@ -1,11 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { quizApi } from '@/lib/api/quiz';
+import { quizApi, ApiErrorResponse } from '@/lib/api/quiz';
+import { Quiz, QuizQuestion } from '@/types/quiz';
+
+interface QuizFormValues {
+  title: string;
+  description: string;
+  time_limit: number | null;
+  passing_score: number;
+  questions: {
+    question_text: string;
+    points: number;
+    options: {
+      option_text: string;
+      is_correct: boolean;
+    }[];
+  }[];
+}
 
 const quizSchema = z.object({
   title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
@@ -26,28 +42,15 @@ const quizSchema = z.object({
   })).min(1, 'En az 1 soru gereklidir')
 });
 
-interface QuizFormValues {
-  title: string;
-  description: string;
-  time_limit: number | null;
-  passing_score: number;
-  questions: {
-    question_text: string;
-    points: number;
-    options: {
-      option_text: string;
-      is_correct: boolean;
-    }[];
-  }[];
-}
-
-export default function CreateQuizPage() {
-  const { courseId, lessonId } = useParams();
+export default function EditQuizPage() {
+  const { courseId, lessonId, quizId } = useParams();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [fetchingQuiz, setFetchingQuiz] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [quizNotFound, setQuizNotFound] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm({
+  const { register, handleSubmit, formState: { errors }, watch, setValue, reset } = useForm<QuizFormValues>({
     resolver: zodResolver(quizSchema),
     defaultValues: {
       title: '',
@@ -66,6 +69,54 @@ export default function CreateQuizPage() {
       }]
     }
   });
+
+  // Mevcut quiz verilerini getir
+  useEffect(() => {
+    const fetchQuizData = async () => {
+      try {
+        setFetchingQuiz(true);
+        const response = await quizApi.getQuiz(
+          Number(courseId), 
+          Number(lessonId), 
+          Number(quizId)
+        );
+        
+        // 404 hata kontrolü - ApiErrorResponse tipini kullan
+        if ('error' in response && response.not_found) {
+          setQuizNotFound(true);
+          setError('Quiz bulunamadı');
+          setFetchingQuiz(false);
+          return;
+        }
+        
+        // Formu mevcut verilerle doldur
+        const quizData = response as Quiz;
+        const formData = {
+          title: quizData.title,
+          description: quizData.description,
+          time_limit: quizData.time_limit,
+          passing_score: quizData.passing_score,
+          questions: quizData.questions.map((question: QuizQuestion) => ({
+            question_text: question.question_text,
+            points: question.points,
+            options: question.options.map(option => ({
+              option_text: option.option_text,
+              is_correct: option.is_correct
+            }))
+          }))
+        };
+        
+        reset(formData);
+      } catch (err) {
+        console.error('Error fetching quiz:', err);
+        setError('Quiz yüklenirken bir hata oluştu');
+      } finally {
+        setFetchingQuiz(false);
+      }
+    };
+
+    fetchQuizData();
+  }, [courseId, lessonId, quizId, reset]);
 
   const questions = watch('questions');
 
@@ -103,19 +154,51 @@ export default function CreateQuizPage() {
         }))
       };
       
-      await quizApi.createQuiz(Number(courseId), Number(lessonId), transformedData);
-      router.push(`/courses/${courseId}/lessons/${lessonId}`);
+      await quizApi.updateQuiz(
+        Number(courseId), 
+        Number(lessonId), 
+        Number(quizId), 
+        transformedData
+      );
+      router.push(`/courses/${courseId}/lessons/${lessonId}/quizzes`);
     } catch (err) {
-      console.error('Error creating quiz:', err);
-      setError('Quiz oluşturulurken bir hata oluştu');
+      console.error('Error updating quiz:', err);
+      setError('Quiz güncellenirken bir hata oluştu');
     } finally {
       setLoading(false);
     }
   };
 
+  if (fetchingQuiz) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (quizNotFound) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex flex-col items-center">
+          <h2 className="text-xl font-bold mb-2">Quiz Bulunamadı</h2>
+          <p className="mb-4">Aradığınız quiz sistemde bulunmuyor veya silinmiş olabilir.</p>
+          <button
+            onClick={() => router.push(`/courses/${courseId}/lessons/${lessonId}/quizzes`)}
+            className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+          >
+            Quizlere Dön
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Yeni Quiz Oluştur</h1>
+      <h1 className="text-2xl font-bold mb-6">Quiz Düzenle</h1>
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -243,11 +326,11 @@ export default function CreateQuizPage() {
             disabled={loading}
             className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
-            {loading ? 'Oluşturuluyor...' : 'Quiz Oluştur'}
+            {loading ? 'Güncelleniyor...' : 'Quiz Güncelle'}
           </button>
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => router.push(`/courses/${courseId}/lessons/${lessonId}/quizzes`)}
             className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300"
           >
             İptal
@@ -256,4 +339,4 @@ export default function CreateQuizPage() {
       </form>
     </div>
   );
-}
+} 

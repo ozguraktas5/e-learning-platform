@@ -7,11 +7,33 @@ import { Quiz, QuizAttempt, QuizAnswer } from '@/types/quiz';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 
+interface ApiQuizResults {
+  quiz_title: string;
+  quiz_description: string;
+  total_attempts: number;
+  results: Array<{
+    attempt_id: number;
+    started_at: string;
+    completed_at: string | null;
+    total_score: number;
+    max_possible_score: number;
+    percentage: number;
+    answers: Array<{
+      question_text: string;
+      your_answer: string;
+      correct_answer: string | null;
+      points_earned: number;
+      is_correct: boolean;
+    }>;
+  }>;
+}
+
 export default function QuizResultsPage() {
   const { courseId, lessonId, quizId } = useParams();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchResults() {
@@ -24,17 +46,90 @@ export default function QuizResultsPage() {
           Number(lessonId), 
           Number(quizId)
         );
-        setQuiz(quizData);
+        
+        if ('error' in quizData) {
+          throw new Error(quizData.error);
+        }
+        
+        setQuiz(quizData as Quiz);
         
         // Then get the attempts
-        const attemptsData = await quizApi.getQuizResults(
-          Number(courseId),
-          Number(lessonId),
-          Number(quizId)
-        );
-        setAttempts(attemptsData);
-      } catch (error) {
-        console.error('Error fetching quiz results:', error);
+        try {
+          const resultsData = await quizApi.getQuizResults(
+            Number(courseId),
+            Number(lessonId),
+            Number(quizId)
+          );
+          
+          // API formatını kontrol et ve veri adaptasyonu yap
+          if (resultsData && 'results' in resultsData) {
+            // Backend formatı - veriyi dönüştür
+            const apiResults = resultsData as ApiQuizResults;
+            const adaptedAttempts: QuizAttempt[] = apiResults.results.map(result => {
+              const attemptAnswers: QuizAnswer[] = [];
+              
+              // Her bir cevabı frontend formatına dönüştür
+              if (quizData.questions) {
+                for (const question of (quizData as Quiz).questions) {
+                  // Bu soru için cevabı bul
+                  const answerData = result.answers.find(a => 
+                    a.question_text === question.question_text
+                  );
+                  
+                  if (answerData) {
+                    // Doğru seçeneği bul
+                    const correctOption = question.options.find(o => o.is_correct);
+                    
+                    // Kullanıcının seçtiği seçeneği bul (your_answer değeriyle eşleşen)
+                    let selectedOptionId = null;
+                    const selectedOption = question.options.find(o => 
+                      o.option_text === answerData.your_answer
+                    );
+                    
+                    if (selectedOption) {
+                      selectedOptionId = selectedOption.id;
+                    }
+                    
+                    // Cevabı oluştur
+                    attemptAnswers.push({
+                      question_id: question.id,
+                      selected_option_id: selectedOptionId,
+                      is_correct: answerData.is_correct,
+                      points_earned: answerData.points_earned
+                    });
+                  }
+                }
+              }
+              
+              // Dönüştürülmüş denemeleri oluştur
+              return {
+                id: result.attempt_id,
+                quiz_id: Number(quizId),
+                user_id: 0, // Frontend'de kullanıcı ID'sine ihtiyaç yok
+                score: result.percentage,
+                started_at: result.started_at,
+                completed_at: result.completed_at,
+                answers: attemptAnswers
+              };
+            });
+            
+            setAttempts(adaptedAttempts);
+          } else {
+            // Standart frontend formatı - doğrudan kullan
+            setAttempts(resultsData as unknown as QuizAttempt[]);
+          }
+        } catch (resultsError: any) {
+          console.error('Error fetching quiz results:', resultsError);
+          if (resultsError.response && resultsError.response.status === 404) {
+            // Henüz deneme olmadığında 
+            setAttempts([]);
+          } else {
+            throw resultsError;
+          }
+        }
+      } catch (error: any) {
+        console.error('Error loading quiz data:', error);
+        setError(error.message || 'Sonuçlar yüklenirken bir hata oluştu');
         toast.error('Sonuçlar yüklenirken bir hata oluştu');
       } finally {
         setLoading(false);
@@ -74,15 +169,34 @@ export default function QuizResultsPage() {
     );
   }
 
-  if (!quiz || !latestAttempt) {
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 p-4 rounded-md text-red-800">
+          <h3 className="font-medium">Hata</h3>
+          <p className="mt-2">{error}</p>
+          <Link href={`/courses/${courseId}/lessons/${lessonId}`} className="mt-4 block text-blue-600 hover:underline">
+            Derse geri dön
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!quiz || !latestAttempt || attempts.length === 0) {
     return (
       <div className="p-6">
         <div className="bg-yellow-50 p-4 rounded-md text-yellow-800">
           <h3 className="font-medium">Sonuç bulunamadı</h3>
-          <p className="mt-2">Bu sınav için henüz bir sonuç bulunmamaktadır.</p>
-          <Link href={`/courses/${courseId}/lessons/${lessonId}`} className="mt-4 block text-blue-600 hover:underline">
-            Derse geri dön
-          </Link>
+          <p className="mt-2">Bu sınav için henüz bir sonuç bulunmamaktadır. Önce sınavı tamamlayınız.</p>
+          <div className="mt-4 flex space-x-4">
+            <Link href={`/courses/${courseId}/lessons/${lessonId}`} className="block text-blue-600 hover:underline">
+              Derse geri dön
+            </Link>
+            <Link href={`/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}`} className="block text-green-600 hover:underline">
+              Sınavı Çöz
+            </Link>
+          </div>
         </div>
       </div>
     );

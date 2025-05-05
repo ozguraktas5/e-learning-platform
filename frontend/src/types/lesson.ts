@@ -8,6 +8,7 @@ export interface Lesson {
   created_at: string;
   updated_at: string;
   documents: LessonDocument[];
+  quizzes?: any[];
 }
 
 export interface LessonDocument {

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { quizApi } from '@/lib/api/quiz';
+import { quizApi, ApiErrorResponse } from '@/lib/api/quiz';
+import { coursesApi } from '@/lib/api/courses';
 import { Quiz, QuizQuestion } from '@/types/quiz';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -24,15 +25,27 @@ export default function TakeQuizPage() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [quizNotFound, setQuizNotFound] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchQuiz() {
       try {
-        const quizData = await quizApi.getQuiz(
+        setLoading(true);
+        const response = await quizApi.getQuiz(
           Number(courseId),
           Number(lessonId),
           Number(quizId)
         );
+        
+        // API'nin hata döndürdüğü kontrol edilmeli
+        if ('error' in response && response.not_found) {
+          setQuizNotFound(true);
+          return;
+        }
+        
+        // Normal quiz yanıtı
+        const quizData = response as Quiz;
         setQuiz(quizData);
         
         // Initialize answers
@@ -51,6 +64,7 @@ export default function TakeQuizPage() {
         }
       } catch (error) {
         console.error('Error fetching quiz:', error);
+        setError('Sınav yüklenirken bir hata oluştu');
         toast.error('Sınav yüklenirken bir hata oluştu');
       } finally {
         setLoading(false);
@@ -118,8 +132,30 @@ export default function TakeQuizPage() {
       router.push(`/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}/results`);
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      toast.error('Sınav gönderilirken bir hata oluştu');
-      setSubmitting(false);
+      
+      // 403 hatası için özel mesaj
+      const axiosError = error as any;
+      if (axiosError.response && axiosError.response.status === 403) {
+        toast.error('Bu quizi çözmek için kursa kayıtlı olmalısınız');
+        
+        // Kursa kayıt için yönlendir veya popup göster
+        if (confirm('Bu quizi çözmek için kursa kayıtlı olmanız gerekiyor. Şimdi kaydolmak ister misiniz?')) {
+          try {
+            await coursesApi.enrollInCourse(Number(courseId));
+            toast.success('Kursa başarıyla kaydoldunuz! Şimdi quizi tekrar gönderebilirsiniz.');
+            setSubmitting(false);
+          } catch (enrollError) {
+            console.error('Error enrolling to course:', enrollError);
+            toast.error('Kursa kaydolurken bir hata oluştu');
+            router.push(`/courses/${courseId}`);
+          }
+        } else {
+          router.push(`/courses/${courseId}`);
+        }
+      } else {
+        toast.error('Sınav gönderilirken bir hata oluştu');
+        setSubmitting(false);
+      }
     }
   };
 
@@ -143,6 +179,34 @@ export default function TakeQuizPage() {
     return (
       <div className="p-6 flex justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (quizNotFound) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 p-4 rounded-md text-red-800">
+          <h3 className="font-medium text-xl">Quiz Bulunamadı</h3>
+          <p className="mt-2">Aradığınız quiz sistemde bulunmuyor veya silinmiş olabilir.</p>
+          <Link href={`/courses/${courseId}/lessons/${lessonId}`} className="mt-4 block text-blue-600 hover:underline">
+            Derse geri dön
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 p-4 rounded-md text-red-800">
+          <h3 className="font-medium">Hata</h3>
+          <p className="mt-2">{error}</p>
+          <Link href={`/courses/${courseId}/lessons/${lessonId}`} className="mt-4 block text-blue-600 hover:underline">
+            Derse geri dön
+          </Link>
+        </div>
       </div>
     );
   }
