@@ -1999,16 +1999,7 @@ def delete_quiz(course_id, lesson_id, quiz_id):
         if quiz.lesson_id != lesson_id:
             return jsonify({'message': 'Quiz bu derse ait değil'}), 400
         
-        # Quiz'e ait soruları sil
-        questions = QuizQuestion.query.filter_by(quiz_id=quiz_id).all()
-        for question in questions:
-            # Sorunun şıklarını sil
-            options = QuizOption.query.filter_by(question_id=question.id).all()
-            for option in options:
-                db.session.delete(option)
-            db.session.delete(question)
-            
-        # Quiz denemelerini sil
+        # Önce tüm quiz denemelerini ve cevapları sil
         attempts = QuizAttempt.query.filter_by(quiz_id=quiz_id).all()
         for attempt in attempts:
             # Denemeye ait cevapları sil
@@ -2017,7 +2008,16 @@ def delete_quiz(course_id, lesson_id, quiz_id):
                 db.session.delete(answer)
             db.session.delete(attempt)
             
-        # Quiz'i sil
+        # Cevaplar silindikten sonra quiz sorularını sil
+        questions = QuizQuestion.query.filter_by(quiz_id=quiz_id).all()
+        for question in questions:
+            # Sorunun şıklarını sil
+            options = QuizOption.query.filter_by(question_id=question.id).all()
+            for option in options:
+                db.session.delete(option)
+            db.session.delete(question)
+        
+        # Son olarak quiz'i sil
         db.session.delete(quiz)
         db.session.commit()
         
@@ -2141,5 +2141,128 @@ def update_quiz(course_id, lesson_id, quiz_id):
             
     except Exception as e:
         return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignments', methods=['GET'])
+@jwt_required()
+def get_lesson_assignments(course_id, lesson_id):
+    """Ders için tüm ödevleri getir"""
+    try:
+        # Dersi ve kursu kontrol et
+        lesson = Lesson.query.get_or_404(lesson_id)
+        course = Course.query.get_or_404(course_id)
+        
+        if lesson.course_id != course_id:
+            return jsonify({'message': 'Ders bu kursa ait değil'}), 400
+        
+        # Dersin tüm ödevlerini getir
+        assignments = Assignment.query.filter_by(lesson_id=lesson_id).all()
+        
+        # Ödevleri JSON formatına dönüştür
+        assignments_data = [assignment.to_dict() for assignment in assignments]
+        
+        return jsonify(assignments_data)
+        
+    except Exception as e:
+        return jsonify({'message': f'Ödevler yüklenirken bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>', methods=['GET'])
+@jwt_required()
+def get_assignment(course_id, lesson_id, assignment_id):
+    """Belirli bir ödevi getir"""
+    try:
+        # Dersi ve kursu kontrol et
+        lesson = Lesson.query.get_or_404(lesson_id)
+        course = Course.query.get_or_404(course_id)
+        
+        if lesson.course_id != course_id:
+            return jsonify({'message': 'Ders bu kursa ait değil'}), 400
+            
+        # Ödevi getir
+        assignment = Assignment.query.get_or_404(assignment_id)
+        
+        if assignment.lesson_id != lesson_id:
+            return jsonify({'message': 'Ödev bu derse ait değil'}), 400
+            
+        return jsonify(assignment.to_dict())
+        
+    except Exception as e:
+        return jsonify({'message': f'Ödev yüklenirken bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>/submissions', methods=['GET'])
+@jwt_required()
+def get_assignment_submissions(course_id, lesson_id, assignment_id):
+    """Ödev için tüm gönderileri getir"""
+    try:
+        # Eğitmen kontrolü
+        current_user_id = get_jwt_identity()
+        course = Course.query.get_or_404(course_id)
+        
+        if str(course.instructor_id) != current_user_id:
+            return jsonify({'message': 'Bu ödev gönderilerini görüntüleme yetkiniz yok'}), 403
+        
+        lesson = Lesson.query.get_or_404(lesson_id)
+        if lesson.course_id != course_id:
+            return jsonify({'message': 'Ders bu kursa ait değil'}), 400
+            
+        assignment = Assignment.query.get_or_404(assignment_id)
+        if assignment.lesson_id != lesson_id:
+            return jsonify({'message': 'Ödev bu derse ait değil'}), 400
+        
+        # Tüm gönderileri getir
+        submissions = AssignmentSubmission.query.filter_by(assignment_id=assignment_id).all()
+        
+        submissions_data = []
+        for submission in submissions:
+            submissions_data.append({
+                'id': submission.id,
+                'assignment_id': submission.assignment_id,
+                'user_id': submission.user_id,
+                'submission_text': submission.submission_text,
+                'file_url': submission.file_url,
+                'submitted_at': submission.submitted_at.isoformat(),
+                'grade': submission.grade,
+                'feedback': submission.feedback,
+                'graded_at': submission.graded_at.isoformat() if submission.graded_at else None
+            })
+        
+        return jsonify(submissions_data)
+        
+    except Exception as e:
+        return jsonify({'message': f'Ödev gönderileri yüklenirken bir hata oluştu: {str(e)}'}), 500
+
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>', methods=['DELETE'])
+@jwt_required()
+def delete_assignment(course_id, lesson_id, assignment_id):
+    """Ödevi sil"""
+    try:
+        # Eğitmen kontrolü
+        current_user_id = get_jwt_identity()
+        course = Course.query.get_or_404(course_id)
+        
+        if str(course.instructor_id) != current_user_id:
+            return jsonify({'message': 'Bu ödevi silme yetkiniz yok'}), 403
+        
+        lesson = Lesson.query.get_or_404(lesson_id)
+        if lesson.course_id != course_id:
+            return jsonify({'message': 'Ders bu kursa ait değil'}), 400
+            
+        assignment = Assignment.query.get_or_404(assignment_id)
+        if assignment.lesson_id != lesson_id:
+            return jsonify({'message': 'Ödev bu derse ait değil'}), 400
+        
+        # Ödeve ait tüm gönderileri sil
+        submissions = AssignmentSubmission.query.filter_by(assignment_id=assignment_id).all()
+        for submission in submissions:
+            db.session.delete(submission)
+        
+        # Ödevi sil
+        db.session.delete(assignment)
+        db.session.commit()
+        
+        return jsonify({'message': 'Ödev başarıyla silindi'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'Ödev silinirken bir hata oluştu: {str(e)}'}), 500
 
 # Ending the file properly

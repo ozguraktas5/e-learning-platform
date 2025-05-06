@@ -7,6 +7,7 @@ export interface ApiErrorResponse {
   not_found?: boolean;
   details?: string;
   message?: string;
+  status?: number;
 }
 
 export interface ApiQuizResults {
@@ -59,9 +60,21 @@ export const quizApi = {
   },
 
   // Yeni quiz oluştur
-  createQuiz: async (courseId: number, lessonId: number, data: any): Promise<Quiz> => {
-    const response = await api.post(`/courses/${courseId}/lessons/${lessonId}/quiz`, data);
-    return response.data;
+  createQuiz: async (courseId: number, lessonId: number, data: any): Promise<Quiz | ApiErrorResponse> => {
+    try {
+      const response = await api.post(`/courses/${courseId}/lessons/${lessonId}/quiz`, data);
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      if (axiosError.response && axiosError.response.status === 403) {
+        return {
+          error: 'Öğrenci olarak giriş yaptığınız için Quiz oluşturulamadı',
+          status: 403
+        };
+      }
+      // Diğer hata tipleri için yeniden fırlat
+      throw error;
+    }
   },
 
   // Quiz'i sil

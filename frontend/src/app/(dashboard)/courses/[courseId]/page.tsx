@@ -96,13 +96,15 @@ export default function CourseDetail() {
       </div>
       
       <div className="flex flex-wrap gap-4 my-6">
-        <button
-          onClick={handleEnroll}
-          disabled={enrolling}
-          className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 font-medium"
-        >
-          {enrolling ? 'Kayıt Olunuyor...' : 'Şimdi Kayıt Ol'}
-        </button>
+        {user?.role !== 'instructor' && (
+          <button
+            onClick={handleEnroll}
+            disabled={enrolling}
+            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 font-medium"
+          >
+            {enrolling ? 'Kayıt Olunuyor...' : 'Şimdi Kayıt Ol'}
+          </button>
+        )}
         
         <Link 
           href={`/courses/${course.id}/lessons`}

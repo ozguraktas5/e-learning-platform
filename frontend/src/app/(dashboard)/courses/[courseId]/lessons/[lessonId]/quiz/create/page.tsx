@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { quizApi } from '@/lib/api/quiz';
+import { quizApi, ApiErrorResponse } from '@/lib/api/quiz';
 
 const quizSchema = z.object({
   title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
@@ -103,7 +103,14 @@ export default function CreateQuizPage() {
         }))
       };
       
-      await quizApi.createQuiz(Number(courseId), Number(lessonId), transformedData);
+      const result = await quizApi.createQuiz(Number(courseId), Number(lessonId), transformedData);
+      
+      // Check if result is an error response
+      if ('error' in result) {
+        setError(result.error);
+        return;
+      }
+      
       router.push(`/courses/${courseId}/lessons/${lessonId}`);
     } catch (err) {
       console.error('Error creating quiz:', err);
@@ -224,9 +231,19 @@ export default function CreateQuizPage() {
                       className="flex-1 rounded-md border-gray-300 shadow-sm"
                     />
                     <input
-                      {...register(`questions.${questionIndex}.options.${optionIndex}.is_correct`)}
                       type="radio"
                       name={`correct_${questionIndex}`}
+                      onChange={() => {
+                        // Her seçeneği güncelle - sadece seçilen doğru olacak
+                        questions[questionIndex].options.forEach((_, idx) => {
+                          setValue(
+                            `questions.${questionIndex}.options.${idx}.is_correct`, 
+                            idx === optionIndex
+                          );
+                        });
+                      }}
+                      // O anda seçili olan seçeneği kontrol et
+                      checked={questions[questionIndex].options[optionIndex].is_correct}
                       className="h-4 w-4 text-blue-600"
                     />
                     <label className="text-sm text-gray-600">Doğru</label>

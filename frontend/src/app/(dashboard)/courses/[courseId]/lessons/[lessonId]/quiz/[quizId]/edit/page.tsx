@@ -307,9 +307,19 @@ export default function EditQuizPage() {
                       className="flex-1 rounded-md border-gray-300 shadow-sm"
                     />
                     <input
-                      {...register(`questions.${questionIndex}.options.${optionIndex}.is_correct`)}
                       type="radio"
                       name={`correct_${questionIndex}`}
+                      onChange={() => {
+                        // Her seçeneği güncelle - sadece seçilen doğru olacak
+                        questions[questionIndex].options.forEach((_, idx) => {
+                          setValue(
+                            `questions.${questionIndex}.options.${idx}.is_correct`, 
+                            idx === optionIndex
+                          );
+                        });
+                      }}
+                      // O anda seçili olan seçeneği kontrol et
+                      checked={questions[questionIndex].options[optionIndex].is_correct}
                       className="h-4 w-4 text-blue-600"
                     />
                     <label className="text-sm text-gray-600">Doğru</label>

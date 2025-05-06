@@ -43,6 +43,10 @@ export default function LessonDetailPage() {
     router.push(`/courses/${courseId}/lessons/${lessonId}/quiz/create`);
   };
 
+  const navigateToAssignments = () => {
+    router.push(`/courses/${courseId}/lessons/${lessonId}/assignments`);
+  };
+
   if (loading) return <div className="text-center py-8">Yükleniyor...</div>;
   if (error) return <div className="text-red-600 text-center py-8">{error}</div>;
   if (!lesson) return <div className="text-center py-8">Ders bulunamadı</div>;
@@ -67,11 +71,27 @@ export default function LessonDetailPage() {
                       Tüm Quizler
                     </button>
                     <button 
-                      onClick={createNewQuiz}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                      onClick={navigateToAssignments}
+                      className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100"
                     >
-                      Quiz Oluştur
+                      Tüm Ödevler
                     </button>
+                    {user.role === 'instructor' && (
+                      <>
+                        <button 
+                          onClick={createNewQuiz}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        >
+                          Quiz Oluştur
+                        </button>
+                        <button 
+                          onClick={() => router.push(`/courses/${courseId}/lessons/${lessonId}/assignment/create`)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                        >
+                          Ödev Oluştur
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
