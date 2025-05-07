@@ -135,5 +135,45 @@ export const assignmentsApi = {
       console.error('Error deleting assignment:', error);
       throw error;
     }
-  }
+  },
+
+  // Ödev için öğrencinin kendi gönderimini getir (öğrenci için)
+  getUserSubmission: async (courseId: number, lessonId: number, assignmentId: number): Promise<AssignmentSubmission | null> => {
+    try {
+      const response = await api.get(
+        `/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}/my-submission`
+      );
+      
+      // Tarih verilerini doğrula
+      const submission = response.data;
+      if (submission) {
+        // Tarih alanlarını güvenli şekilde işle
+        if (submission.submitted_at && typeof submission.submitted_at === 'string') {
+          try {
+            // Tarihi doğrula
+            new Date(submission.submitted_at);
+          } catch {
+            submission.submitted_at = null;
+          }
+        }
+        
+        if (submission.graded_at && typeof submission.graded_at === 'string') {
+          try {
+            // Tarihi doğrula
+            new Date(submission.graded_at);
+          } catch {
+            submission.graded_at = null;
+          }
+        }
+      }
+      
+      return submission;
+    } catch (error) {
+      if ((error as AxiosError).response?.status === 404) {
+        return null; // Öğrenci henüz bir gönderi yapmamışsa null döndür
+      }
+      console.error('Error fetching user submission:', error);
+      throw error;
+    }
+  },
 }; 

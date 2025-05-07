@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,6 +21,17 @@ export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [redirect, setRedirect] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // LocalStorage'dan yönlendirme bilgisini al
+    if (typeof window !== 'undefined') {
+      const redirectPath = localStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        setRedirect(redirectPath);
+      }
+    }
+  }, []);
   
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -38,7 +49,14 @@ export default function LoginPage() {
       }
       
       await login(response.data.access_token);
-      router.push('/courses');
+      
+      // Yönlendirme kontrolü
+      if (redirect) {
+        localStorage.removeItem('redirectAfterLogin'); // Temizle
+        router.push(redirect);
+      } else {
+        router.push('/courses');
+      }
     } catch (err) {
       console.error('Login error:', err);
       if (err instanceof AxiosError) {
@@ -55,6 +73,12 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
         <h2 className="text-3xl font-bold text-center">Giriş Yap</h2>
+        
+        {redirect && (
+          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
+            Giriş yaptıktan sonra değerlendirme sayfasına yönlendirileceksiniz.
+          </div>
+        )}
         
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">

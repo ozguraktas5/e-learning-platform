@@ -112,6 +112,13 @@ export default function CourseDetail() {
         >
           <span className="mr-2">📚</span> İlgili Dersler
         </Link>
+
+        <Link 
+          href={`/courses/${course.id}/reviews`}
+          className="bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 flex items-center font-medium transition-colors duration-200"
+        >
+          <span className="mr-2">⭐</span> Değerlendirmeler
+        </Link>
       </div>
     </div>
   );

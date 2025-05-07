@@ -2265,4 +2265,58 @@ def delete_assignment(course_id, lesson_id, assignment_id):
         db.session.rollback()
         return jsonify({'message': f'Ödev silinirken bir hata oluştu: {str(e)}'}), 500
 
+@courses.route('/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>/my-submission', methods=['GET'])
+@jwt_required()
+def get_user_assignment_submission(course_id, lesson_id, assignment_id):
+    """Öğrencinin kendi ödev gönderimini görüntüle"""
+    try:
+        current_user_id = int(get_jwt_identity())
+        
+        # Kurs ve derse erişim kontrolü
+        enrollment = Enrollment.query.filter_by(course_id=course_id, student_id=current_user_id).first()
+        if not enrollment:
+            return jsonify({'error': 'Bu kursa kayıtlı değilsiniz'}), 403
+            
+        # Ödev kontrolü
+        assignment = Assignment.query.get_or_404(assignment_id)
+        if assignment.lesson_id != lesson_id:
+            return jsonify({'error': 'Ödev bu derse ait değil'}), 404
+            
+        # Kullanıcının gönderisini bul
+        submission = AssignmentSubmission.query.filter_by(
+            assignment_id=assignment_id, 
+            user_id=current_user_id
+        ).order_by(AssignmentSubmission.submitted_at.desc()).first()
+        
+        if not submission:
+            return jsonify({'error': 'Henüz bir ödev gönderimi yapmadınız'}), 404
+            
+        # Yanıtı güvenli bir şekilde hazırla
+        submission_data = {
+            'id': submission.id,
+            'assignment_id': submission.assignment_id,
+            'user_id': submission.user_id,
+            'submission_text': submission.submission_text,
+            'file_url': submission.file_url,
+            'submitted_at': submission.submitted_at.isoformat() if submission.submitted_at else None,
+            'grade': submission.grade,
+            'feedback': submission.feedback,
+            'graded_at': None
+        }
+        
+        # graded_at değerini güvenli bir şekilde ekle
+        if submission.graded_at:
+            try:
+                submission_data['graded_at'] = submission.graded_at.isoformat()
+            except:
+                submission_data['graded_at'] = str(submission.graded_at)
+        
+        return jsonify(submission_data)
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in get_user_assignment_submission: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': f'Ödev gönderimi yüklenirken bir hata oluştu: {str(e)}'}), 500
+
 # Ending the file properly

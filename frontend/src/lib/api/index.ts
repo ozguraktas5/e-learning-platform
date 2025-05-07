@@ -35,10 +35,21 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/auth/login';
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
-export default api; 
+export default api;
+
+// Doğrudan dosyalardan içe aktar ve yeniden ihraç et
+export * from './auth';
+export * from './profile';
+export * from './enrollments';
+export * from './courses';
+export * from './lessons';
+export * from './reviews';
+
+// Api error response'ları çakışmaması için, quiz ve assignments'dan yeniden export edilmiyor
+// Özel export'lar gerekiyorsa burada tek tek belirtilmeli 

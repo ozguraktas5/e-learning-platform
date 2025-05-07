@@ -61,14 +61,26 @@ export default function AssignmentSubmissionsPage() {
 
   // Tarih formatını düzenleyen yardımcı fonksiyon
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('tr-TR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+    if (!dateString) return "Tarih yok";
+    
+    try {
+      const date = new Date(dateString);
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return "Geçersiz tarih";
+      }
+      
+      return new Intl.DateTimeFormat('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } catch (error) {
+      console.error("Date formatting error:", error);
+      return "Geçersiz tarih";
+    }
   };
 
   const handleSubmissionSelect = (submission: AssignmentSubmission) => {

@@ -184,22 +184,31 @@ export default function AssignmentsPage() {
               
               <div className="mt-4 flex gap-2">
                 {user?.role === 'student' ? (
-                  <Link 
-                    href={`/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submit`}
-                    className={`px-4 py-2 rounded-md ${
-                      isPastDue(assignment.due_date)
-                        ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                    onClick={(e) => {
-                      if (isPastDue(assignment.due_date)) {
-                        e.preventDefault();
-                        toast.error('Bu ödevin son teslim tarihi geçmiştir.');
-                      }
-                    }}
-                  >
-                    {isPastDue(assignment.due_date) ? 'Süre Doldu' : 'Ödevi Gönder'}
-                  </Link>
+                  <>
+                    <Link 
+                      href={`/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submit`}
+                      className={`px-4 py-2 rounded-md ${
+                        isPastDue(assignment.due_date)
+                          ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                      onClick={(e) => {
+                        if (isPastDue(assignment.due_date)) {
+                          e.preventDefault();
+                          toast.error('Bu ödevin son teslim tarihi geçmiştir.');
+                        }
+                      }}
+                    >
+                      {isPastDue(assignment.due_date) ? 'Süre Doldu' : 'Ödevi Gönder'}
+                    </Link>
+                    
+                    <Link 
+                      href={`/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/my-submission`}
+                      className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                    >
+                      Sonucu Gör
+                    </Link>
+                  </>
                 ) : (
                   <Link 
                     href={`/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submissions`}
