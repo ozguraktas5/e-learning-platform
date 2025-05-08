@@ -348,7 +348,7 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
-    type = db.Column(db.String(50), nullable=False)  # 'course_update', 'new_assignment', 'quiz_graded', 'assignment_graded', 'assignment_due'
+    type = db.Column(db.String(50), nullable=False)  # 'course_update', 'new_assignment', 'new_quiz', 'quiz_graded', 'assignment_graded', 'assignment_due'
     title = db.Column(db.String(200), nullable=False)
     message = db.Column(db.Text, nullable=False)
     is_read = db.Column(db.Boolean, default=False)
@@ -373,4 +373,30 @@ class Notification(db.Model):
             'read_at': self.read_at.isoformat() if self.read_at else None,
             'created_at': self.created_at.isoformat(),
             'reference_id': self.reference_id
+        }
+
+class NotificationSetting(db.Model):
+    __tablename__ = 'notification_settings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(255), nullable=False)
+    category = db.Column(db.String(50), nullable=False)  # 'course', 'system', 'marketing'
+    enabled = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+    
+    # İlişkiler
+    user = db.relationship('User', backref=db.backref('notification_settings', lazy=True))
+    
+    def to_dict(self):
+        return {
+            'id': str(self.id),  # Frontend ile uyumlu olması için id'yi string olarak dönüştürüyoruz
+            'name': self.name,
+            'description': self.description,
+            'category': self.category,
+            'enabled': self.enabled,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
         } 

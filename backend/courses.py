@@ -1,29 +1,37 @@
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from models import db, Course, Lesson, User, Enrollment, Review, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Assignment, AssignmentSubmission, LessonDocument, Notification
-from sqlalchemy import or_, text
-from datetime import datetime, timedelta, UTC
-from utils import upload_video_to_gcs, upload_document_to_gcs, upload_file_to_gcs
-import os
-from dotenv import load_dotenv
-import bleach  # HTML temizleme için
-import json
-import time
-import re
-import html
-import string
-from sqlalchemy import exc
-from sqlalchemy.exc import OperationalError
-from flask import current_app
-from flask_cors import CORS
+from flask import Blueprint, jsonify, request, current_app, url_for, render_template, send_from_directory, make_response
+from models import db, Course, Lesson, User, Enrollment, Review, Progress, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Assignment, AssignmentSubmission, Notification, LessonDocument
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
+import os
+import re
+from datetime import datetime, timedelta, timezone, UTC
+import mimetypes
+import random
+import json
+import uuid
+import bleach
+from sqlalchemy import or_, and_, func, desc
+import logging
 
-# Load environment variables
-load_dotenv()
+# İstanbul/Türkiye saat dilimini tanımla (UTC+3)
+TURKEY_TZ = timezone(timedelta(hours=3))
 
-# Güvenli HTML etiketleri ve özellikleri
-ALLOWED_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'strong', 'em', 'u', 'br', 'ul', 'ol', 'li']
-ALLOWED_ATTRIBUTES = {'*': ['class']}
+# Blueprint oluştur
+courses = Blueprint('courses', __name__)
+
+# HTML temizleme için izin verilen etiketler
+ALLOWED_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'ul', 'ol', 
+               'li', 'strong', 'em', 'a', 'img', 'div', 'span', 'blockquote',
+               'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td']
+
+# İzin verilen HTML özellikleri  
+ALLOWED_ATTRIBUTES = {
+    'a': ['href', 'title', 'target', 'rel'],
+    'img': ['src', 'alt', 'width', 'height', 'class'],
+    'div': ['class', 'id', 'style'],
+    'span': ['class', 'id', 'style'],
+    '*': ['class', 'id']
+}
 
 def sanitize_html(content):
     """HTML içeriğini temizle ve güvenli hale getir"""
@@ -37,17 +45,6 @@ def sanitize_html(content):
         attributes=ALLOWED_ATTRIBUTES,
         strip=True
     )
-
-courses = Blueprint('courses', __name__)
-CORS(courses, resources={
-    r"/*": {
-        "origins": ["http://localhost:3000"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "expose_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
-    }
-})
 
 def is_instructor(user_id): # Kullanıcının eğitmen olup olmadığını kontrol et
     user = User.query.get(user_id)
@@ -189,7 +186,7 @@ def update_course(course_id):
         
         # If there are any changes, send notifications
         if changes:
-            course.updated_at = datetime.now(UTC)
+            course.updated_at = datetime.now(TURKEY_TZ)
             
             # Kursa kayıtlı öğrencilere bildirim gönder
             enrolled_students = Enrollment.query.filter_by(course_id=course_id).all()
@@ -202,7 +199,7 @@ def update_course(course_id):
                     title=f'Kurs Güncellendi: {course.title}',
                     message=f'{course.title} kursunda yapılan değişiklikler:\n' + '\n'.join(f'• {change}' for change in changes),
                     is_read=False,
-                    created_at=datetime.now(UTC)
+                    created_at=datetime.now(TURKEY_TZ)
                 )
                 db.session.add(notification)
         
@@ -553,8 +550,9 @@ def reply_to_review(course_id, review_id):
     if not data or 'reply' not in data:
         return jsonify({'error': 'Yanıt metni zorunludur.'}), 400
     
+    # Yanıtı kaydet
     review.instructor_reply = data['reply']
-    review.instructor_reply_date = datetime.utcnow()
+    review.instructor_reply_date = datetime.now(TURKEY_TZ)
     
     db.session.commit()
     
@@ -667,6 +665,21 @@ def create_quiz(course_id, lesson_id):
                     db.session.add(option)
         
         try:
+            # Kursa kayıtlı öğrencilere bildirim gönder
+            enrollments = Enrollment.query.filter_by(course_id=course_id).all()
+            for enrollment in enrollments:
+                notification = Notification(
+                    user_id=enrollment.student_id,
+                    course_id=course_id,
+                    type='new_quiz',
+                    title=f'Yeni Quiz: {quiz.title}',
+                    message=f'{course.title} kursuna yeni bir quiz eklendi: {quiz.title}',
+                    is_read=False,
+                    created_at=datetime.now(TURKEY_TZ),
+                    reference_id=quiz.id
+                )
+                db.session.add(notification)
+            
             db.session.commit()
             return jsonify({
                 'message': 'Quiz başarıyla oluşturuldu',
@@ -711,11 +724,11 @@ def submit_quiz(course_id, lesson_id, quiz_id):
         if not data or not data.get('answers'):
             return jsonify({'message': 'Cevaplar gerekli'}), 400
         
-        # Yeni deneme oluştur
+        # Quiz denemesi oluştur
         attempt = QuizAttempt(
             quiz_id=quiz_id,
             user_id=current_user_id,
-            started_at=datetime.now(UTC)
+            started_at=datetime.now(TURKEY_TZ)
         )
         db.session.add(attempt)
         
@@ -745,8 +758,28 @@ def submit_quiz(course_id, lesson_id, quiz_id):
             db.session.add(answer)
         
         # Quiz denemesini tamamla
-        attempt.completed_at = datetime.now(UTC)
+        attempt.completed_at = datetime.now(TURKEY_TZ)
         attempt.score = (total_points / max_points * 100) if max_points > 0 else 0
+        
+        # Kurs ve quiz bilgilerini al
+        course = Course.query.get_or_404(course_id)
+        lesson = Lesson.query.get_or_404(lesson_id)
+        
+        # Öğrenci bilgilerini al
+        student = User.query.get(current_user_id)
+        
+        # Instructor'a bildirim gönder
+        instructor_notification = Notification(
+            user_id=course.instructor_id,
+            course_id=course_id,
+            type='quiz_submitted',
+            title=f'Yeni Quiz Tamamlandı: {quiz.title}',
+            message=f'{student.username} adlı öğrenci "{course.title}" kursundaki "{quiz.title}" quiz\'ini tamamladı. Puan: %{attempt.score:.1f}',
+            is_read=False,
+            created_at=datetime.now(TURKEY_TZ),
+            reference_id=quiz_id
+        )
+        db.session.add(instructor_notification)
         
         try:
             db.session.commit()
@@ -792,6 +825,22 @@ def create_assignment(course_id, lesson_id):
     )
     
     db.session.add(assignment)
+    
+    # Kursa kayıtlı öğrencilere bildirim gönder
+    enrollments = Enrollment.query.filter_by(course_id=course_id).all()
+    for enrollment in enrollments:
+        notification = Notification(
+            user_id=enrollment.student_id,
+            course_id=course_id,
+            type='new_assignment',
+            title=f'Yeni Ödev: {assignment.title}',
+            message=f'{course.title} kursuna yeni bir ödev eklendi: {assignment.title}. Son teslim tarihi: {assignment.due_date.strftime("%d.%m.%Y %H:%M")}',
+            is_read=False,
+            created_at=datetime.now(TURKEY_TZ),
+            reference_id=assignment.id
+        )
+        db.session.add(notification)
+    
     db.session.commit()
     
     return jsonify({
@@ -816,8 +865,8 @@ def submit_assignment(course_id, lesson_id, assignment_id):
         return jsonify({'error': 'Bu ödevi göndermek için kursa kayıtlı olmalısınız.'}), 403
     
     # Ödevin son tarihini kontrol et
-    if assignment.due_date < datetime.utcnow():
-        return jsonify({'error': 'Ödev son tarihi geçmiş.'}), 400
+    if assignment.due_date < datetime.now(TURKEY_TZ):
+        return jsonify({"error": "Bu ödev için son teslim tarihi geçmiş. Artık gönderim yapamazsınız."}), 400
     
     data = request.get_json()
     
@@ -838,6 +887,27 @@ def submit_assignment(course_id, lesson_id, assignment_id):
         # submission.file_url = upload_to_storage(file)
     
     db.session.add(submission)
+    
+    # Kurs ve ders bilgilerini al
+    course = Course.query.get_or_404(course_id)
+    lesson = Lesson.query.get_or_404(lesson_id)
+    
+    # Öğrenci bilgilerini al
+    student = User.query.get(current_user_id)
+    
+    # Instructor'a bildirim gönder
+    instructor_notification = Notification(
+        user_id=course.instructor_id,
+        course_id=course_id,
+        type='assignment_submitted',
+        title=f'Yeni Ödev Gönderimi: {assignment.title}',
+        message=f'{student.username} adlı öğrenci "{course.title}" kursundaki "{assignment.title}" ödevini gönderdi.',
+        is_read=False,
+        created_at=datetime.now(TURKEY_TZ),
+        reference_id=assignment_id
+    )
+    db.session.add(instructor_notification)
+    
     db.session.commit()
     
     return jsonify({
@@ -869,7 +939,7 @@ def grade_assignment(course_id, lesson_id, assignment_id):
     
     submission.grade = data['grade']
     submission.feedback = data.get('feedback')
-    submission.graded_at = datetime.utcnow()
+    submission.graded_at = datetime.now(TURKEY_TZ)
     
     db.session.commit()
     
@@ -903,7 +973,7 @@ def grade_assignment_submission(course_id, lesson_id, assignment_id, submission_
         # Notu ve geri bildirimi güncelle
         submission.grade = float(data['grade'])
         submission.feedback = data.get('feedback', '')
-        submission.graded_at = datetime.now(UTC)
+        submission.graded_at = datetime.now(TURKEY_TZ)
         
         # Öğrenciye bildirim gönder
         notification = Notification(
@@ -914,7 +984,7 @@ def grade_assignment_submission(course_id, lesson_id, assignment_id, submission_
             message=f'{course.title} kursundaki {assignment.title} ödevinden {submission.grade:.1f} puan aldınız.' + 
                     (f'\n\nGeri Bildirim:\n{submission.feedback}' if submission.feedback else ''),
             is_read=False,
-            created_at=datetime.now(UTC)
+            created_at=datetime.now(TURKEY_TZ)
         )
         db.session.add(notification)
         
@@ -1136,7 +1206,7 @@ def get_unread_notifications():
             
         # Tarih filtresi
         if since:
-            now = datetime.now(UTC)
+            now = datetime.now(TURKEY_TZ)
             if since == '24h':
                 since_date = now - timedelta(hours=24)
             elif since == '7d':
@@ -1209,7 +1279,7 @@ def mark_selected_notifications_read():
         if not notification_ids:
             return jsonify({'message': 'İşaretlenecek bildirim seçilmedi'}), 400
             
-        now = datetime.now(UTC)
+        now = datetime.now(TURKEY_TZ)
         
         # Seçili bildirimleri güncelle
         result = db.session.execute(
@@ -1263,7 +1333,7 @@ def mark_notification_read(notification_id):
             
         # Mark as read
         notification.is_read = True
-        notification.read_at = datetime.now(UTC)
+        notification.read_at = datetime.now(TURKEY_TZ)
         db.session.commit()
         
         return jsonify({'message': 'Notification marked as read successfully'}), 200
@@ -1278,7 +1348,7 @@ def mark_notification_read(notification_id):
 def mark_all_notifications_read():
     try:
         current_user_id = get_jwt_identity()
-        now = datetime.now(UTC)
+        now = datetime.now(TURKEY_TZ)
         
         # Tüm okunmamış bildirimleri güncelle
         result = db.session.execute(
@@ -1323,7 +1393,7 @@ def grade_quiz_attempt(course_id, lesson_id, quiz_id, attempt_id):
         
         # Puanı güncelle
         quiz_attempt.score = float(data['score'])
-        quiz_attempt.completed_at = datetime.now(UTC)
+        quiz_attempt.completed_at = datetime.now(TURKEY_TZ)
         
         # Öğrenciye bildirim gönder
         notification = Notification(
@@ -1331,9 +1401,9 @@ def grade_quiz_attempt(course_id, lesson_id, quiz_id, attempt_id):
             course_id=course_id,
             type='quiz_graded',
             title=f'Quiz Değerlendirildi: {quiz_attempt.quiz.title}',
-            message=f'{course.title} kursundaki {quiz_attempt.quiz.title} quizinden {quiz_attempt.score:.1f} puan aldınız.',
+            message=f'{course.title} kursundaki {quiz_attempt.quiz.title} quiz\'inden {quiz_attempt.score:.1f}% aldınız.',
             is_read=False,
-            created_at=datetime.now(UTC)
+            created_at=datetime.now(TURKEY_TZ)
         )
         db.session.add(notification)
         
@@ -1375,7 +1445,7 @@ def check_assignment_due_dates():
             return jsonify({'message': 'Kayıtlı olduğunuz kurs bulunmamaktadır'}), 404
         
         # Yaklaşan ödevleri bul (3 gün içinde teslim tarihi olanlar)
-        now = datetime.now(UTC)
+        now = datetime.now(TURKEY_TZ)
         three_days_later = now + timedelta(days=3)
         
         try:
@@ -1495,7 +1565,7 @@ def create_test_notifications():
 
         # Test bildirimlerini oluştur
         notifications = []
-        now = datetime.now(UTC)
+        now = datetime.now(TURKEY_TZ)
         for i in range(count):
             notification = Notification(
                 user_id=current_user_id,
@@ -1513,7 +1583,7 @@ def create_test_notifications():
         db.session.commit()
 
         # Performans metriklerini hesapla
-        end_time = datetime.now(UTC)
+        end_time = datetime.now(TURKEY_TZ)
         creation_time = (end_time - now).total_seconds()
 
         return jsonify({
@@ -1641,8 +1711,8 @@ def cleanup_old_notifications():
         if not isinstance(days_threshold, (int, float)) or days_threshold <= 0:
             return jsonify({'message': 'days_threshold must be a positive number'}), 400
 
-        # Ensure we use UTC for all datetime operations
-        threshold_date = datetime.now(UTC) - timedelta(days=days_threshold)
+        # Belirlenen gün sayısından daha eski bildirimleri sil
+        threshold_date = datetime.now(TURKEY_TZ) - timedelta(days=days_threshold)
 
         # Delete old notifications that are read
         result = db.session.execute(
@@ -1691,7 +1761,7 @@ def bulk_update_notifications():
         if is_read is not None:
             update_data['is_read'] = is_read
             if is_read:
-                update_data['read_at'] = datetime.now(UTC)
+                update_data['read_at'] = datetime.now(TURKEY_TZ)
         if notification_type:
             update_data['type'] = notification_type
             
@@ -1926,7 +1996,7 @@ def update_lesson(course_id, lesson_id):
             
         # Değişiklik yapıldıysa
         if changes:
-            lesson.updated_at = datetime.now(UTC)
+            lesson.updated_at = datetime.now(TURKEY_TZ)
             
             # Kursa kayıtlı öğrencilere bildirim gönder
             enrollments = Enrollment.query.filter_by(course_id=course_id).all()
@@ -1938,7 +2008,7 @@ def update_lesson(course_id, lesson_id):
                     title=f'Ders Güncellendi: {lesson.title}',
                     message=f'{course.title} kursundaki {lesson.title} dersi güncellendi.',
                     is_read=False,
-                    created_at=datetime.now(UTC)
+                    created_at=datetime.now(TURKEY_TZ)
                 )
                 db.session.add(notification)
                 

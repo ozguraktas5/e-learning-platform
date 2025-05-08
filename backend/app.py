@@ -172,11 +172,13 @@ def create_app():
     from courses import courses
     from profiles import profiles
     from enrollments import enrollments
+    from notifications import notifications_bp
 
     app.register_blueprint(auth, url_prefix='/auth')
     app.register_blueprint(courses, url_prefix='/courses')
     app.register_blueprint(profiles)
     app.register_blueprint(enrollments)
+    app.register_blueprint(notifications_bp, url_prefix='/api')
     
     # Veritabanı tablolarını oluştur
     with app.app_context():
@@ -209,7 +211,7 @@ def create_app():
 
     @app.route('/')
     def hello():
-        return jsonify({"message": "Hello, World!"})
+        return jsonify({"message": "Welcome to the E-Learning API!"})
 
     return app
 
