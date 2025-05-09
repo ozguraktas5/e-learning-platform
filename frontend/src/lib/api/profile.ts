@@ -1,38 +1,68 @@
-import api from '@/lib/axios';
+import axios from './index';
 
-export interface Profile {
-  id: number;
+interface ProfileResponse {
   username: string;
   email: string;
-  role: 'student' | 'instructor';
-  created_at: string;
 }
 
-export interface UpdateProfileData {
-  username?: string;
-  email?: string;
+interface InstructorProfileResponse extends ProfileResponse {
+  bio?: string;
+  expertise?: string;
+  socialMediaLinks?: {
+    website?: string;
+    linkedin?: string;
+    twitter?: string;
+  };
 }
 
-export interface ChangePasswordData {
-  current_password: string;
-  new_password: string;
+interface ProfileUpdateBody {
+  username: string;
+  email: string;
 }
+
+interface InstructorProfileUpdateBody extends ProfileUpdateBody {
+  bio?: string;
+  expertise?: string;
+  socialMediaLinks?: {
+    website?: string;
+    linkedin?: string;
+    twitter?: string;
+  };
+}
+
+interface MessageResponse {
+  message: string;
+}
+
+const getProfile = async (): Promise<ProfileResponse> => {
+  const { data } = await axios.get('/profile');
+  return data;
+};
+
+const updateProfile = async (body: ProfileUpdateBody): Promise<MessageResponse> => {
+  const { data } = await axios.put('/profile', body);
+  return data;
+};
+
+const updatePassword = async (body: { currentPassword: string; newPassword: string }): Promise<MessageResponse> => {
+  const { data } = await axios.put('/profile/password', body);
+  return data;
+};
+
+const getInstructorProfile = async (): Promise<InstructorProfileResponse> => {
+  const { data } = await axios.get('/instructor/profile');
+  return data;
+};
+
+const updateInstructorProfile = async (body: InstructorProfileUpdateBody): Promise<MessageResponse> => {
+  const { data } = await axios.put('/instructor/profile', body);
+  return data;
+};
 
 export const profileApi = {
-  getProfile: async (): Promise<Profile> => {
-    const response = await api.get('/profile');
-    return response.data;
-  },
-  updateProfile: async (
-    data: UpdateProfileData
-  ): Promise<{ message: string; profile: Profile }> => {
-    const response = await api.put('/profile', data);
-    return response.data;
-  },
-  changePassword: async (
-    data: ChangePasswordData
-  ): Promise<{ message: string }> => {
-    const response = await api.put('/profile/password', data);
-    return response.data;
-  },
+  getProfile,
+  updateProfile,
+  updatePassword,
+  getInstructorProfile,
+  updateInstructorProfile
 }; 

@@ -10,7 +10,7 @@ declare global {
 }
 
 // Export this so it can be used for file URLs
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -46,7 +46,9 @@ export default api;
 // Doğrudan dosyalardan içe aktar ve yeniden ihraç et
 export * from './auth';
 export * from './profile';
-export * from './enrollments';
+// Export ederken isim çakışmasını önlemek için seçici export yapıyoruz
+export { enrollmentsApi } from './enrollments';
+export type { EnrollmentHistory } from './enrollments';
 export * from './courses';
 export * from './lessons';
 export * from './reviews';

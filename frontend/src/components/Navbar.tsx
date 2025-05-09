@@ -57,6 +57,14 @@ export default function Navbar() {
     router.push('/');
   };
 
+  // Kullanıcı rolüne göre profil URL'ini belirle
+  const getProfileUrl = () => {
+    if (user?.role === 'instructor') {
+      return '/instructor/profile';
+    }
+    return '/profile';
+  };
+
   return (
     <nav className="bg-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -80,6 +88,14 @@ export default function Navbar() {
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
                 >
                   Kurs Oluştur
+                </Link>
+              )}
+              {user?.role === 'student' && (
+                <Link
+                  href="/my-courses"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                >
+                  Kayıtlı Kurslarım
                 </Link>
               )}
             </div>
@@ -106,7 +122,7 @@ export default function Navbar() {
                     {user.username}
                   </span>
                   <Link
-                    href="/profile"
+                    href={getProfileUrl()}
                     className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors duration-150"
                   >
                     Profilim

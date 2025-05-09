@@ -1,23 +1,44 @@
-import api from '@/lib/axios';
+import axios from './index';
 
-export interface MyCourseEnrollment {
-  enrollment_id: number;
-  course: {
-    id: number;
-    title: string;
-    description: string;
-    instructor: string;
-    progress: {
-      completed_lessons: number;
-      total_lessons: number;
-    };
-  };
+export interface Course {
+  id: number;
+  title: string;
+  description: string;
+  image_url: string;
+  instructor_name: string;
+  progress?: number;
+  enrolled_at: string;
+  last_activity_at?: string;
 }
 
-export const enrollmentApi = {
-  // Get courses the user is enrolled in
-  getMyCourses: async (): Promise<MyCourseEnrollment[]> => {
-    const response = await api.get('/my-courses');
-    return response.data;
-  },
+export interface EnrollmentHistory {
+  id: number;
+  course_id: number;
+  course_title: string;
+  instructor_name: string;
+  enrolled_at: string;
+  status: 'active' | 'completed' | 'cancelled';
+  completed_at?: string;
+  certificate_id?: string;
+}
+
+const getEnrolledCourses = async (): Promise<Course[]> => {
+  const { data } = await axios.get('/enrollments/courses');
+  return data;
+};
+
+const getEnrollmentHistory = async (): Promise<EnrollmentHistory[]> => {
+  const { data } = await axios.get('/enrollments/history');
+  return data;
+};
+
+const enrollInCourse = async (courseId: number): Promise<{ message: string }> => {
+  const { data } = await axios.post(`/courses/${courseId}/enroll`);
+  return data;
+};
+
+export const enrollmentsApi = {
+  getEnrolledCourses,
+  getEnrollmentHistory,
+  enrollInCourse
 }; 

@@ -14,6 +14,13 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False, default='student')  # Kullanıcının rolü.
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow) # Kullanıcının oluşturulma tarihi.
     
+    # Instructor profile fields
+    bio = db.Column(db.Text, nullable=True)
+    expertise = db.Column(db.String(255), nullable=True)
+    website = db.Column(db.String(255), nullable=True)
+    linkedin = db.Column(db.String(255), nullable=True)
+    twitter = db.Column(db.String(255), nullable=True)
+    
     # İlişkiler
     enrollments = db.relationship('Enrollment', backref='student', lazy=True, foreign_keys='Enrollment.student_id')
     created_courses = db.relationship('Course', backref='instructor', lazy=True, foreign_keys='Course.instructor_id')
@@ -25,13 +32,27 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
 
     def to_dict(self):
-        return {
+        user_data = {
             'id': self.id,
             'username': self.username,
             'email': self.email,
             'role': self.role,
             'created_at': self.created_at.isoformat()
         }
+        
+        # Add instructor profile fields if role is instructor
+        if self.role == 'instructor':
+            user_data.update({
+                'bio': self.bio,
+                'expertise': self.expertise,
+                'socialMediaLinks': {
+                    'website': self.website,
+                    'linkedin': self.linkedin,
+                    'twitter': self.twitter
+                }
+            })
+            
+        return user_data
 
 class Course(db.Model):
     __tablename__ = 'courses'

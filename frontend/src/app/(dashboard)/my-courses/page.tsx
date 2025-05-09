@@ -1,71 +1,144 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
-import { enrollmentApi, MyCourseEnrollment } from '@/lib/api/enrollments';
+import Image from 'next/image';
+import { toast } from 'react-toastify';
+import { useAuth } from '@/hooks/useAuth';
+import { enrollmentsApi } from '@/lib/api/enrollments';
+
+interface Course {
+  id: number;
+  title: string;
+  description: string;
+  image_url: string;
+  instructor_name: string;
+  progress?: number;
+  enrolled_at: string;
+  last_activity_at?: string;
+}
 
 export default function MyCoursesPage() {
-  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [enrollments, setEnrollments] = useState<MyCourseEnrollment[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, loading } = useAuth();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Redirect to login if auth has loaded and no user
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (loading) return;
+    
+    if (!user) {
       router.push('/login');
+      return;
     }
-  }, [authLoading, user, router]);
+    
+    // Eğitmen ise kendi kurslarına yönlendir
+    if (user.role === 'instructor') {
+      router.push('/instructor/courses');
+      return;
+    }
+    
+    fetchEnrolledCourses();
+  }, [loading, user, router]);
 
-  // Once authenticated, fetch enrollments
-  useEffect(() => {
-    if (authLoading || !user) return;
-    const fetchMyCourses = async () => {
-      try {
-        const data = await enrollmentApi.getMyCourses();
-        setEnrollments(data);
-      } catch (err) {
-        console.error('Error fetching my courses:', err);
-        setError('Kayıtlı kurslar yüklenirken hata oluştu');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMyCourses();
-  }, [authLoading, user]);
+  const fetchEnrolledCourses = async () => {
+    try {
+      setIsLoading(true);
+      const data = await enrollmentsApi.getEnrolledCourses();
+      setCourses(data);
+    } catch (error) {
+      console.error('Error fetching enrolled courses:', error);
+      toast.error('Kurslar yüklenirken bir hata oluştu');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  if (authLoading || loading) {
-    return <div className="text-center py-8">Yükleniyor...</div>;
+  if (loading || isLoading) {
+    return <div className="p-8 text-center">Kurslarınız yükleniyor...</div>;
   }
-  if (error) {
-    return <div className="text-center py-8 text-red-600">{error}</div>;
-  }
-  if (enrollments.length === 0) {
-    return <div className="text-center py-8">Henüz kayıtlı kursunuz yok.</div>;
+
+  if (courses.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto p-8">
+        <h1 className="text-2xl font-bold mb-8">Kayıtlı Kurslarım</h1>
+        <div className="text-center p-10 bg-white rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">Henüz hiçbir kursa kayıtlı değilsiniz</h2>
+          <p className="text-gray-600 mb-6">
+            Öğrenmeye başlamak için kursları keşfedin ve kaydolun
+          </p>
+          <Link 
+            href="/courses" 
+            className="px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Kursları Keşfet
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Kayıtlı Kurslarım</h1>
+    <div className="max-w-7xl mx-auto p-8">
+      <h1 className="text-2xl font-bold mb-8">Kayıtlı Kurslarım</h1>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {enrollments.map((en) => {
-          const progressPercent = Math.floor(
-            (en.course.progress.completed_lessons / en.course.progress.total_lessons) * 100
-          );
-          return (
-            <Link key={en.enrollment_id} href={`/courses/${en.course.id}`}> 
-              <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow p-6">
-                <h2 className="text-xl font-semibold mb-2">{en.course.title}</h2>
-                <p className="text-gray-600 mb-4 line-clamp-2">{en.course.description}</p>
-                <div className="text-sm text-gray-500">İlerleme: {progressPercent}%</div>
+        {courses.map(course => (
+          <div key={course.id} className="bg-white rounded-lg shadow overflow-hidden flex flex-col">
+            <div className="relative h-48 w-full">
+              {course.image_url ? (
+                <Image
+                  src={course.image_url}
+                  alt={course.title}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-500">Resim yok</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-5 flex-grow">
+              <h2 className="text-xl font-semibold mb-2">{course.title}</h2>
+              <p className="text-sm text-gray-600 mb-2">Eğitmen: {course.instructor_name}</p>
+              
+              {course.progress !== undefined && (
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>İlerleme</span>
+                    <span>{course.progress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-600 h-2 rounded-full" 
+                      style={{ width: `${course.progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-4 text-sm text-gray-500">
+                <p>Kayıt tarihi: {new Date(course.enrolled_at).toLocaleDateString('tr-TR')}</p>
+                {course.last_activity_at && (
+                  <p>Son aktivite: {new Date(course.last_activity_at).toLocaleDateString('tr-TR')}</p>
+                )}
               </div>
-            </Link>
-          );
-        })}
+            </div>
+            
+            <div className="p-5 pt-0">
+              <Link
+                href={`/courses/${course.id}`}
+                className="block w-full text-center py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                Kursa Git
+              </Link>
+            </div>
+          </div>
+        ))}
       </div>
-    </main>
+    </div>
   );
 } 

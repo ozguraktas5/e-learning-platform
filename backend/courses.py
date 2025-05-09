@@ -864,8 +864,12 @@ def submit_assignment(course_id, lesson_id, assignment_id):
     if not enrollment:
         return jsonify({'error': 'Bu ödevi göndermek için kursa kayıtlı olmalısınız.'}), 403
     
-    # Ödevin son tarihini kontrol et
-    if assignment.due_date < datetime.now(TURKEY_TZ):
+    # Ödevin son tarihini kontrol et - Hata düzeltmesi: timezone bilgilerinin kontrolü
+    now = datetime.now(TURKEY_TZ)
+    # Eğer assignment.due_date zaten timezone bilgisine sahipse kullan, değilse UTC ekle
+    due_date = assignment.due_date if assignment.due_date.tzinfo else assignment.due_date.replace(tzinfo=UTC)
+    
+    if due_date < now:
         return jsonify({"error": "Bu ödev için son teslim tarihi geçmiş. Artık gönderim yapamazsınız."}), 400
     
     data = request.get_json()
@@ -903,7 +907,7 @@ def submit_assignment(course_id, lesson_id, assignment_id):
         title=f'Yeni Ödev Gönderimi: {assignment.title}',
         message=f'{student.username} adlı öğrenci "{course.title}" kursundaki "{assignment.title}" ödevini gönderdi.',
         is_read=False,
-        created_at=datetime.now(TURKEY_TZ),
+        created_at=now,
         reference_id=assignment_id
     )
     db.session.add(instructor_notification)
