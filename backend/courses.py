@@ -12,6 +12,7 @@ import uuid
 import bleach
 from sqlalchemy import or_, and_, func, desc
 import logging
+from utils import upload_file_to_gcs
 
 # İstanbul/Türkiye saat dilimini tanımla (UTC+3)
 TURKEY_TZ = timezone(timedelta(hours=3))

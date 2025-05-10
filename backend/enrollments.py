@@ -154,4 +154,115 @@ def complete_lesson(lesson_id):
             'completed': True,
             'completed_at': progress.completed_at
         }
-    }) 
+    })
+
+@enrollments.route('/courses', methods=['GET'])
+@jwt_required()
+def get_enrolled_courses():
+    user_id = get_jwt_identity()
+    
+    # Kullanıcının öğrenci olup olmadığını kontrol et
+    if not is_student(user_id):
+        return jsonify({'error': 'Only students can view enrolled courses'}), 403
+    
+    # Kullanıcının kayıtlı olduğu kursları al
+    enrollments = Enrollment.query.filter_by(student_id=user_id).all()
+    
+    # Kayıt yoksa boş liste döndür (404 yerine 200 durum koduyla)
+    if not enrollments:
+        return jsonify([]), 200
+    
+    # Kayıtlar varsa kurs bilgilerini döndür
+    courses = []
+    for enrollment in enrollments:
+        course = Course.query.get(enrollment.course_id)
+        if course:
+            # Kursa ait derslerin sayısını ve tamamlananları bul
+            lesson_count = Lesson.query.filter_by(course_id=course.id).count()
+            completed_count = Progress.query.join(Lesson).filter(
+                Progress.enrollment_id == enrollment.id,
+                Progress.completed == True,
+                Lesson.course_id == course.id
+            ).count()
+            
+            # İlerleme yüzdesini hesapla
+            progress_percentage = 0
+            if lesson_count > 0:
+                progress_percentage = int((completed_count / lesson_count) * 100)
+            
+            instructor = User.query.get(course.instructor_id)
+            
+            courses.append({
+                'id': course.id,
+                'title': course.title,
+                'description': course.description,
+                'image_url': course.image_url,
+                'instructor_name': instructor.username if instructor else 'Unknown',
+                'progress': progress_percentage,
+                'enrolled_at': enrollment.enrolled_at.isoformat(),
+                'last_activity_at': None  # Bu alan eklenebilir
+            })
+    
+    return jsonify(courses)
+
+@enrollments.route('/history', methods=['GET'])
+@jwt_required()
+def get_enrollment_history():
+    """Öğrencinin tüm kayıt geçmişini döndürür"""
+    user_id = get_jwt_identity()
+    
+    # Kullanıcının öğrenci olup olmadığını kontrol et
+    if not is_student(user_id):
+        return jsonify({'error': 'Only students can view enrollment history'}), 403
+    
+    # Kullanıcının kayıtlı olduğu kursları al
+    enrollments = Enrollment.query.filter_by(student_id=user_id).all()
+    
+    # Kayıt yoksa boş liste döndür
+    if not enrollments:
+        return jsonify([]), 200
+    
+    # Kayıt geçmişini hazırla
+    history = []
+    for enrollment in enrollments:
+        course = Course.query.get(enrollment.course_id)
+        if course:
+            instructor = User.query.get(course.instructor_id)
+            
+            # Tüm dersleri ve tamamlanan dersleri say
+            lesson_count = Lesson.query.filter_by(course_id=course.id).count()
+            completed_count = Progress.query.join(Lesson).filter(
+                Progress.enrollment_id == enrollment.id,
+                Progress.completed == True,
+                Lesson.course_id == course.id
+            ).count()
+            
+            # Kursun durumunu belirle
+            status = 'active'
+            completed_at = None
+            
+            # Eğer tüm dersler tamamlanmışsa, kurs tamamlanmış demektir
+            if lesson_count > 0 and completed_count == lesson_count:
+                status = 'completed'
+                # Son tamamlanan dersin tarihini bul
+                last_progress = Progress.query.join(Lesson).filter(
+                    Progress.enrollment_id == enrollment.id,
+                    Progress.completed == True,
+                    Lesson.course_id == course.id
+                ).order_by(Progress.completed_at.desc()).first()
+                
+                if last_progress and last_progress.completed_at:
+                    completed_at = last_progress.completed_at.isoformat()
+            
+            history.append({
+                'id': enrollment.id,
+                'course_id': course.id,
+                'course_title': course.title,
+                'instructor_name': instructor.username if instructor else 'Unknown',
+                'enrolled_at': enrollment.enrolled_at.isoformat(),
+                'status': status,
+                'completed_at': completed_at,
+                'certificate_id': None  # Sertifika özelliği henüz eklenmedi
+            })
+    
+    return jsonify(history) 

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { toast } from 'react-toastify';
 import { useAuth } from '@/hooks/useAuth';
 import { enrollmentsApi } from '@/lib/api/enrollments';
@@ -88,12 +87,21 @@ export default function MyCoursesPage() {
           <div key={course.id} className="bg-white rounded-lg shadow overflow-hidden flex flex-col">
             <div className="relative h-48 w-full">
               {course.image_url ? (
-                <Image
-                  src={course.image_url}
-                  alt={course.title}
-                  fill
-                  className="object-cover"
-                />
+                <div className="h-full w-full relative">
+                  {/* Backend üzerinden resmi yükle */}
+                  <img
+                    src={`http://localhost:5000${course.image_url}`}
+                    alt={course.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Resim yüklenemedi:', course.image_url);
+                      // Target'ı HTMLImageElement olarak belirt
+                      const target = e.target as HTMLImageElement;
+                      // Alternatif kaynak belirt
+                      target.src = "https://via.placeholder.com/800x600?text=E-Learning";
+                    }}
+                  />
+                </div>
               ) : (
                 <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
                   <span className="text-gray-500">Resim yok</span>

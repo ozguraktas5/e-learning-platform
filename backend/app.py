@@ -102,26 +102,42 @@ def create_app():
                 mimetype = 'image/jpeg'
             elif filename.lower().endswith('.png'):
                 mimetype = 'image/png'
+            elif filename.lower().endswith('.gif'):
+                mimetype = 'image/gif'
+            elif filename.lower().endswith('.svg'):
+                mimetype = 'image/svg+xml'
             
             app.logger.info(f"Sending file with mimetype: {mimetype}")
             
-            # Dosyayı gönder
-            response = send_file(
-                file_path,
-                mimetype=mimetype,
-                as_attachment=False,
-                download_name=os.path.basename(file_path)
-            )
-            
-            # CORS headers ekle
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
-            response.headers.add('Access-Control-Allow-Methods', 'GET')
-            
-            app.logger.info(f"Successfully sent file: {filename}")
-            return response
+            try:
+                # Dosyayı gönder
+                response = send_file(
+                    file_path,
+                    mimetype=mimetype
+                )
+                
+                # CORS headers ekle
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                response.headers.add('Access-Control-Allow-Methods', 'GET')
+                
+                app.logger.info(f"Successfully sent file: {filename}")
+                return response
+            except Exception as e:
+                app.logger.error(f"Error sending file with send_file: {str(e)}")
+                # Alternatif olarak direkt dosyayı aç ve içeriğini oku
+                with open(file_path, 'rb') as f:
+                    file_content = f.read()
+                
+                response = app.response_class(
+                    response=file_content,
+                    mimetype=mimetype
+                )
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                app.logger.info(f"Sent file with manual method: {filename}")
+                return response
             
         except Exception as e:
-            app.logger.error(f"Error sending file {filename}: {str(e)}")
+            app.logger.error(f"Error serving file {filename}: {str(e)}")
             return jsonify({"error": "Error serving file", "details": str(e)}), 500
             
     # Test endpoint to check if server can see files
@@ -130,8 +146,26 @@ def create_app():
         uploads_dir = app.config['UPLOAD_FOLDER']
         videos_dir = os.path.join(uploads_dir, 'videos')
         
-        files_list = []
+        # Direkt uploads klasörünün içeriğini kontrol et
+        all_files = []
+        if os.path.exists(uploads_dir):
+            try:
+                for item in os.listdir(uploads_dir):
+                    item_path = os.path.join(uploads_dir, item)
+                    if os.path.isfile(item_path):
+                        all_files.append({
+                            'name': item,
+                            'size': os.path.getsize(item_path),
+                            'path': item_path,
+                            'exists': os.path.exists(item_path),
+                            'readable': os.access(item_path, os.R_OK),
+                            'absolute_path': os.path.abspath(item_path)
+                        })
+            except Exception as e:
+                app.logger.error(f"Error listing files: {str(e)}")
         
+        # Video klasörünü kontrol et
+        files_list = []
         if os.path.exists(videos_dir):
             for file in os.listdir(videos_dir):
                 file_path = os.path.join(videos_dir, file)
@@ -144,11 +178,25 @@ def create_app():
                         'readable': os.access(file_path, os.R_OK)
                     })
         
+        # Özel dosya için bir kontrol yap
+        specific_file = 'fd79095935a944bd81256f9e8765b8e6_wallhaven-6dqemx.jpg'
+        specific_path = os.path.join(uploads_dir, specific_file)
+        specific_info = {
+            'exists': os.path.exists(specific_path),
+            'path': specific_path,
+            'readable': os.access(specific_path, os.R_OK) if os.path.exists(specific_path) else False,
+            'size': os.path.getsize(specific_path) if os.path.exists(specific_path) else 0
+        }
+        
         return jsonify({
             'upload_folder': uploads_dir,
+            'upload_folder_exists': os.path.exists(uploads_dir),
+            'upload_folder_absolute': os.path.abspath(uploads_dir),
+            'all_files': all_files,
             'videos_dir': videos_dir,
             'videos_dir_exists': os.path.exists(videos_dir),
-            'files': files_list
+            'video_files': files_list,
+            'specific_file': specific_info
         })
 
     # Test endpoint to check if server is working correctly
@@ -177,7 +225,7 @@ def create_app():
     app.register_blueprint(auth, url_prefix='/auth')
     app.register_blueprint(courses, url_prefix='/courses')
     app.register_blueprint(profiles)
-    app.register_blueprint(enrollments)
+    app.register_blueprint(enrollments, url_prefix='/enrollments')
     app.register_blueprint(notifications_bp, url_prefix='/api')
     
     # Veritabanı tablolarını oluştur
@@ -212,6 +260,10 @@ def create_app():
     @app.route('/')
     def hello():
         return jsonify({"message": "Welcome to the E-Learning API!"})
+        
+    @app.route('/favicon.ico')
+    def favicon():
+        return "", 204  # No content response
 
     return app
 

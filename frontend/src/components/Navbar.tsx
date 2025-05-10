@@ -98,6 +98,14 @@ export default function Navbar() {
                   Kayıtlı Kurslarım
                 </Link>
               )}
+              {user?.role === 'student' && (
+                <Link
+                  href="/enrollment-history"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                >
+                  Kayıt Geçmişi
+                </Link>
+              )}
             </div>
           </div>
           <div className="flex items-center space-x-4">
