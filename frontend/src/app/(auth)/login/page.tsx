@@ -50,12 +50,18 @@ export default function LoginPage() {
       
       await login(response.data.access_token);
       
+      // Kullanıcının rolünü kontrol et
+      const userRole = response.data.user.role;
+      
       // Yönlendirme kontrolü
       if (redirect) {
         localStorage.removeItem('redirectAfterLogin'); // Temizle
         router.push(redirect);
+      } else if (userRole === 'instructor') {
+        // Eğitmen ise dashboard'a yönlendir
+        router.push('/instructor/dashboard');
       } else {
-        router.push('/courses');
+        router.push('/');
       }
     } catch (err) {
       console.error('Login error:', err);

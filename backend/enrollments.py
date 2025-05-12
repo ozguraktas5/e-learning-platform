@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_cors import CORS
 from models import db, Course, Enrollment, Progress, Lesson, User
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 
 enrollments = Blueprint('enrollments', __name__) # Enrollments blueprint'ini oluşturuyoruz.
 CORS(enrollments, resources={
@@ -18,6 +18,10 @@ CORS(enrollments, resources={
 def is_student(user_id): # Kullanıcının öğrenci olup olmadığını kontrol et
     user = User.query.get(user_id)
     return user and user.role == 'student'
+
+def is_instructor(user_id): # Kullanıcının eğitmen olup olmadığını kontrol et
+    user = User.query.get(user_id)
+    return user and user.role == 'instructor'
 
 @enrollments.route('/courses/<int:course_id>/enroll', methods=['POST'])
 @jwt_required()
@@ -265,4 +269,172 @@ def get_enrollment_history():
                 'certificate_id': None  # Sertifika özelliği henüz eklenmedi
             })
     
-    return jsonify(history) 
+    return jsonify(history)
+
+@enrollments.route('/instructor/students', methods=['GET'])
+@jwt_required()
+def get_instructor_students():
+    """Eğitmenin öğrencilerini döndürür"""
+    user_id = get_jwt_identity()
+    
+    # Kullanıcının eğitmen olup olmadığını kontrol et
+    if not is_instructor(user_id):
+        return jsonify({'error': 'Only instructors can view their students'}), 403
+    
+    # Eğitmenin kurslarını al
+    instructor_courses = Course.query.filter_by(instructor_id=user_id).all()
+    if not instructor_courses:
+        return jsonify([]), 200
+    
+    course_ids = [course.id for course in instructor_courses]
+    
+    # Bu kurslara kayıtlı öğrencileri al
+    students_data = []
+    enrollments = Enrollment.query.filter(Enrollment.course_id.in_(course_ids)).all()
+    
+    for enrollment in enrollments:
+        student = User.query.get(enrollment.student_id)
+        course = Course.query.get(enrollment.course_id)
+        
+        if not student or not course:
+            continue
+        
+        # Öğrencinin kurs ilerlemesini hesapla
+        lesson_count = Lesson.query.filter_by(course_id=course.id).count()
+        completed_count = Progress.query.join(Lesson).filter(
+            Progress.enrollment_id == enrollment.id,
+            Progress.completed == True,
+            Lesson.course_id == course.id
+        ).count()
+        
+        progress_percentage = 0
+        if lesson_count > 0:
+            progress_percentage = int((completed_count / lesson_count) * 100)
+        
+        completed = lesson_count > 0 and completed_count == lesson_count
+        
+        # Son aktivite tarihini bul
+        last_activity = Progress.query.join(Lesson).filter(
+            Progress.enrollment_id == enrollment.id,
+            Lesson.course_id == course.id
+        ).order_by(Progress.updated_at.desc()).first()
+        
+        last_activity_at = None
+        if last_activity and last_activity.updated_at:
+            last_activity_at = last_activity.updated_at.isoformat()
+        else:
+            last_activity_at = enrollment.enrolled_at.isoformat()
+        
+        students_data.append({
+            'id': enrollment.id,
+            'student': {
+                'id': student.id,
+                'name': student.username,  # veya full_name alan varsa
+                'email': student.email,
+                'avatar': student.profile_image if hasattr(student, 'profile_image') else None
+            },
+            'course': {
+                'id': course.id,
+                'title': course.title
+            },
+            'enrolled_at': enrollment.enrolled_at.isoformat(),
+            'progress': progress_percentage,
+            'last_activity_at': last_activity_at,
+            'completed': completed
+        })
+    
+    return jsonify(students_data)
+
+@enrollments.route('/instructor/student-stats', methods=['GET'])
+@jwt_required()
+def get_instructor_student_stats():
+    """Eğitmenin öğrenci istatistiklerini döndürür"""
+    user_id = get_jwt_identity()
+    
+    # Kullanıcının eğitmen olup olmadığını kontrol et
+    if not is_instructor(user_id):
+        return jsonify({'error': 'Only instructors can view student statistics'}), 403
+    
+    # Eğitmenin kurslarını al
+    instructor_courses = Course.query.filter_by(instructor_id=user_id).all()
+    if not instructor_courses:
+        return jsonify({
+            'total_students': 0,
+            'active_students': 0,
+            'completions_this_month': 0,
+            'average_course_completion': 0
+        }), 200
+    
+    course_ids = [course.id for course in instructor_courses]
+    
+    # Bu kurslara kayıtlı öğrencileri al
+    enrollments = Enrollment.query.filter(Enrollment.course_id.in_(course_ids)).all()
+    
+    total_students = len(set(enrollment.student_id for enrollment in enrollments))
+    
+    # Son 2 hafta içinde aktif olan öğrencileri hesapla
+    two_weeks_ago = datetime.utcnow() - timedelta(days=14)
+    active_student_ids = set()
+    
+    for enrollment in enrollments:
+        # Son aktivite
+        last_activity = Progress.query.join(Lesson).filter(
+            Progress.enrollment_id == enrollment.id,
+            Lesson.course_id.in_(course_ids),
+            Progress.updated_at >= two_weeks_ago
+        ).order_by(Progress.updated_at.desc()).first()
+        
+        if last_activity:
+            active_student_ids.add(enrollment.student_id)
+    
+    active_students = len(active_student_ids)
+    
+    # Bu ay tamamlanan kurs sayısı
+    this_month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    completions_this_month = 0
+    
+    # Kurs tamamlama oranları
+    completion_rates = []
+    
+    for course_id in course_ids:
+        lessons = Lesson.query.filter_by(course_id=course_id).all()
+        lesson_count = len(lessons)
+        
+        if lesson_count == 0:
+            continue
+        
+        course_enrollments = Enrollment.query.filter_by(course_id=course_id).all()
+        
+        for enrollment in course_enrollments:
+            completed_count = Progress.query.join(Lesson).filter(
+                Progress.enrollment_id == enrollment.id,
+                Progress.completed == True,
+                Lesson.course_id == course_id
+            ).count()
+            
+            # Kurs tamamlama oranı
+            completion_rate = (completed_count / lesson_count) * 100
+            completion_rates.append(completion_rate)
+            
+            # Bu ay tamamlanan kursları kontrol et
+            if completed_count == lesson_count:
+                last_completed = Progress.query.join(Lesson).filter(
+                    Progress.enrollment_id == enrollment.id,
+                    Progress.completed == True,
+                    Lesson.course_id == course_id
+                ).order_by(Progress.completed_at.desc()).first()
+                
+                if last_completed and last_completed.completed_at and last_completed.completed_at >= this_month_start:
+                    completions_this_month += 1
+    
+    # Ortalama tamamlama oranı
+    average_completion = 0
+    if completion_rates:
+        average_completion = int(sum(completion_rates) / len(completion_rates))
+    
+    return jsonify({
+        'total_students': total_students,
+        'active_students': active_students,
+        'completions_this_month': completions_this_month,
+        'average_course_completion': average_completion
+    }) 

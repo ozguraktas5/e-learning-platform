@@ -71,7 +71,7 @@ export default function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-xl font-bold text-blue-600">
+              <Link href={user?.role === 'instructor' ? '/instructor/dashboard' : '/'} className="text-xl font-bold text-blue-600">
                 E-Learning
               </Link>
             </div>

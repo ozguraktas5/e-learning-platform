@@ -1,0 +1,339 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { coursesApi, Course } from '@/lib/api/courses';
+import { toast } from 'react-hot-toast';
+import Link from 'next/link';
+
+interface DashboardStats {
+  totalCourses: number;
+  totalStudents: number;
+  totalReviews: number;
+  averageRating: number;
+  totalCompletionRate: number;
+  recentEnrollments: number;
+}
+
+interface CourseBasicInfo extends Course {
+  student_count: number;
+  reviews_count?: number;
+  average_rating?: number;
+  completion_rate?: number;
+}
+
+export default function InstructorDashboard() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [courses, setCourses] = useState<CourseBasicInfo[]>([]);
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        setLoading(true);
+        
+        // Eğitmen kurslarını al
+        const coursesResponse = await coursesApi.getAllCourses();
+        
+        // Tipini CourseBasicInfo olarak belirtelim ve varsayımsal olarak ekstra değerler ekleyelim
+        const mockCourses: CourseBasicInfo[] = coursesResponse.map(course => ({
+          ...course,
+          student_count: Math.floor(Math.random() * 100), // Rastgele öğrenci sayısı
+          reviews_count: Math.floor(Math.random() * 20), // Rastgele yorum sayısı
+          average_rating: Math.random() * 5, // Rastgele puan (0-5 arası)
+          completion_rate: Math.random() * 100, // Rastgele tamamlanma oranı
+        }));
+        
+        setCourses(mockCourses);
+        
+        // İstatistikleri hesapla
+        if (mockCourses.length > 0) {
+          const totalStudents = mockCourses.reduce((sum: number, course: CourseBasicInfo) => sum + course.student_count, 0);
+          const totalReviews = mockCourses.reduce((sum: number, course: CourseBasicInfo) => sum + (course.reviews_count || 0), 0);
+          
+          // Kursların ortalama puanını hesapla
+          const totalRating = mockCourses.reduce((sum: number, course: CourseBasicInfo) => sum + (course.average_rating || 0), 0);
+          const averageRating = totalRating / mockCourses.length;
+          
+          // Tamamlanma oranlarını hesapla
+          const totalCompletionRate = mockCourses.reduce((sum: number, course: CourseBasicInfo) => sum + (course.completion_rate || 0), 0) / mockCourses.length;
+          
+          // Son 30 gündeki kayıtları hesapla (burada varsayımsal)
+          const recentEnrollments = Math.floor(totalStudents * 0.2); // Varsayımsal: %20'si son 30 günde
+          
+          setStats({
+            totalCourses: mockCourses.length,
+            totalStudents,
+            totalReviews,
+            averageRating,
+            totalCompletionRate,
+            recentEnrollments
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setError('Dashboard bilgileri yüklenirken bir hata oluştu');
+        toast.error('Dashboard bilgileri yüklenirken bir hata oluştu');
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchDashboardData();
+  }, []);
+  
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('tr-TR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }).format(date);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 flex justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 p-4 rounded-md text-red-800">
+          <h3 className="font-medium text-xl">Hata</h3>
+          <p className="mt-2">{error}</p>
+          <button 
+            onClick={() => router.push('/')}
+            className="mt-4 text-blue-600 hover:underline"
+          >
+            Ana Sayfaya Dön
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Eğitmen Paneli</h1>
+        <Link 
+          href="/instructor/courses/create" 
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+        >
+          Yeni Kurs Oluştur
+        </Link>
+      </div>
+      
+      {/* İstatistik Kartları */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+            <h3 className="text-gray-500 text-sm uppercase">Toplam Kurslar</h3>
+            <p className="text-3xl font-bold">{stats.totalCourses}</p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+            <h3 className="text-gray-500 text-sm uppercase">Toplam Öğrenciler</h3>
+            <p className="text-3xl font-bold">{stats.totalStudents}</p>
+            <p className="text-sm text-green-600 mt-1">+{stats.recentEnrollments} son 30 günde</p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+            <h3 className="text-gray-500 text-sm uppercase">Ortalama Değerlendirme</h3>
+            <div className="flex items-center">
+              <p className="text-3xl font-bold">{stats.averageRating.toFixed(1)}</p>
+              <div className="text-yellow-500 ml-2 text-xl">★</div>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">Toplam {stats.totalReviews} değerlendirme</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Hızlı Erişim Menüsü */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Link href="/instructor/courses" className="bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 p-4 rounded-lg transition-colors flex items-center">
+          <div className="w-10 h-10 bg-indigo-500 text-white rounded-full flex items-center justify-center mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+            </svg>
+          </div>
+          <span className="font-medium">Kurslarım</span>
+        </Link>
+        
+        <Link href="/instructor/students" className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 p-4 rounded-lg transition-colors flex items-center">
+          <div className="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+            </svg>
+          </div>
+          <span className="font-medium">Öğrencilerim</span>
+        </Link>
+        
+        <Link href="/instructor/assignments" className="bg-amber-50 hover:bg-amber-100 border border-amber-200 p-4 rounded-lg transition-colors flex items-center">
+          <div className="w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+            </svg>
+          </div>
+          <span className="font-medium">Ödevler</span>
+        </Link>
+        
+        <Link href="/instructor/profile" className="bg-purple-50 hover:bg-purple-100 border border-purple-200 p-4 rounded-lg transition-colors flex items-center">
+          <div className="w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+          </div>
+          <span className="font-medium">Profilim</span>
+        </Link>
+      </div>
+      
+      {/* Kurslar Tablosu */}
+      <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
+        <div className="flex justify-between items-center p-6 border-b">
+          <h2 className="text-xl font-semibold">Kurslarım</h2>
+          <Link href="/instructor/courses" className="text-blue-600 hover:underline text-sm">
+            Tümünü Görüntüle
+          </Link>
+        </div>
+        
+        {courses.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">
+            Henüz hiç kursunuz yok. Yeni bir kurs oluşturmak için &quot;Yeni Kurs Oluştur&quot; butonunu kullanabilirsiniz.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 text-gray-700 text-sm">
+                <tr>
+                  <th className="text-left py-3 px-4">Kurs Adı</th>
+                  <th className="text-center py-3 px-4">Öğrenci Sayısı</th>
+                  <th className="text-center py-3 px-4">Değerlendirme</th>
+                  <th className="text-center py-3 px-4">Tamamlanma</th>
+                  <th className="text-center py-3 px-4">Oluşturma Tarihi</th>
+                  <th className="text-right py-3 px-4">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {courses.slice(0, 5).map(course => (
+                  <tr key={course.id} className="hover:bg-gray-50">
+                    <td className="py-3 px-4">
+                      <Link href={`/instructor/courses/${course.id}`} className="font-medium text-blue-600 hover:underline">
+                        {course.title}
+                      </Link>
+                    </td>
+                    <td className="py-3 px-4 text-center">{course.student_count}</td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center">
+                        <span>{course.average_rating?.toFixed(1) || 'N/A'}</span>
+                        {course.average_rating && course.average_rating > 0 && <span className="text-yellow-500 ml-1">★</span>}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className="bg-blue-600 h-2.5 rounded-full" 
+                          style={{ width: `${course.completion_rate || 0}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-xs text-gray-500 mt-1 block">
+                        {Math.round(course.completion_rate || 0)}%
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center text-sm text-gray-500">
+                      {formatDate(course.created_at)}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex justify-end space-x-2">
+                        <Link 
+                          href={`/instructor/courses/${course.id}/edit`}
+                          className="p-1 text-gray-500 hover:text-blue-600"
+                          title="Düzenle"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                          </svg>
+                        </Link>
+                        <Link 
+                          href={`/instructor/courses/${course.id}/analytics`}
+                          className="p-1 text-gray-500 hover:text-green-600"
+                          title="İstatistikler"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                          </svg>
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      
+      {/* To-Do Listesi */}
+      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <div className="p-6 border-b">
+          <h2 className="text-xl font-semibold">Bekleyen İşlemler</h2>
+        </div>
+        
+        <div className="p-6">
+          <ul className="divide-y">
+            <li className="py-3 flex items-start">
+              <div className="bg-amber-100 text-amber-800 p-1 rounded mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">3 ödev değerlendirmeniz var</p>
+                <p className="text-sm text-gray-600 mt-1">Öğrencilerin bekleyen ödevlerini değerlendirin.</p>
+                <Link href="/instructor/assignments/pending" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
+                  Değerlendirmeye Git
+                </Link>
+              </div>
+            </li>
+            
+            <li className="py-3 flex items-start">
+              <div className="bg-blue-100 text-blue-800 p-1 rounded mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">5 yeni yorum var</p>
+                <p className="text-sm text-gray-600 mt-1">Kurslarınız hakkında yeni yorumlar yazıldı.</p>
+                <Link href="/instructor/reviews" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
+                  Yorumları Görüntüle
+                </Link>
+              </div>
+            </li>
+            
+            <li className="py-3 flex items-start">
+              <div className="bg-green-100 text-green-800 p-1 rounded mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 012.25-2.25h7.5A2.25 2.25 0 0118 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 004.5 9v.878m13.5-3A2.25 2.25 0 0119.5 9v.878m0 0a2.246 2.246 0 00-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0121 12v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6c0-.98.626-1.813 1.5-2.122" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">2 kursunuzun güncellenmesi öneriliyor</p>
+                <p className="text-sm text-gray-600 mt-1">Uzun süredir güncellenmeyen kurslarınızı yenileyin.</p>
+                <Link href="/instructor/courses/outdated" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
+                  Kursları Görüntüle
+                </Link>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+} 

@@ -1,0 +1,422 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { assignmentsApi, Assignment, AssignmentStats } from '@/lib/api/assignments';
+import { toast } from 'react-hot-toast';
+import Link from 'next/link';
+import { format, isAfter } from 'date-fns';
+
+export default function InstructorAssignmentsPage() {
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([]);
+  const [stats, setStats] = useState<AssignmentStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<keyof Assignment>('due_date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  useEffect(() => {
+    async function fetchAssignments() {
+      try {
+        setLoading(true);
+        const [fetchedAssignments, fetchedStats] = await Promise.all([
+          assignmentsApi.getInstructorAssignments(),
+          assignmentsApi.getAssignmentStats()
+        ]);
+        
+        setAssignments(fetchedAssignments);
+        setFilteredAssignments(fetchedAssignments);
+        setStats(fetchedStats);
+      } catch (err) {
+        console.error('Error fetching assignments:', err);
+        setError('Ödevler yüklenirken bir hata oluştu.');
+        toast.error('Ödevler yüklenirken bir hata oluştu.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchAssignments();
+  }, []);
+  
+  // Filter assignments whenever search or status filter changes
+  useEffect(() => {
+    const filtered = assignments.filter(assignment => {
+      // Filter by search query
+      const matchesSearch = 
+        assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        assignment.course_title.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Filter by status
+      let matchesStatus = true;
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'active') {
+          matchesStatus = assignment.status === 'active';
+        } else if (statusFilter === 'expired') {
+          matchesStatus = assignment.status === 'expired';
+        } else if (statusFilter === 'draft') {
+          matchesStatus = assignment.status === 'draft';
+        } else if (statusFilter === 'needs_review') {
+          matchesStatus = 
+            assignment.submissions_count > assignment.graded_count &&
+            assignment.status !== 'draft';
+        }
+      }
+      
+      return matchesSearch && matchesStatus;
+    });
+    
+    // Apply sorting
+    const sortedAssignments = [...filtered].sort((a, b) => {
+      if (sortBy === 'due_date') {
+        return sortOrder === 'asc'
+          ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+          : new Date(b.due_date).getTime() - new Date(a.due_date).getTime();
+      } else if (sortBy === 'created_at') {
+        return sortOrder === 'asc'
+          ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          : new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      } else if (sortBy === 'title') {
+        return sortOrder === 'asc'
+          ? a.title.localeCompare(b.title)
+          : b.title.localeCompare(a.title);
+      } else if (sortBy === 'course_title') {
+        return sortOrder === 'asc'
+          ? a.course_title.localeCompare(b.course_title)
+          : b.course_title.localeCompare(a.course_title);
+      } else if (sortBy === 'submissions_count') {
+        return sortOrder === 'asc'
+          ? a.submissions_count - b.submissions_count
+          : b.submissions_count - a.submissions_count;
+      }
+      
+      // Default
+      return 0;
+    });
+    
+    setFilteredAssignments(sortedAssignments);
+  }, [assignments, searchQuery, statusFilter, sortBy, sortOrder]);
+  
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, 'dd MMM yyyy');
+  };
+  
+  // Check if due date is in the past
+  const isPastDue = (dateString: string) => {
+    const dueDate = new Date(dateString);
+    return !isAfter(dueDate, new Date());
+  };
+  
+  // Column header with sort button
+  const renderSortableHeader = (label: string, key: keyof Assignment) => {
+    const isActive = sortBy === key;
+    
+    return (
+      <button 
+        onClick={() => {
+          if (isActive) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+          } else {
+            setSortBy(key);
+            setSortOrder('asc');
+          }
+        }}
+        className={`flex items-center space-x-1 font-medium ${isActive ? 'text-blue-600' : ''}`}
+      >
+        <span>{label}</span>
+        {isActive && (
+          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+        )}
+      </button>
+    );
+  };
+  
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6 flex justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="bg-red-50 p-4 rounded-md text-red-800">
+          <h3 className="font-medium text-xl">Hata</h3>
+          <p className="mt-2">{error}</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Ödevler</h1>
+        <Link 
+          href="/instructor/assignments/create" 
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+        >
+          Yeni Ödev Oluştur
+        </Link>
+      </div>
+      
+      {/* İstatistikler */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-gray-500 text-sm uppercase">Toplam Ödev</h3>
+                <p className="text-3xl font-bold">{stats.total}</p>
+              </div>
+              <div className="rounded-full bg-blue-100 p-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-gray-500 text-sm uppercase">Aktif Ödev</h3>
+                <p className="text-3xl font-bold">{stats.active}</p>
+              </div>
+              <div className="rounded-full bg-green-100 p-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-gray-500 text-sm uppercase">Değerlendirme Bekleyen</h3>
+                <p className="text-3xl font-bold">{stats.pending_review}</p>
+              </div>
+              <div className="rounded-full bg-amber-100 p-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-gray-500 text-sm uppercase">Ortalama Not</h3>
+                <p className="text-3xl font-bold">{stats.average_score}%</p>
+              </div>
+              <div className="rounded-full bg-indigo-100 p-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Filtreleme Alanı */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">Arama</label>
+            <input
+              type="text"
+              id="search"
+              placeholder="Ödev başlığı veya kurs adı..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-2">Durum</label>
+            <select
+              id="statusFilter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Tüm Ödevler</option>
+              <option value="active">Aktif Ödevler</option>
+              <option value="expired">Süresi Dolmuş</option>
+              <option value="draft">Taslak</option>
+              <option value="needs_review">Değerlendirme Bekleyen</option>
+            </select>
+          </div>
+          
+          <div className="flex items-end">
+            <button 
+              onClick={() => {
+                setSearchQuery('');
+                setStatusFilter('all');
+                setSortBy('due_date');
+                setSortOrder('asc');
+              }}
+              className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 transition-colors text-gray-700 rounded-md border border-gray-300"
+            >
+              Filtreleri Temizle
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Ödevler Tablosu */}
+      {filteredAssignments.length === 0 ? (
+        <div className="bg-white rounded-lg shadow-md p-10 text-center">
+          <h3 className="text-xl font-medium text-gray-700">Ödev Bulunamadı</h3>
+          <p className="mt-2 text-gray-500">
+            {searchQuery || statusFilter !== 'all' 
+              ? 'Arama kriterlerinize uygun ödev bulunamadı. Filtreleri değiştirmeyi deneyin.' 
+              : 'Henüz hiç ödev oluşturmadınız. "Yeni Ödev Oluştur" düğmesini kullanarak ilk ödevinizi ekleyin.'}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left">{renderSortableHeader('Ödev Başlığı', 'title')}</th>
+                  <th className="px-4 py-3 text-left">{renderSortableHeader('Kurs', 'course_title')}</th>
+                  <th className="px-4 py-3 text-center">{renderSortableHeader('Teslim Tarihi', 'due_date')}</th>
+                  <th className="px-4 py-3 text-center">Puan</th>
+                  <th className="px-4 py-3 text-center">{renderSortableHeader('Teslimler', 'submissions_count')}</th>
+                  <th className="px-4 py-3 text-center">Durum</th>
+                  <th className="px-4 py-3 text-right">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {filteredAssignments.map(assignment => (
+                  <tr key={assignment.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-4">
+                      <Link 
+                        href={`/instructor/assignments/${assignment.id}`}
+                        className="font-medium text-blue-600 hover:underline"
+                      >
+                        {assignment.title}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-4 text-gray-600">
+                      <Link 
+                        href={`/instructor/courses/${assignment.course_id}`}
+                        className="hover:text-blue-600 hover:underline"
+                      >
+                        {assignment.course_title}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <span 
+                        className={`${isPastDue(assignment.due_date) && assignment.status !== 'draft' ? 'text-red-600' : 'text-gray-600'}`}
+                      >
+                        {formatDate(assignment.due_date)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-center text-gray-600">
+                      {assignment.max_points} puan
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className="font-medium">{assignment.submissions_count}</span>
+                        {assignment.submissions_count > 0 && (
+                          <div className="flex items-center text-sm text-gray-500 mt-1">
+                            <span className="text-green-600 font-medium">{assignment.graded_count}</span>
+                            <span className="mx-1">/</span>
+                            <span>{assignment.submissions_count}</span>
+                            <span className="ml-1">notlandırıldı</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      {assignment.status === 'active' && (
+                        <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                          Aktif
+                        </span>
+                      )}
+                      {assignment.status === 'expired' && (
+                        <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                          Süresi Dolmuş
+                        </span>
+                      )}
+                      {assignment.status === 'draft' && (
+                        <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                          Taslak
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <div className="flex justify-end space-x-2">
+                        <Link 
+                          href={`/instructor/assignments/${assignment.id}/submissions`}
+                          className={`p-1 text-gray-500 hover:text-blue-600 ${assignment.submissions_count > 0 ? '' : 'opacity-50 cursor-not-allowed'}`}
+                          title={assignment.submissions_count > 0 ? "Teslim Edilmiş Ödevleri Görüntüle" : "Henüz Teslim Yok"}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                          </svg>
+                        </Link>
+                        
+                        <Link 
+                          href={`/instructor/assignments/${assignment.id}/edit`}
+                          className="p-1 text-gray-500 hover:text-amber-600"
+                          title="Ödevi Düzenle"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                          </svg>
+                        </Link>
+                        
+                        <button
+                          onClick={() => {
+                            // Önceden taslak ise yayınla, değilse iptal et
+                            toast.success(
+                              assignment.status === 'draft' 
+                                ? 'Ödev yayınlama özelliği yakında eklenecek.' 
+                                : 'Ödev iptal etme özelliği yakında eklenecek.'
+                            );
+                          }}
+                          className="p-1 text-gray-500 hover:text-red-600"
+                          title={assignment.status === 'draft' ? "Yayınla" : "İptal Et"}
+                        >
+                          {assignment.status === 'draft' ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      
+      {filteredAssignments.length > 0 && (
+        <div className="mt-4 text-sm text-gray-600">
+          Toplam {filteredAssignments.length} ödev gösteriliyor
+        </div>
+      )}
+    </div>
+  );
+} 
