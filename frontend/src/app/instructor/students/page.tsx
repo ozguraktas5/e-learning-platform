@@ -147,7 +147,7 @@ export default function InstructorStudentsPage() {
       >
         <span>{label}</span>
         {isActive && (
-          <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
         )}
       </button>
     );
@@ -250,7 +250,7 @@ export default function InstructorStudentsPage() {
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-medium text-gray-400">Ort. Tamamlanma</h3>
-                <p className="text-2xl font-bold">%{stats.average_course_completion}</p>
+                <p className="text-2xl font-bold">{stats.average_course_completion}%</p>
               </div>
             </div>
           </div>

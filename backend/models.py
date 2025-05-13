@@ -165,6 +165,7 @@ class Progress(db.Model):
     completed = db.Column(db.Boolean, default=False)
     completed_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     
     # İlişkiler
     enrollment = db.relationship('Enrollment', backref='progress_records', lazy=True)
@@ -312,6 +313,7 @@ class Assignment(db.Model):
     due_date = db.Column(db.DateTime(timezone=True), nullable=False)
     max_points = db.Column(db.Integer, nullable=False, default=100)
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    is_published = db.Column(db.Boolean, default=True)
     
     # İlişkiler
     submissions = db.relationship('AssignmentSubmission', backref='assignment', lazy=True)
@@ -333,7 +335,8 @@ class Assignment(db.Model):
             'due_date': self.due_date.isoformat(),
             'max_points': self.max_points,
             'created_at': self.created_at.isoformat(),
-            'submission_count': len(self.submissions)
+            'submission_count': len(self.submissions),
+            'is_published': self.is_published
         }
 
 class AssignmentSubmission(db.Model):

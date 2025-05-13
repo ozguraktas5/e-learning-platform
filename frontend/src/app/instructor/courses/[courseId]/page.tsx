@@ -5,9 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { coursesApi, Course } from '@/lib/api/courses';
 import { useAuth } from '@/hooks/useAuth';
-import { useEnrollment } from '@/lib/hooks/useEnrollment';
 import Link from 'next/link';
-import api from '@/lib/axios';
 
 export default function CourseDetail() {
   const { courseId } = useParams();
@@ -16,48 +14,12 @@ export default function CourseDetail() {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
-  const { isEnrolled, loading: enrollmentLoading, error } = useEnrollment(Number(courseId));
-  const [manualEnrollmentCheck, setManualEnrollmentCheck] = useState<boolean | null>(null);
-
-  // Debug log
-  useEffect(() => {
-    console.log(`Course Detail - courseId: ${courseId}`);
-    console.log(`Course Detail - isEnrolled: ${isEnrolled}`);
-    console.log(`Course Detail - user:`, user);
-  }, [courseId, isEnrolled, user]);
-
-  // Daha sağlam bir şekilde kayıt durumunu doğrudan API üzerinden kontrol edelim
-  useEffect(() => {
-    const checkEnrollmentDirectly = async () => {
-      if (!user || user.role !== 'student') return;
-      
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        
-        console.log('Direct API call to check enrollment status...');
-        const directResponse = await api.get(`/courses/${courseId}/enrollment-status`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        
-        console.log('Direct enrollment status response:', directResponse.data);
-        setManualEnrollmentCheck(directResponse.data.is_enrolled);
-      } catch (err) {
-        console.error('Error in direct enrollment check:', err);
-      }
-    };
-    
-    checkEnrollmentDirectly();
-  }, [courseId, user]);
 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
         const response = await coursesApi.getCourse(Number(courseId));
         setCourse(response);
-        console.log(`Fetched course data:`, response);
       } catch (error) {
         toast.error('Failed to load course details');
         console.error('Error fetching course:', error);
@@ -77,11 +39,8 @@ export default function CourseDetail() {
 
     setEnrolling(true);
     try {
-      const response = await coursesApi.enrollInCourse(Number(courseId));
-      console.log('Enrollment response:', response);
+      await coursesApi.enrollInCourse(Number(courseId));
       toast.success('Successfully enrolled in course!');
-      // Refresh the page to get the updated enrollment status
-      window.location.reload();
     } catch (error) {
       toast.error('Failed to enroll in course');
       console.error('Error enrolling in course:', error);
@@ -90,16 +49,13 @@ export default function CourseDetail() {
     }
   };
 
-  if (loading || enrollmentLoading) {
+  if (loading) {
     return <div>Yükleniyor...</div>;
   }
 
   if (!course) {
     return <div>Kurs bulunamadı</div>;
   }
-
-  // Doğrudan API çağrısı veya useEnrollment hook'unun sonucuna dayalı olarak kayıt durumunu belirle
-  const effectiveEnrollmentStatus = manualEnrollmentCheck !== null ? manualEnrollmentCheck : isEnrolled;
 
   return (
     <div className="p-4">
@@ -141,19 +97,13 @@ export default function CourseDetail() {
       
       <div className="flex flex-wrap gap-4 my-6">
         {user?.role !== 'instructor' && (
-          <>
-            <button
-              onClick={handleEnroll}
-              disabled={enrolling || effectiveEnrollmentStatus}
-              className={`px-6 py-3 rounded-lg font-medium ${
-                effectiveEnrollmentStatus
-                  ? 'bg-gray-500 text-white cursor-not-allowed' 
-                  : 'bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-400'
-              }`}
-            >
-              {enrolling ? 'Kayıt Olunuyor...' : effectiveEnrollmentStatus ? 'Kayıt Olundu' : 'Şimdi Kayıt Ol'}
-            </button>
-          </>
+          <button
+            onClick={handleEnroll}
+            disabled={enrolling}
+            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 font-medium"
+          >
+            {enrolling ? 'Kayıt Olunuyor...' : 'Şimdi Kayıt Ol'}
+          </button>
         )}
         
         <Link 

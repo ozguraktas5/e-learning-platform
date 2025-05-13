@@ -251,7 +251,7 @@ export default function InstructorAssignmentsPage() {
               className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Tüm Ödevler</option>
-              <option value="active">Aktif Ödevler</option>
+              <option value="active">Aktif</option>
               <option value="expired">Süresi Dolmuş</option>
               <option value="draft">Taslak</option>
               <option value="needs_review">Değerlendirme Bekleyen</option>
@@ -259,14 +259,14 @@ export default function InstructorAssignmentsPage() {
           </div>
           
           <div className="flex items-end">
-            <button 
+            <button
               onClick={() => {
                 setSearchQuery('');
                 setStatusFilter('all');
                 setSortBy('due_date');
                 setSortOrder('asc');
               }}
-              className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 transition-colors text-gray-700 rounded-md border border-gray-300"
+              className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-md border border-blue-600 w-full"
             >
               Filtreleri Temizle
             </button>
@@ -274,134 +274,102 @@ export default function InstructorAssignmentsPage() {
         </div>
       </div>
       
-      {/* Ödevler Tablosu */}
+      {/* Ödev Listesi */}
       {filteredAssignments.length === 0 ? (
         <div className="bg-white rounded-lg shadow-md p-10 text-center">
-          <h3 className="text-xl font-medium text-gray-700">Ödev Bulunamadı</h3>
+          <h3 className="text-xl font-medium text-gray-700">Hiç ödev bulunamadı</h3>
           <p className="mt-2 text-gray-500">
-            {searchQuery || statusFilter !== 'all' 
-              ? 'Arama kriterlerinize uygun ödev bulunamadı. Filtreleri değiştirmeyi deneyin.' 
-              : 'Henüz hiç ödev oluşturmadınız. "Yeni Ödev Oluştur" düğmesini kullanarak ilk ödevinizi ekleyin.'}
+            {searchQuery || statusFilter !== 'all'
+              ? 'Arama kriterlerinize uygun ödev bulunamadı. Filtreleri değiştirmeyi deneyin.'
+              : 'Henüz hiç ödev oluşturmadınız. "Yeni Ödev Oluştur" düğmesini kullanarak ilk ödevinizi oluşturabilirsiniz.'}
           </p>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 text-gray-700 text-sm">
                 <tr>
-                  <th className="px-4 py-3 text-left">{renderSortableHeader('Ödev Başlığı', 'title')}</th>
-                  <th className="px-4 py-3 text-left">{renderSortableHeader('Kurs', 'course_title')}</th>
-                  <th className="px-4 py-3 text-center">{renderSortableHeader('Teslim Tarihi', 'due_date')}</th>
-                  <th className="px-4 py-3 text-center">Puan</th>
-                  <th className="px-4 py-3 text-center">{renderSortableHeader('Teslimler', 'submissions_count')}</th>
-                  <th className="px-4 py-3 text-center">Durum</th>
-                  <th className="px-4 py-3 text-right">İşlemler</th>
+                  <th className="py-3 px-4 text-left">{renderSortableHeader('Başlık', 'title')}</th>
+                  <th className="py-3 px-4 text-left">{renderSortableHeader('Kurs', 'course_title')}</th>
+                  <th className="py-3 px-4 text-center">{renderSortableHeader('Son Tarih', 'due_date')}</th>
+                  <th className="py-3 px-4 text-center">Durum</th>
+                  <th className="py-3 px-4 text-center">{renderSortableHeader('Teslimler', 'submissions_count')}</th>
+                  <th className="py-3 px-4 text-right">İşlemler</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {filteredAssignments.map(assignment => (
                   <tr key={assignment.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4">
-                      <Link 
-                        href={`/instructor/assignments/${assignment.id}`}
-                        className="font-medium text-blue-600 hover:underline"
-                      >
+                    <td className="py-3 px-4">
+                      <Link href={`/instructor/assignments/${assignment.id}`} className="font-medium text-blue-600 hover:underline">
                         {assignment.title}
                       </Link>
                     </td>
-                    <td className="px-4 py-4 text-gray-600">
-                      <Link 
-                        href={`/instructor/courses/${assignment.course_id}`}
-                        className="hover:text-blue-600 hover:underline"
-                      >
+                    <td className="py-3 px-4">
+                      <Link href={`/instructor/courses/${assignment.course_id}`} className="text-gray-600 hover:text-blue-600">
                         {assignment.course_title}
                       </Link>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <span 
-                        className={`${isPastDue(assignment.due_date) && assignment.status !== 'draft' ? 'text-red-600' : 'text-gray-600'}`}
-                      >
+                    <td className="py-3 px-4 text-center text-sm">
+                      <span className={isPastDue(assignment.due_date) ? 'text-red-600' : 'text-gray-600'}>
                         {formatDate(assignment.due_date)}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-center text-gray-600">
-                      {assignment.max_points} puan
+                    <td className="py-3 px-4 text-center">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        assignment.status === 'active' ? 'bg-green-100 text-green-800' :
+                        assignment.status === 'expired' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {assignment.status === 'active' ? 'Aktif' :
+                         assignment.status === 'expired' ? 'Süresi Doldu' :
+                         'Taslak'}
+                      </span>
                     </td>
-                    <td className="px-4 py-4 text-center">
+                    <td className="py-3 px-4 text-center">
                       <div className="flex flex-col items-center">
-                        <span className="font-medium">{assignment.submissions_count}</span>
-                        {assignment.submissions_count > 0 && (
-                          <div className="flex items-center text-sm text-gray-500 mt-1">
-                            <span className="text-green-600 font-medium">{assignment.graded_count}</span>
-                            <span className="mx-1">/</span>
-                            <span>{assignment.submissions_count}</span>
-                            <span className="ml-1">notlandırıldı</span>
-                          </div>
+                        <div className="font-medium">{assignment.submissions_count}</div>
+                        <div className="text-xs text-gray-500">{assignment.graded_count} değerlendirildi</div>
+                        {assignment.submissions_count > assignment.graded_count && (
+                          <span className="text-xs text-amber-600 mt-1">
+                            {assignment.submissions_count - assignment.graded_count} bekliyor
+                          </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      {assignment.status === 'active' && (
-                        <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                          Aktif
-                        </span>
-                      )}
-                      {assignment.status === 'expired' && (
-                        <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                          Süresi Dolmuş
-                        </span>
-                      )}
-                      {assignment.status === 'draft' && (
-                        <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                          Taslak
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-4 text-right">
+                    <td className="py-3 px-4 text-right">
                       <div className="flex justify-end space-x-2">
                         <Link 
-                          href={`/instructor/assignments/${assignment.id}/submissions`}
-                          className={`p-1 text-gray-500 hover:text-blue-600 ${assignment.submissions_count > 0 ? '' : 'opacity-50 cursor-not-allowed'}`}
-                          title={assignment.submissions_count > 0 ? "Teslim Edilmiş Ödevleri Görüntüle" : "Henüz Teslim Yok"}
+                          href={`/instructor/assignments/${assignment.id}`}
+                          className="p-1 text-gray-500 hover:text-blue-600"
+                          title="Görüntüle"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                         </Link>
-                        
                         <Link 
                           href={`/instructor/assignments/${assignment.id}/edit`}
                           className="p-1 text-gray-500 hover:text-amber-600"
-                          title="Ödevi Düzenle"
+                          title="Düzenle"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                           </svg>
                         </Link>
-                        
-                        <button
-                          onClick={() => {
-                            // Önceden taslak ise yayınla, değilse iptal et
-                            toast.success(
-                              assignment.status === 'draft' 
-                                ? 'Ödev yayınlama özelliği yakında eklenecek.' 
-                                : 'Ödev iptal etme özelliği yakında eklenecek.'
-                            );
-                          }}
-                          className="p-1 text-gray-500 hover:text-red-600"
-                          title={assignment.status === 'draft' ? "Yayınla" : "İptal Et"}
-                        >
-                          {assignment.status === 'draft' ? (
+                        {assignment.submissions_count > assignment.graded_count && (
+                          <Link 
+                            href={`/instructor/assignments/${assignment.id}/submissions`}
+                            className="p-1 text-amber-600 hover:text-amber-800"
+                            title="Teslimler"
+                          >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0118 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3l1.5 1.5 3-3.75" />
                             </svg>
-                          ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          )}
-                        </button>
+                          </Link>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -409,12 +377,6 @@ export default function InstructorAssignmentsPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
-      
-      {filteredAssignments.length > 0 && (
-        <div className="mt-4 text-sm text-gray-600">
-          Toplam {filteredAssignments.length} ödev gösteriliyor
         </div>
       )}
     </div>

@@ -2394,4 +2394,28 @@ def get_user_assignment_submission(course_id, lesson_id, assignment_id):
         print(traceback.format_exc())
         return jsonify({'error': f'Ödev gönderimi yüklenirken bir hata oluştu: {str(e)}'}), 500
 
+@courses.route('/<int:course_id>/enrollment-status', methods=['GET'])
+@jwt_required()
+def check_enrollment_status(course_id):
+    """Öğrencinin kursa kayıt durumunu kontrol et"""
+    current_user_id = get_jwt_identity()
+    print(f"Checking enrollment status for user {current_user_id} in course {course_id}")
+    
+    # Kullanıcının öğrenci olup olmadığını kontrol et
+    user = User.query.get(current_user_id)
+    if not user or user.role != 'student':
+        print(f"User {current_user_id} is not a student or doesn't exist")
+        return jsonify({'is_enrolled': False}), 200
+    
+    # Öğrencinin kursa kayıtlı olup olmadığını kontrol et
+    enrollment = Enrollment.query.filter_by(
+        student_id=current_user_id,
+        course_id=course_id
+    ).first()
+    
+    is_enrolled = enrollment is not None
+    print(f"User {current_user_id} enrollment status for course {course_id}: {is_enrolled}")
+    
+    return jsonify({'is_enrolled': is_enrolled}), 200
+
 # Ending the file properly

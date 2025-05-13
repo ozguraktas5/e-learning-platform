@@ -32,6 +32,7 @@ export interface CourseEnrollment {
   course_id: number;
   user_id: number;
   enrolled_at: string;
+  is_enrolled?: boolean;
 }
 
 export interface SearchResponse {
@@ -123,6 +124,18 @@ export const coursesApi = {
   enrollInCourse: async (courseId: number): Promise<CourseEnrollment> => {
     const response = await api.post(`/courses/${courseId}/enroll`);
     return response.data;
+  },
+
+  checkEnrollment: async (courseId: number): Promise<{is_enrolled: boolean}> => {
+    console.log(`API call: Checking enrollment for course ID ${courseId}`);
+    try {
+      const response = await api.get(`/courses/${courseId}/enrollment-status`);
+      console.log(`API response for enrollment check:`, response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`API error checking enrollment for course ${courseId}:`, error);
+      throw error;
+    }
   },
 
   getCategories: async (): Promise<string[]> => {

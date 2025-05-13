@@ -242,7 +242,8 @@ export default function CreateCoursePage() {
       await coursesApi.createCourse(formData);
       toast.success('Kurs başarıyla oluşturuldu!');
       clearDraft();
-      router.push('/courses');
+      router.push('/instructor/courses');
+      window.location.reload();
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         toast.error('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');

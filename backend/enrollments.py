@@ -317,11 +317,11 @@ def get_instructor_students():
         last_activity = Progress.query.join(Lesson).filter(
             Progress.enrollment_id == enrollment.id,
             Lesson.course_id == course.id
-        ).order_by(Progress.updated_at.desc()).first()
+        ).order_by(Progress.completed_at.desc()).first()
         
         last_activity_at = None
-        if last_activity and last_activity.updated_at:
-            last_activity_at = last_activity.updated_at.isoformat()
+        if last_activity and last_activity.completed_at:
+            last_activity_at = last_activity.completed_at.isoformat()
         else:
             last_activity_at = enrollment.enrolled_at.isoformat()
         
@@ -381,8 +381,8 @@ def get_instructor_student_stats():
         last_activity = Progress.query.join(Lesson).filter(
             Progress.enrollment_id == enrollment.id,
             Lesson.course_id.in_(course_ids),
-            Progress.updated_at >= two_weeks_ago
-        ).order_by(Progress.updated_at.desc()).first()
+            Progress.completed_at >= two_weeks_ago
+        ).order_by(Progress.completed_at.desc()).first()
         
         if last_activity:
             active_student_ids.add(enrollment.student_id)

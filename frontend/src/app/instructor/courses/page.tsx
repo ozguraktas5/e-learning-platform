@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { coursesApi, Course } from '@/lib/api/courses';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import api from '@/lib/api';
 
 interface InstructorCourse extends Course {
   student_count: number;
@@ -28,20 +29,48 @@ export default function InstructorCoursesPage() {
       try {
         setLoading(true);
         
-        // Get all courses and filter for current instructor
+        // Get all courses for the current instructor
         const allCourses = await coursesApi.getAllCourses();
         
-        // Dönüştürme ve sahte veri ekleme (gerçek API tam işlevsel olduğunda kaldırılabilir)
-        const mockCourses: InstructorCourse[] = allCourses.map(course => ({
-          ...course,
-          student_count: Math.floor(Math.random() * 100), // Sahte öğrenci sayısı
-          average_rating: Math.round((Math.random() * 4 + 1) * 10) / 10, // 1-5 arası rastgele puan
-          completion_rate: Math.floor(Math.random() * 100), // 0-100 arası tamamlanma oranı
-          revenue: Math.floor(Math.random() * 10000), // 0-10000 arası gelir
-          last_updated: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(),
-        }));
+        // Fetch details for each course
+        const detailedCourses = await Promise.all(
+          allCourses.map(async (course) => {
+            try {
+              // Get course reviews
+              const reviewsResponse = await api.get(`/courses/${course.id}/reviews`);
+              const reviewsData = reviewsResponse.data;
+              
+              // Enrollment data is not available through a direct endpoint, so use default values
+              const enrollmentData = {
+                total_students: 0,
+                average_completion: 0
+              };
+              
+              return {
+                ...course,
+                student_count: enrollmentData?.total_students || 0,
+                average_rating: reviewsData?.average_rating || 0,
+                completion_rate: enrollmentData?.average_completion || 0,
+                revenue: 0, // Revenue feature might be added later
+                last_updated: course.updated_at || course.created_at,
+                published: true // Default to published - could be updated with real data later
+              };
+            } catch (err) {
+              console.error(`Error fetching details for course ${course.id}:`, err);
+              return {
+                ...course,
+                student_count: 0,
+                average_rating: 0,
+                completion_rate: 0,
+                revenue: 0,
+                last_updated: course.updated_at || course.created_at,
+                published: true
+              };
+            }
+          })
+        );
         
-        setCourses(mockCourses);
+        setCourses(detailedCourses);
       } catch (err) {
         console.error('Error fetching courses:', err);
         setError('Kurslar yüklenirken bir hata oluştu.');
@@ -52,6 +81,17 @@ export default function InstructorCoursesPage() {
     }
     
     fetchCourses();
+
+    // Sayfaya her gelindiğinde kursları yeniden yükle
+    const handleRouteChange = () => {
+      fetchCourses();
+    };
+    
+    window.addEventListener('focus', handleRouteChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleRouteChange);
+    };
   }, []);
 
   // Sıralama işlevi
@@ -117,14 +157,6 @@ export default function InstructorCoursesPage() {
     }).format(date);
   };
 
-  // Para birimi formatı
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('tr-TR', {
-      style: 'currency',
-      currency: 'TRY',
-    }).format(amount);
-  };
-
   // Sıralama için sütun başlığı
   const renderSortableHeader = (label: string, key: string) => {
     const isActive = sortBy === key;
@@ -143,7 +175,7 @@ export default function InstructorCoursesPage() {
       >
         <span>{label}</span>
         {isActive && (
-          <span>{sortOrder === 'asc' ? '↑' : '↓'}</span>
+          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
         )}
       </button>
     );
@@ -177,7 +209,7 @@ export default function InstructorCoursesPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Kurslarım</h1>
         <Link
-          href="/courses/create"
+          href="/instructor/courses/create"
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
         >
           Yeni Kurs Oluştur
@@ -249,56 +281,30 @@ export default function InstructorCoursesPage() {
                 <tr>
                   <th className="py-3 px-4 text-left">{renderSortableHeader('Kurs Adı', 'title')}</th>
                   <th className="py-3 px-4 text-center">{renderSortableHeader('Öğrenci', 'student_count')}</th>
-                  <th className="py-3 px-4 text-center">{renderSortableHeader('Ort. Puan', 'average_rating')}</th>
+                  <th className="py-3 px-4 text-center">{renderSortableHeader('Değerlendirme', 'average_rating')}</th>
                   <th className="py-3 px-4 text-center">{renderSortableHeader('Tamamlanma', 'completion_rate')}</th>
-                  <th className="py-3 px-4 text-center">{renderSortableHeader('Gelir', 'revenue')}</th>
-                  <th className="py-3 px-4 text-center">{renderSortableHeader('Son Güncelleme', 'last_updated')}</th>
+                  <th className="py-3 px-4 text-center">{renderSortableHeader('Son Güncellenme', 'last_updated')}</th>
+                  <th className="py-3 px-4 text-center">Durum</th>
                   <th className="py-3 px-4 text-right">İşlemler</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {filteredAndSortedCourses.map(course => (
                   <tr key={course.id} className="hover:bg-gray-50">
-                    <td className="py-4 px-4">
-                      <div className="flex items-center">
-                        <div className="h-12 w-12 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
-                          {course.image_url ? (
-                            <img 
-                              src={course.image_url} 
-                              alt={course.title} 
-                              className="h-full w-full object-cover" 
-                              onError={(e) => {
-                                // Hide the broken image and display the fallback
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.parentElement!.classList.add('bg-blue-100', 'text-blue-500', 'flex', 'items-center', 'justify-center');
-                                e.currentTarget.parentElement!.innerHTML = `<span>${course.title.charAt(0)}</span>`;
-                              }}
-                            />
-                          ) : (
-                            <div className="h-full w-full flex items-center justify-center bg-blue-100 text-blue-500">
-                              <span>{course.title.charAt(0)}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <Link 
-                            href={`/instructor/courses/${course.id}`}
-                            className="font-medium text-blue-600 hover:underline"
-                          >
-                            {course.title}
-                          </Link>
-                          <p className="text-sm text-gray-500">{course.category}</p>
-                        </div>
-                      </div>
+                    <td className="py-3 px-4">
+                      <Link href={`/instructor/courses/${course.id}`} className="text-blue-600 hover:underline font-medium">
+                        {course.title}
+                      </Link>
+                      <p className="text-xs text-gray-500 mt-1 truncate max-w-xs">{course.description}</p>
                     </td>
-                    <td className="py-4 px-4 text-center">{course.student_count}</td>
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-3 px-4 text-center">{course.student_count}</td>
+                    <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center">
-                        <span className="mr-1">{(course.average_rating || 0).toFixed(1)}</span>
-                        <span className="text-yellow-500">★</span>
+                        <span>{course.average_rating?.toFixed(1) || 'N/A'}</span>
+                        {course.average_rating && course.average_rating > 0 && <span className="text-yellow-500 ml-1">★</span>}
                       </div>
                     </td>
-                    <td className="py-4 px-4 text-center">
+                    <td className="py-3 px-4 text-center">
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
                         <div 
                           className="bg-blue-600 h-2.5 rounded-full" 
@@ -309,39 +315,35 @@ export default function InstructorCoursesPage() {
                         {Math.round(course.completion_rate || 0)}%
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-center">
-                      {formatCurrency(course.revenue || 0)}
-                    </td>
-                    <td className="py-4 px-4 text-center text-sm text-gray-500">
+                    <td className="py-3 px-4 text-center text-sm text-gray-500">
                       {formatDate(course.last_updated || course.updated_at || course.created_at)}
                     </td>
-                    <td className="py-4 px-4 text-right">
+                    <td className="py-3 px-4 text-center">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        course.published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {course.published ? 'Yayında' : 'Taslak'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right">
                       <div className="flex justify-end space-x-2">
                         <Link 
-                          href={`/courses/${course.id}/lessons`}
-                          className="p-1 text-gray-500 hover:text-blue-600"
-                          title="Dersleri Düzenle"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
-                          </svg>
-                        </Link>
-                        <Link 
-                          href={`/instructor/courses/${course.id}/analytics`}
-                          className="p-1 text-gray-500 hover:text-green-600"
-                          title="Analitikler"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                          </svg>
-                        </Link>
-                        <Link 
                           href={`/instructor/courses/${course.id}/edit`}
-                          className="p-1 text-gray-500 hover:text-amber-600"
+                          className="p-1 text-gray-500 hover:text-blue-600"
                           title="Düzenle"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                          </svg>
+                        </Link>
+                        <Link 
+                          href={`/instructor/courses/${course.id}`}
+                          className="p-1 text-gray-500 hover:text-green-600"
+                          title="Görüntüle"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                         </Link>
                       </div>
@@ -351,12 +353,6 @@ export default function InstructorCoursesPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
-      
-      {filteredAndSortedCourses.length > 0 && (
-        <div className="mt-4 text-sm text-gray-600">
-          Toplam {filteredAndSortedCourses.length} kurs gösteriliyor
         </div>
       )}
     </div>

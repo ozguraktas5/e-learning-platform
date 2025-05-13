@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { coursesApi, Course } from '@/lib/api/courses';
+import { instructorsApi } from '@/lib/api/instructors';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import api from '@/lib/axios';
 
 interface DashboardStats {
   totalCourses: number;
@@ -37,39 +39,55 @@ export default function InstructorDashboard() {
         // Eğitmen kurslarını al
         const coursesResponse = await coursesApi.getAllCourses();
         
-        // Tipini CourseBasicInfo olarak belirtelim ve varsayımsal olarak ekstra değerler ekleyelim
-        const mockCourses: CourseBasicInfo[] = coursesResponse.map(course => ({
-          ...course,
-          student_count: Math.floor(Math.random() * 100), // Rastgele öğrenci sayısı
-          reviews_count: Math.floor(Math.random() * 20), // Rastgele yorum sayısı
-          average_rating: Math.random() * 5, // Rastgele puan (0-5 arası)
-          completion_rate: Math.random() * 100, // Rastgele tamamlanma oranı
-        }));
+        // Öğrenci istatistiklerini al
+        const studentStats = await instructorsApi.getStudentStats();
         
-        setCourses(mockCourses);
+        // Kurs değerlendirmelerini ve bilgilerini al
+        const coursesWithDetails = await Promise.all(
+          coursesResponse.map(async (course) => {
+            try {
+              // Kurs değerlendirmelerini al - backend API'yi doğrudan kullan
+              const reviewsResponse = await api.get(`/courses/${course.id}/reviews`);
+              const reviewsData = reviewsResponse.data;
+              
+              return {
+                ...course,
+                student_count: 0, // Öğrenci sayısı istatistiklerden alınacak
+                reviews_count: reviewsData.total_reviews || 0,
+                average_rating: reviewsData.average_rating || 0,
+                completion_rate: 0 // Tamamlanma oranı istatistiklerden alınacak
+              };
+            } catch (error) {
+              console.error(`Error fetching details for course ${course.id}:`, error);
+              return {
+                ...course,
+                student_count: 0,
+                reviews_count: 0,
+                average_rating: 0,
+                completion_rate: 0
+              };
+            }
+          })
+        );
+        
+        setCourses(coursesWithDetails);
         
         // İstatistikleri hesapla
-        if (mockCourses.length > 0) {
-          const totalStudents = mockCourses.reduce((sum: number, course: CourseBasicInfo) => sum + course.student_count, 0);
-          const totalReviews = mockCourses.reduce((sum: number, course: CourseBasicInfo) => sum + (course.reviews_count || 0), 0);
+        if (coursesWithDetails.length > 0 && studentStats) {
+          // Değerlendirmelerin toplamını hesapla
+          const totalReviews = coursesWithDetails.reduce((sum, course) => sum + (course.reviews_count || 0), 0);
           
           // Kursların ortalama puanını hesapla
-          const totalRating = mockCourses.reduce((sum: number, course: CourseBasicInfo) => sum + (course.average_rating || 0), 0);
-          const averageRating = totalRating / mockCourses.length;
-          
-          // Tamamlanma oranlarını hesapla
-          const totalCompletionRate = mockCourses.reduce((sum: number, course: CourseBasicInfo) => sum + (course.completion_rate || 0), 0) / mockCourses.length;
-          
-          // Son 30 gündeki kayıtları hesapla (burada varsayımsal)
-          const recentEnrollments = Math.floor(totalStudents * 0.2); // Varsayımsal: %20'si son 30 günde
+          const totalRating = coursesWithDetails.reduce((sum, course) => sum + (course.average_rating || 0), 0);
+          const averageRating = totalRating / coursesWithDetails.length || 0;
           
           setStats({
-            totalCourses: mockCourses.length,
-            totalStudents,
+            totalCourses: coursesWithDetails.length,
+            totalStudents: studentStats.total_students,
             totalReviews,
             averageRating,
-            totalCompletionRate,
-            recentEnrollments
+            totalCompletionRate: studentStats.average_course_completion,
+            recentEnrollments: studentStats.completions_this_month
           });
         }
       } catch (error) {
@@ -122,12 +140,6 @@ export default function InstructorDashboard() {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Eğitmen Paneli</h1>
-        <Link 
-          href="/instructor/courses/create" 
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
-        >
-          Yeni Kurs Oluştur
-        </Link>
       </div>
       
       {/* İstatistik Kartları */}
@@ -250,26 +262,23 @@ export default function InstructorDashboard() {
                       {formatDate(course.created_at)}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Link 
-                          href={`/instructor/courses/${course.id}/edit`}
-                          className="p-1 text-gray-500 hover:text-blue-600"
-                          title="Düzenle"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                          </svg>
-                        </Link>
-                        <Link 
-                          href={`/instructor/courses/${course.id}/analytics`}
-                          className="p-1 text-gray-500 hover:text-green-600"
-                          title="İstatistikler"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                          </svg>
-                        </Link>
-                      </div>
+                      <Link 
+                        href={`/instructor/courses/${course.id}/edit`}
+                        className="text-blue-600 hover:text-blue-800 inline-block mr-2"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                      </Link>
+                      <Link 
+                        href={`/instructor/courses/${course.id}`}
+                        className="text-gray-600 hover:text-gray-800 inline-block"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -279,59 +288,22 @@ export default function InstructorDashboard() {
         )}
       </div>
       
-      {/* To-Do Listesi */}
+      {/* Ödev Bildirimleri */}
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div className="p-6 border-b">
-          <h2 className="text-xl font-semibold">Bekleyen İşlemler</h2>
+        <div className="flex justify-between items-center p-6 border-b">
+          <h2 className="text-xl font-semibold">Son Ödev Bildirimleri</h2>
+          <Link href="/instructor/assignments" className="text-blue-600 hover:underline text-sm">
+            Tüm Ödevler
+          </Link>
         </div>
         
         <div className="p-6">
-          <ul className="divide-y">
-            <li className="py-3 flex items-start">
-              <div className="bg-amber-100 text-amber-800 p-1 rounded mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">3 ödev değerlendirmeniz var</p>
-                <p className="text-sm text-gray-600 mt-1">Öğrencilerin bekleyen ödevlerini değerlendirin.</p>
-                <Link href="/instructor/assignments/pending" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
-                  Değerlendirmeye Git
-                </Link>
-              </div>
-            </li>
-            
-            <li className="py-3 flex items-start">
-              <div className="bg-blue-100 text-blue-800 p-1 rounded mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">5 yeni yorum var</p>
-                <p className="text-sm text-gray-600 mt-1">Kurslarınız hakkında yeni yorumlar yazıldı.</p>
-                <Link href="/instructor/reviews" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
-                  Yorumları Görüntüle
-                </Link>
-              </div>
-            </li>
-            
-            <li className="py-3 flex items-start">
-              <div className="bg-green-100 text-green-800 p-1 rounded mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 6.878V6a2.25 2.25 0 012.25-2.25h7.5A2.25 2.25 0 0118 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 004.5 9v.878m13.5-3A2.25 2.25 0 0119.5 9v.878m0 0a2.246 2.246 0 00-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0121 12v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6c0-.98.626-1.813 1.5-2.122" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">2 kursunuzun güncellenmesi öneriliyor</p>
-                <p className="text-sm text-gray-600 mt-1">Uzun süredir güncellenmeyen kurslarınızı yenileyin.</p>
-                <Link href="/instructor/courses/outdated" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
-                  Kursları Görüntüle
-                </Link>
-              </div>
-            </li>
-          </ul>
+          <Link 
+            href="/instructor/assignments" 
+            className="block w-full text-center py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+          >
+            Değerlendirme Bekleyen Ödevler
+          </Link>
         </div>
       </div>
     </div>

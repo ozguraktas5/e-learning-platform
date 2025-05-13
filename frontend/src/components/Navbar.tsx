@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Bell } from 'lucide-react';
 import axios from 'axios';
 
@@ -13,8 +13,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 export default function Navbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Dashboard sayfası kontrolü
+  const isInstructorDashboard = pathname === '/instructor/dashboard';
 
   // Okunmamış bildirim sayısını API'den alma
   useEffect(() => {
@@ -76,13 +80,17 @@ export default function Navbar() {
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <Link
-                href="/courses"
-                className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
-              >
-                Kurslar
-              </Link>
-              {user?.role === 'instructor' && (
+              {/* Eğitmen panelindeyken Kurslar ve Kurs Oluştur bağlantılarını gizle */}
+              {!isInstructorDashboard && (
+                <Link
+                  href="/courses"
+                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                >
+                  Kurslar
+                </Link>
+              )}
+              
+              {user?.role === 'instructor' && !isInstructorDashboard && (
                 <Link
                   href="/courses/create"
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
@@ -90,6 +98,7 @@ export default function Navbar() {
                   Kurs Oluştur
                 </Link>
               )}
+              
               {user?.role === 'student' && (
                 <Link
                   href="/my-courses"

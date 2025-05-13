@@ -5,7 +5,35 @@ from config import GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_BUCKET, GOOGLE_APPLICATION
 from config import ALLOWED_VIDEO_EXTENSIONS, ALLOWED_FILE_EXTENSIONS # İzin verilen video ve dosya uzantılarını yükle
 from datetime import datetime, timedelta # Zaman dilimi için kullanılır.
 import uuid
-from flask import current_app # For logging
+from flask import current_app, request, jsonify # For logging and request handling
+from functools import wraps
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt
+
+# Authentication and Authorization decorators
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        try:
+            verify_jwt_in_request()
+            user_id = get_jwt_identity()
+            request.user_id = user_id  # Request objesine user_id ekle
+            return f(*args, **kwargs)
+        except Exception as e:
+            return jsonify({"msg": "Authentication required"}), 401
+    return decorated
+
+def instructor_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        try:
+            verify_jwt_in_request()
+            claims = get_jwt()
+            if claims.get('role') != 'instructor':
+                return jsonify({"msg": "Instructor privileges required"}), 403
+            return f(*args, **kwargs)
+        except Exception as e:
+            return jsonify({"msg": "Authentication required"}), 401
+    return decorated
 
 def allowed_video_file(filename):
     """Video dosya uzantısının geçerli olup olmadığını kontrol et"""
