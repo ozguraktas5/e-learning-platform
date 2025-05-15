@@ -27,7 +27,7 @@ export default function CoursesPage() {
         <h1 className="text-3xl font-bold">Kurslar</h1>
         {isInstructor && (
           <Link
-            href="/courses/create"
+            href="/instructor/courses/create"
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
           >
             Yeni Kurs Oluştur

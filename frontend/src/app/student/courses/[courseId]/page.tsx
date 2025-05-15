@@ -157,14 +157,14 @@ export default function CourseDetail() {
         )}
         
         <Link 
-          href={`/courses/${course.id}/lessons`}
+          href={`/student/courses/${course.id}/lessons`}
           className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 flex items-center font-medium transition-colors duration-200"
         >
           <span className="mr-2">📚</span> İlgili Dersler
         </Link>
 
         <Link 
-          href={`/courses/${course.id}/reviews`}
+          href={`/student/courses/${course.id}/reviews`}
           className="bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 flex items-center font-medium transition-colors duration-200"
         >
           <span className="mr-2">⭐</span> Değerlendirmeler

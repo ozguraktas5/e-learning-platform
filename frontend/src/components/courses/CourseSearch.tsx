@@ -261,7 +261,7 @@ export default function CourseSearch() {
                       {course.price ? `${course.price} TL` : 'Ücretsiz'}
                     </span>
                     <Link
-                      href={`/courses/${course.id}`}
+                      href={`/student/courses/${course.id}`}
                       className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
                     >
                       Detaylar

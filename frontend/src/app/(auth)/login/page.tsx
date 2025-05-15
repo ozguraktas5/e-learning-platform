@@ -60,7 +60,11 @@ export default function LoginPage() {
       } else if (userRole === 'instructor') {
         // Eğitmen ise dashboard'a yönlendir
         router.push('/instructor/dashboard');
+      } else if (userRole === 'student') {
+        // Öğrenci ise dashboard'a yönlendir
+        router.push('/student/dashboard');
       } else {
+        // Diğer roller için ana sayfaya yönlendir
         router.push('/');
       }
     } catch (err) {

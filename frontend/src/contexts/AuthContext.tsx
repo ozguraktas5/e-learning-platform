@@ -27,34 +27,70 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Cookie yardımcı fonksiyonları
+const setCookie = (name: string, value: string, days = 7) => {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
+};
+
+const getCookie = (name: string) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return decodeURIComponent(parts.pop()!.split(';').shift() || '');
+  return '';
+};
+
+const deleteCookie = (name: string) => {
+  document.cookie = name + '=; Max-Age=-99999999; path=/';
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Token'ı hem localStorage hem cookie'ye kaydet
+  const saveToken = (token: string) => {
+    localStorage.setItem('token', token);
+    setCookie('token', token);
+  };
+
+  // Token'ı hem localStorage hem cookie'den sil
+  const removeToken = () => {
+    localStorage.removeItem('token');
+    deleteCookie('token');
+  };
+
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded = jwtDecode(token) as DecodedToken;
-        // Token'ın süresi dolmuş mu kontrol et
-        if (decoded.exp * 1000 < Date.now()) {
-          localStorage.removeItem('token');
+    // Client tarafında çalışmasını sağla (SSR için kontrol)
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token') || getCookie('token');
+      if (token) {
+        try {
+          const decoded = jwtDecode(token) as DecodedToken;
+          // Token'ın süresi dolmuş mu kontrol et
+          if (decoded.exp * 1000 < Date.now()) {
+            removeToken();
+            setUser(null);
+          } else {
+            // Token geçerliyse cookie'ye de kaydet
+            if (!getCookie('token')) {
+              setCookie('token', token);
+            }
+            setUser({
+              id: decoded.sub,
+              email: decoded.email,
+              username: decoded.username,
+              role: decoded.role,
+            });
+          }
+        } catch (error) {
+          console.error('Token decode error:', error);
+          removeToken();
           setUser(null);
-        } else {
-          setUser({
-            id: decoded.sub,
-            email: decoded.email,
-            username: decoded.username,
-            role: decoded.role,
-          });
         }
-      } catch (error) {
-        console.error('Token decode error:', error);
-        localStorage.removeItem('token');
-        setUser(null);
       }
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = async (token: string): Promise<void> => {
@@ -65,7 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error('Token has expired');
         }
         
-        localStorage.setItem('token', token);
+        saveToken(token);
+        localStorage.setItem('userRole', decoded.role);
         setUser({
           id: decoded.sub,
           email: decoded.email,
@@ -75,7 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resolve();
       } catch (error) {
         console.error('Login error:', error);
-        localStorage.removeItem('token');
+        removeToken();
+        localStorage.removeItem('userRole');
         setUser(null);
         reject(error);
       }
@@ -83,7 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    removeToken();
+    localStorage.removeItem('userRole');
     setUser(null);
   };
 

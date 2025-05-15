@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRouter, usePathname } from 'next/navigation';
 import { Bell } from 'lucide-react';
 import axios from 'axios';
+import NotificationPopup from './notifications/NotificationPopup';
 
 // API URL'sini bir ortam değişkeninden veya yapılandırma dosyasından alabiliriz
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -16,6 +17,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   // Dashboard sayfası kontrolü
   const isInstructorDashboard = pathname === '/instructor/dashboard';
@@ -75,45 +77,42 @@ export default function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link href={user?.role === 'instructor' ? '/instructor/dashboard' : '/'} className="text-xl font-bold text-blue-600">
+              <Link href={user?.role === 'instructor' ? '/instructor/dashboard' : user?.role === 'student' ? '/student/dashboard' : '/'} className="text-xl font-bold text-blue-600">
                 E-Learning
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              {/* Eğitmen panelindeyken Kurslar ve Kurs Oluştur bağlantılarını gizle */}
-              {!isInstructorDashboard && (
+              {/* Sadece öğretmen olmayan kullanıcılar için Kurslar bağlantısını göster */}
+              {!isInstructorDashboard && user?.role !== 'instructor' && (
                 <Link
-                  href="/courses"
+                  href={user?.role === 'student' ? "/student/courses" : "/courses"}
                   className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
                 >
                   Kurslar
                 </Link>
               )}
               
-              {user?.role === 'instructor' && !isInstructorDashboard && (
-                <Link
-                  href="/courses/create"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
-                >
-                  Kurs Oluştur
-                </Link>
-              )}
-              
               {user?.role === 'student' && (
-                <Link
-                  href="/my-courses"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
-                >
-                  Kayıtlı Kurslarım
-                </Link>
-              )}
-              {user?.role === 'student' && (
-                <Link
-                  href="/enrollment-history"
-                  className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
-                >
-                  Kayıt Geçmişi
-                </Link>
+                <>
+                  <Link
+                    href="/student/dashboard"
+                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/student/my-courses"
+                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                  >
+                    Kayıtlı Kurslarım
+                  </Link>
+                  <Link
+                    href="/student/enrollment-history"
+                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
+                  >
+                    Kayıt Geçmişi
+                  </Link>
+                </>
               )}
             </div>
           </div>
@@ -121,8 +120,8 @@ export default function Navbar() {
             {user ? (
               <>
                 <div className="flex items-center space-x-4">
-                  <Link
-                    href="/notifications"
+                  <button
+                    onClick={() => setIsNotificationsOpen(true)}
                     className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600 relative"
                   >
                     <Bell className="h-5 w-5" />
@@ -131,7 +130,7 @@ export default function Navbar() {
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
-                  </Link>
+                  </button>
                   <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
                     {user.username.charAt(0).toUpperCase()}
                   </div>
@@ -171,6 +170,12 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+      
+      {/* Bildirim popup'ı */}
+      <NotificationPopup 
+        isOpen={isNotificationsOpen} 
+        onClose={() => setIsNotificationsOpen(false)} 
+      />
     </nav>
   );
 } 
