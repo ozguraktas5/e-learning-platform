@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Course } from '@/lib/api/courses';
+import { getImageUrl } from '@/lib/axios';
 
 interface CourseCardProps {
   course: Course;
@@ -14,10 +15,11 @@ export default function CourseCard({ course }: CourseCardProps) {
       <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
         <div className="relative h-48">
           <Image
-            src={course.image_url || '/placeholder-course.jpg'}
+            src={getImageUrl(course.image_url) || '/placeholder-course.jpg'}
             alt={course.title}
             fill
             className="object-cover"
+            unoptimized // Next.js'in external URL'ler için optimize etmemesi için
           />
         </div>
         <div className="p-4">

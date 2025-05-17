@@ -222,6 +222,7 @@ def create_app():
     from enrollments import enrollments
     from notifications import notifications_bp
     from assignments import assignments
+    from student_api import student_api
 
     app.register_blueprint(auth, url_prefix='/auth')
     app.register_blueprint(courses, url_prefix='/courses')
@@ -229,6 +230,7 @@ def create_app():
     app.register_blueprint(enrollments, url_prefix='/enrollments')
     app.register_blueprint(notifications_bp, url_prefix='/api')
     app.register_blueprint(assignments)
+    app.register_blueprint(student_api, url_prefix='/api')
     
     # Veritabanı tablolarını oluştur
     with app.app_context():

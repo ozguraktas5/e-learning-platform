@@ -95,12 +95,6 @@ export default function Navbar() {
               {user?.role === 'student' && (
                 <>
                   <Link
-                    href="/student/dashboard"
-                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
                     href="/student/my-courses"
                     className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 hover:text-blue-600"
                   >

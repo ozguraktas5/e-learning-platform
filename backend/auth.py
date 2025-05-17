@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from dotenv import load_dotenv
+import uuid
 
 # Ortam değişkenlerini yükle
 load_dotenv()
@@ -20,6 +21,10 @@ CORS(auth, resources={
         "supports_credentials": True
     }
 })
+
+# Refresh token'ları saklamak için basit bir sözlük kullanıyoruz
+# Daha büyük bir uygulamada, bunları veritabanında saklarsınız
+refresh_tokens = {}
 
 @auth.route('/register', methods=['POST', 'OPTIONS'])
 def register():
@@ -85,6 +90,7 @@ def login():
         if not check_password_hash(user.password_hash, password):
             return jsonify({'message': 'Invalid password'}), 401
         
+        # Access token ve refresh token oluştur
         access_token = create_access_token(
             identity=str(user.id),
             additional_claims={
@@ -92,11 +98,22 @@ def login():
                 'username': user.username,
                 'role': user.role
             },
-            expires_delta=timedelta(days=1)
+            expires_delta=timedelta(hours=1)  # Access token süresi kısa
         )
+        
+        # Refresh token oluştur
+        refresh_token = str(uuid.uuid4())
+        refresh_tokens[refresh_token] = {
+            'user_id': str(user.id),
+            'email': user.email,
+            'username': user.username,
+            'role': user.role,
+            'expires_at': datetime.utcnow() + timedelta(days=7)  # 7 gün geçerli
+        }
         
         return jsonify({
             'access_token': access_token,
+            'refresh_token': refresh_token,
             'user': {
                 'id': user.id,
                 'username': user.username,
@@ -108,6 +125,55 @@ def login():
     except Exception as e:
         print("Login error:", str(e))  # Debug log
         return jsonify({'message': f'Login error: {str(e)}'}), 500
+
+@auth.route('/refresh', methods=['POST'])
+def refresh():
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('refreshToken'):
+            return jsonify({'message': 'Refresh token is required'}), 400
+        
+        refresh_token = data.get('refreshToken')
+        
+        # Refresh token var mı ve geçerli mi kontrol et
+        if refresh_token not in refresh_tokens:
+            return jsonify({'message': 'Invalid refresh token'}), 401
+        
+        token_data = refresh_tokens[refresh_token]
+        
+        # Token süresi dolmuş mu kontrol et
+        if datetime.utcnow() > token_data['expires_at']:
+            # Süresi dolmuş token'ı sil
+            del refresh_tokens[refresh_token]
+            return jsonify({'message': 'Refresh token has expired'}), 401
+        
+        # Kullanıcı bilgilerini kullanarak yeni access token oluştur
+        access_token = create_access_token(
+            identity=token_data['user_id'],
+            additional_claims={
+                'email': token_data['email'],
+                'username': token_data['username'],
+                'role': token_data['role']
+            },
+            expires_delta=timedelta(hours=1)
+        )
+        
+        # Yeni refresh token oluştur ve eski refresh token'ı geçersiz kıl
+        new_refresh_token = str(uuid.uuid4())
+        refresh_tokens[new_refresh_token] = token_data
+        refresh_tokens[new_refresh_token]['expires_at'] = datetime.utcnow() + timedelta(days=7)
+        
+        # Eski token'ı sil
+        del refresh_tokens[refresh_token]
+        
+        return jsonify({
+            'access_token': access_token,
+            'refresh_token': new_refresh_token
+        })
+    except Exception as e:
+        print("Refresh token error:", str(e))  # Debug log
+        return jsonify({'message': f'Refresh token error: {str(e)}'}), 500
 
 @auth.route('/me', methods=['GET', 'OPTIONS'])
 @jwt_required()

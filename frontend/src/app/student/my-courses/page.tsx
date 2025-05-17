@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { useAuth } from '@/hooks/useAuth';
 import { enrollmentsApi } from '@/lib/api/enrollments';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 interface Course {
   id: number;
@@ -55,7 +56,7 @@ export default function MyCoursesPage() {
   };
 
   if (loading || isLoading) {
-    return <div className="p-8 text-center">Kurslarınız yükleniyor...</div>;
+    return <LoadingSpinner size="large" fullScreen />;
   }
 
   if (courses.length === 0) {

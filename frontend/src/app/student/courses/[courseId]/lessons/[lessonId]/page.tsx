@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { lessonApi } from '@/lib/api/lessons';
 import { Lesson } from '@/types/lesson';
 import { useAuth } from '@/contexts/AuthContext';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function LessonDetailPage() {
   const { courseId, lessonId } = useParams();
@@ -47,7 +48,7 @@ export default function LessonDetailPage() {
     router.push(`/courses/${courseId}/lessons/${lessonId}/assignments`);
   };
 
-  if (loading) return <div className="text-center py-8">Yükleniyor...</div>;
+  if (loading) return <LoadingSpinner size="medium" fullScreen />;
   if (error) return <div className="text-red-600 text-center py-8">{error}</div>;
   if (!lesson) return <div className="text-center py-8">Ders bulunamadı</div>;
 

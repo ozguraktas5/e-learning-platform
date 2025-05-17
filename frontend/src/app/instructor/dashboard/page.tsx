@@ -7,6 +7,7 @@ import { instructorsApi } from '@/lib/api/instructors';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import api from '@/lib/axios';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 interface DashboardStats {
   totalCourses: number;
@@ -112,11 +113,7 @@ export default function InstructorDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="p-6 flex justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="large" />;
   }
 
   if (error) {

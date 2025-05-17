@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { profileApi } from '@/lib/api/profile';
 import { useAuth } from '@/hooks/useAuth';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const profileSchema = z.object({
   username: z.string().min(1, 'Kullanıcı adı boş olamaz'),
@@ -53,7 +54,7 @@ export default function ProfilePage() {
   };
 
   if (loading || loadingData) {
-    return <div>Yükleniyor...</div>;
+    return <LoadingSpinner size="medium" fullScreen />;
   }
 
   return (

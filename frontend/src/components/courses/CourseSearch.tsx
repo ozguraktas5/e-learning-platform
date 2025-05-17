@@ -6,6 +6,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { coursesApi, type CourseSearchParams, type SearchResponse } from '@/lib/api/courses';
 import Link from 'next/link';
 import { getFullUrl } from '@/lib/utils';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const LEVELS = ['Başlangıç', 'Orta', 'İleri'];
 const SORT_OPTIONS = [
@@ -215,7 +216,7 @@ export default function CourseSearch() {
       {/* Yükleniyor ve Hata Durumları */}
       {isLoading && (
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          <LoadingSpinner size="medium" />
         </div>
       )}
 

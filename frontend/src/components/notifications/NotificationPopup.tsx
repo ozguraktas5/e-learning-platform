@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -161,9 +162,10 @@ export default function NotificationPopup({ isOpen, onClose }: NotificationPopup
           </div>
           
           <div className="max-h-96 overflow-y-auto">
-            {loading ? (
-              <div className="p-4 text-center text-gray-500">Yükleniyor...</div>
-            ) : error ? (
+            {loading && (
+              <LoadingSpinner size="small" />
+            )}
+            {error ? (
               <div className="p-4 text-center text-red-500">{error}</div>
             ) : notifications.length === 0 ? (
               <div className="p-4 text-center text-gray-500">Bildirim bulunmuyor</div>

@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { profileApi } from '@/lib/api/profile';
 import { useAuth } from '@/hooks/useAuth';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const changeSchema = z
   .object({
@@ -58,7 +59,7 @@ export default function ChangePasswordPage() {
   };
 
   if (loading || loadingState) {
-    return <div>Yükleniyor...</div>;
+    return <LoadingSpinner size="medium" fullScreen />;
   }
 
   return (

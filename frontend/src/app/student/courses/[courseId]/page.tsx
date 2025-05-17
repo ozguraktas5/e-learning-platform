@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEnrollment } from '@/lib/hooks/useEnrollment';
 import Link from 'next/link';
 import api from '@/lib/axios';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function CourseDetail() {
   const { courseId } = useParams();
@@ -16,7 +17,7 @@ export default function CourseDetail() {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
-  const { isEnrolled, loading: enrollmentLoading, error } = useEnrollment(Number(courseId));
+  const { isEnrolled, loading: enrollmentLoading } = useEnrollment(Number(courseId));
   const [manualEnrollmentCheck, setManualEnrollmentCheck] = useState<boolean | null>(null);
 
   // Debug log
@@ -91,7 +92,7 @@ export default function CourseDetail() {
   };
 
   if (loading || enrollmentLoading) {
-    return <div>Yükleniyor...</div>;
+    return <LoadingSpinner fullScreen size="medium" />;
   }
 
   if (!course) {

@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { coursesApi, Course } from '@/lib/api/courses';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function CourseDetail() {
   const { courseId } = useParams();
@@ -50,7 +51,7 @@ export default function CourseDetail() {
   };
 
   if (loading) {
-    return <div>Yükleniyor...</div>;
+    return <LoadingSpinner size="medium" fullScreen />;
   }
 
   if (!course) {

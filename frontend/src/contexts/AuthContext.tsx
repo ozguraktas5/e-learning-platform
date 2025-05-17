@@ -23,6 +23,7 @@ interface AuthContextType {
   loading: boolean;
   login: (token: string) => Promise<void>;
   logout: () => void;
+  refreshTokenIfNeeded: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,7 +58,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Token'ı hem localStorage hem cookie'den sil
   const removeToken = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     deleteCookie('token');
+  };
+
+  // Token'ın geçerli olup olmadığını kontrol et
+  const isTokenValid = (token: string): boolean => {
+    try {
+      const decoded = jwtDecode(token) as DecodedToken;
+      // 5 dakika marj ekleyerek kontrol et (backend'in saat farkı olabilir)
+      return decoded.exp * 1000 > Date.now() - (5 * 60 * 1000);
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return false;
+    }
+  };
+
+  // Gerekirse token'ı yenile
+  const refreshTokenIfNeeded = async (): Promise<string | null> => {
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    // Token yoksa veya refresh token yoksa null dön
+    if (!token || !refreshToken) {
+      return null;
+    }
+    
+    // Token hala geçerliyse, mevcut token'ı dön
+    if (isTokenValid(token)) {
+      return token;
+    }
+    
+    try {
+      // 3. parti bağımlılıklardan kaçınmak için doğrudan fetch API kullan
+      // axios kullanmak sonsuz döngüye neden olabilir
+      const response = await fetch('http://localhost:5000/auth/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Token yenileme başarısız');
+      }
+      
+      const data = await response.json();
+      
+      if (data.access_token) {
+        saveToken(data.access_token);
+        
+        // Yeni refresh token varsa onu da sakla
+        if (data.refresh_token) {
+          localStorage.setItem('refreshToken', data.refresh_token);
+        }
+        
+        // User bilgilerini güncelle
+        const decoded = jwtDecode(data.access_token) as DecodedToken;
+        setUser({
+          id: decoded.sub,
+          email: decoded.email,
+          username: decoded.username,
+          role: decoded.role,
+        });
+        
+        return data.access_token;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      // Hata durumunda token'ları temizle ve null dön
+      removeToken();
+      setUser(null);
+      return null;
+    }
   };
 
   useEffect(() => {
@@ -69,8 +145,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const decoded = jwtDecode(token) as DecodedToken;
           // Token'ın süresi dolmuş mu kontrol et
           if (decoded.exp * 1000 < Date.now()) {
-            removeToken();
-            setUser(null);
+            // Süresi dolmuşsa, refresh token ile yenilemeyi dene
+            refreshTokenIfNeeded().then(newToken => {
+              if (!newToken) {
+                // Yenileme başarısız olursa logout
+                removeToken();
+                setUser(null);
+              }
+              setLoading(false);
+            });
           } else {
             // Token geçerliyse cookie'ye de kaydet
             if (!getCookie('token')) {
@@ -82,14 +165,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               username: decoded.username,
               role: decoded.role,
             });
+            setLoading(false);
           }
         } catch (error) {
           console.error('Token decode error:', error);
           removeToken();
           setUser(null);
+          setLoading(false);
         }
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     }
   }, []);
 
@@ -127,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshTokenIfNeeded }}>
       {children}
     </AuthContext.Provider>
   );

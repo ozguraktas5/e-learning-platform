@@ -64,12 +64,7 @@ export function middleware(request: NextRequest) {
     if (cookieToken) {
       const decoded = jwtDecode<DecodedToken>(cookieToken);
       
-      // Token süresi dolmuşsa
-      if (decoded.exp * 1000 < Date.now()) {
-        console.log('Token süresi dolmuş');
-        url.pathname = '/login';
-        return NextResponse.redirect(url);
-      }
+      // Token süresi kontrolünü kaldırdık - Client tarafında refresh token mekanizması ile token yenileme yapılacak
       
       // Öğrenci yollarına erişim kontrolü - dashboard hariç
       if (url.pathname.startsWith('/student/') && url.pathname !== '/student/dashboard' && decoded.role !== 'student') {

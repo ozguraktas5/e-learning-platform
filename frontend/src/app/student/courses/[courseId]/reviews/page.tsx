@@ -8,6 +8,7 @@ import { coursesApi, Course } from '@/lib/api/courses';
 import { reviewsApi, CourseReviewsResponse } from '@/lib/api/reviews';
 import { useAuth } from '@/hooks/useAuth';
 import StarRating from '@/components/StarRating';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 export default function CourseReviewsPage() {
   const { courseId } = useParams();
@@ -103,11 +104,7 @@ export default function CourseReviewsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <LoadingSpinner size="medium" />;
   }
 
   if (error || !course) {

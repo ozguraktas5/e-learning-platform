@@ -1,11 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
-import { Book, Award, Bell, LineChart } from 'lucide-react';
-import axios from 'axios';
+import { useEffect, useState } from 'react';import { useRouter } from 'next/navigation';import Link from 'next/link';import { useAuth } from '@/contexts/AuthContext';import { Book, Award, Bell, LineChart } from 'lucide-react';import axios from 'axios';import { getImageUrl } from '@/lib/axios';import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -43,6 +38,7 @@ export default function StudentDashboard() {
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Öncelikle cookie ve localStorage'da token varlığını kontrol et
@@ -66,11 +62,12 @@ export default function StudentDashboard() {
 
     const fetchDashboardData = async () => {
       setLoading(true);
+      setError(null);
       try {
         // Token'ı hem localStorage hem cookie'den al
         const authToken = localStorage.getItem('token') || getCookie('token');
         if (!authToken) {
-          console.error('Token bulunamadı');
+          setError('Oturum bilgisi bulunamadı. Lütfen tekrar giriş yapın.');
           return;
         }
 
@@ -92,6 +89,7 @@ export default function StudentDashboard() {
         setUnreadCount(notificationsResponse.data.count || 0);
       } catch (error) {
         console.error('Dashboard verileri alınamadı:', error);
+        setError('Dashboard verileri yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
       } finally {
         setLoading(false);
       }
@@ -103,15 +101,24 @@ export default function StudentDashboard() {
   }, [user, router]);
 
   if (!user || loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="large" />;
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {error && (
+        <div className="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-md" role="alert">
+          <p className="font-bold">Hata</p>
+          <p>{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-sm"
+          >
+            Yeniden Dene
+          </button>
+        </div>
+      )}
+      
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Hoş Geldin, {user.username}!</h1>
         <p className="text-gray-600 mt-2">Eğitim yolculuğunda ilerlemeni takip et ve yeni kurslar keşfet.</p>
@@ -206,7 +213,7 @@ export default function StudentDashboard() {
                 <div className="h-40 bg-gray-200">
                   {course.image_url ? (
                     <img 
-                      src={course.image_url} 
+                      src={getImageUrl(course.image_url)} 
                       alt={course.title} 
                       className="w-full h-full object-cover"
                     />

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Save } from "lucide-react";
 import axios from "axios";
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 // API URL'sini bir ortam değişkeninden veya yapılandırma dosyasından alabiliriz
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -157,7 +158,7 @@ export default function NotificationSettings() {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center py-10">Yükleniyor...</div>;
+    return <LoadingSpinner size="medium" />;
   }
 
   if (error) {
