@@ -1,48 +1,32 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
+import { BookOpen, Award, Users } from 'lucide-react';
 
 export default function HomePage() {
-  const { user } = useAuth();
-  const [coursesLink, setCoursesLink] = useState('/courses');
-
-  useEffect(() => {
-    if (user?.role === 'student') {
-      setCoursesLink('/student/courses');
-    } else {
-      setCoursesLink('/courses');
-    }
-  }, [user]);
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Hero Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center">
-            <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
-              <span className="block">Geleceğinizi</span>
-              <span className="block text-blue-600">Şekillendirin</span>
-            </h1>
-            <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-              Uzman eğitmenler tarafından hazırlanan kurslarla kendinizi geliştirin,
-              yeni beceriler edinin ve kariyerinizde ilerleyin.
-            </p>
-            <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-              <div className="rounded-md shadow">
-                <Link
-                  href={coursesLink}
-                  className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
-                >
-                  Kurslara Göz At
-                </Link>
-              </div>
-              <div className="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
+    <div className="min-h-screen">
+      {/* Hero Section - Modern and clean design */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="relative py-24 sm:py-32 md:py-40">
+            <div className="text-center">
+              <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-gray-900">
+                <span className="block">Geleceğinizi</span>
+                <span className="block bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+                  Şekillendirin
+                </span>
+              </h1>
+              <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed">
+                Uzman eğitmenler tarafından hazırlanan kurslarla kendinizi geliştirin,
+                yeni beceriler edinin ve kariyerinizde ilerleyin.
+              </p>
+              <div className="mt-10">
                 <Link
                   href="/register"
-                  className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
+                  className="px-8 py-4 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-medium text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
                 >
                   Ücretsiz Üye Ol
                 </Link>
@@ -52,170 +36,170 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 bg-white">
+      {/* Features Section - Elegant cards */}
+      <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
               Neden Bizi Seçmelisiniz?
             </h2>
-            <p className="mt-4 text-lg text-gray-500">
+            <p className="mt-4 text-xl text-gray-600 max-w-2xl mx-auto">
               Size en iyi online eğitim deneyimini sunmak için çalışıyoruz.
             </p>
           </div>
 
-          <div className="mt-20">
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="pt-6">
-                <div className="flow-root bg-gray-50 rounded-lg px-6 pb-8">
-                  <div className="-mt-6">
-                    <div>
-                      <span className="inline-flex items-center justify-center p-3 bg-blue-500 rounded-md shadow-lg">
-                        <svg
-                          className="h-6 w-6 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                    <h3 className="mt-8 text-lg font-medium text-gray-900 tracking-tight">
-                      Zengin İçerik
-                    </h3>
-                    <p className="mt-5 text-base text-gray-500">
-                      Farklı seviye ve kategorilerde yüzlerce kurs ile kendinizi geliştirebilirsiniz.
-                    </p>
-                  </div>
-                </div>
+          <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 p-8 border border-gray-100">
+              <div className="w-14 h-14 rounded-xl bg-indigo-100 flex items-center justify-center mb-6">
+                <BookOpen className="h-7 w-7 text-indigo-600" />
               </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Zengin İçerik
+              </h3>
+              <p className="text-gray-600">
+                Farklı seviye ve kategorilerde yüzlerce kurs ile kendinizi geliştirebilirsiniz.
+              </p>
+            </div>
 
-              <div className="pt-6">
-                <div className="flow-root bg-gray-50 rounded-lg px-6 pb-8">
-                  <div className="-mt-6">
-                    <div>
-                      <span className="inline-flex items-center justify-center p-3 bg-blue-500 rounded-md shadow-lg">
-                        <svg
-                          className="h-6 w-6 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                    <h3 className="mt-8 text-lg font-medium text-gray-900 tracking-tight">
-                      Uzman Eğitmenler
-                    </h3>
-                    <p className="mt-5 text-base text-gray-500">
-                      Alanında uzman eğitmenlerden öğrenin ve deneyimlerinden faydalanın.
-                    </p>
-                  </div>
-                </div>
+            <div className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 p-8 border border-gray-100">
+              <div className="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center mb-6">
+                <Users className="h-7 w-7 text-purple-600" />
               </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Uzman Eğitmenler
+              </h3>
+              <p className="text-gray-600">
+                Alanında uzman eğitmenlerden öğrenin ve deneyimlerinden faydalanın.
+              </p>
+            </div>
 
-              <div className="pt-6">
-                <div className="flow-root bg-gray-50 rounded-lg px-6 pb-8">
-                  <div className="-mt-6">
-                    <div>
-                      <span className="inline-flex items-center justify-center p-3 bg-blue-500 rounded-md shadow-lg">
-                        <svg
-                          className="h-6 w-6 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                    <h3 className="mt-8 text-lg font-medium text-gray-900 tracking-tight">
-                      Sertifikasyon
-                    </h3>
-                    <p className="mt-5 text-base text-gray-500">
-                      Tamamladığınız kurslar için sertifika alın ve başarılarınızı belgeleyin.
-                    </p>
-                  </div>
-                </div>
+            <div className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 p-8 border border-gray-100">
+              <div className="w-14 h-14 rounded-xl bg-pink-100 flex items-center justify-center mb-6">
+                <Award className="h-7 w-7 text-pink-600" />
               </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Sertifikasyon
+              </h3>
+              <p className="text-gray-600">
+                Tamamladığınız kurslar için sertifika alın ve başarılarınızı belgeleyin.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Statistics Section */}
-      <section className="bg-blue-600">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:py-16 sm:px-6 lg:px-8 lg:py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
+      {/* Statistics Section - Light elegant */}
+      <section className="py-24 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
               Rakamlarla Platformumuz
             </h2>
           </div>
-          <dl className="mt-10 text-center sm:max-w-3xl sm:mx-auto sm:grid sm:grid-cols-3 sm:gap-8">
-            <div className="flex flex-col">
-              <dt className="order-2 mt-2 text-lg leading-6 font-medium text-blue-200">
-                Aktif Öğrenci
-              </dt>
-              <dd className="order-1 text-5xl font-extrabold text-white">1000+</dd>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+            <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
+              <div className="w-16 h-16 mx-auto rounded-xl bg-indigo-100 flex items-center justify-center mb-4">
+                <Users className="h-8 w-8 text-indigo-600" />
+              </div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">1000+</div>
+              <div className="text-lg text-gray-600">Aktif Öğrenci</div>
             </div>
-            <div className="flex flex-col mt-10 sm:mt-0">
-              <dt className="order-2 mt-2 text-lg leading-6 font-medium text-blue-200">
-                Kurs
-              </dt>
-              <dd className="order-1 text-5xl font-extrabold text-white">100+</dd>
+            
+            <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
+              <div className="w-16 h-16 mx-auto rounded-xl bg-purple-100 flex items-center justify-center mb-4">
+                <BookOpen className="h-8 w-8 text-purple-600" />
+              </div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">100+</div>
+              <div className="text-lg text-gray-600">Kurs</div>
             </div>
-            <div className="flex flex-col mt-10 sm:mt-0">
-              <dt className="order-2 mt-2 text-lg leading-6 font-medium text-blue-200">
-                Eğitmen
-              </dt>
-              <dd className="order-1 text-5xl font-extrabold text-white">50+</dd>
+            
+            <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
+              <div className="w-16 h-16 mx-auto rounded-xl bg-pink-100 flex items-center justify-center mb-4">
+                <Award className="h-8 w-8 text-pink-600" />
+              </div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">50+</div>
+              <div className="text-lg text-gray-600">Eğitmen</div>
             </div>
-          </dl>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials section */}
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+              Öğrencilerimiz Ne Diyor?
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-xl font-bold text-indigo-600 mr-4">
+                  A
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold">Ahmet Yılmaz</h4>
+                  <p className="text-gray-600">Web Geliştirme Öğrencisi</p>
+                </div>
+              </div>
+              <p className="text-gray-600 italic">
+                &ldquo;Bu platformdaki kurslar sayesinde 3 ay içinde junior web geliştirici olarak işe başladım. Eğitmenler gerçekten alanında uzman kişiler.&rdquo;
+              </p>
+            </div>
+            
+            <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-xl font-bold text-purple-600 mr-4">
+                  M
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold">Mehmet Kaya</h4>
+                  <p className="text-gray-600">Veri Bilimi Öğrencisi</p>
+                </div>
+              </div>
+              <p className="text-gray-600 italic">
+                &ldquo;Veri bilimi alanında kendimi geliştirmek için mükemmel bir platform. Pratik örnekler ve gerçek projelerle öğrenme imkanı sunuyor.&rdquo;
+              </p>
+            </div>
+            
+            <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center text-xl font-bold text-pink-600 mr-4">
+                  Z
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold">Zeynep Demir</h4>
+                  <p className="text-gray-600">UI/UX Tasarım Öğrencisi</p>
+                </div>
+              </div>
+              <p className="text-gray-600 italic">
+                &ldquo;Tasarım portfolyöme eklediğim projeler sayesinde freelance işler almaya başladım. Eğitmenlerin geri bildirimleri çok değerli.&rdquo;
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gray-50">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
-          <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+      <section className="py-20 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl mb-6">
             <span className="block">Öğrenmeye Hazır mısınız?</span>
-            <span className="block text-blue-600">Hemen ücretsiz hesap oluşturun.</span>
+            <span className="block bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+              Hemen ücretsiz hesap oluşturun.
+            </span>
           </h2>
-          <div className="mt-8 flex lg:mt-0 lg:flex-shrink-0">
-            <div className="inline-flex rounded-md shadow">
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Ücretsiz Başla
-              </Link>
-            </div>
-            <div className="ml-3 inline-flex rounded-md shadow">
-              <Link
-                href={coursesLink}
-                className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50"
-              >
-                Kursları İncele
-              </Link>
-            </div>
-          </div>
+          <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto">
+            Binlerce öğrenci ve onlarca eğitmenin bulunduğu platformumuza katılın, kariyerinizi bir adım öne taşıyın.
+          </p>
+          <Link
+            href="/register"
+            className="px-8 py-4 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-medium text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
+          >
+            Ücretsiz Başla
+          </Link>
         </div>
       </section>
     </div>

@@ -4,7 +4,6 @@ import "./globals.css";
 import { Providers } from './providers';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 const geistSans = Geist({
@@ -30,10 +29,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
       <body className="antialiased flex flex-col min-h-screen" suppressHydrationWarning>
-        <Navbar />
-        <main className="flex-grow">
-          <Providers>{children}</Providers>
-        </main>
+        <Providers>
+          <main className="flex-grow">
+            {children}
+          </main>
+        </Providers>
         <Footer />
         <ToastContainer />
       </body>

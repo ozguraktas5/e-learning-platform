@@ -25,6 +25,8 @@ export interface Course {
   image_url?: string;
   created_at: string;
   updated_at?: string;
+  average_rating?: number;
+  duration?: string;
 }
 
 export interface CourseEnrollment {

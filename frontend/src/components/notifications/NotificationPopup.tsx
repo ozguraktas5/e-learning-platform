@@ -5,7 +5,7 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
-import { X } from 'lucide-react';
+import { X, Bell, Info, MessageSquare, CheckCircle, AlertTriangle, MoreHorizontal, ExternalLink } from 'lucide-react';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -69,9 +69,9 @@ export default function NotificationPopup({ isOpen, onClose }: NotificationPopup
           }
         });
         
-        // API'den gelen bildirim listesini al ve ilk 5'ini göster
+        // API'den gelen bildirim listesini al ve ilk 8'ini göster (daha fazla göster)
         const fetchedNotifications = response.data.notifications || [];
-        setNotifications(fetchedNotifications.slice(0, 5));
+        setNotifications(fetchedNotifications.slice(0, 8));
       } catch (err) {
         console.error('Bildirimler alınamadı', err);
         setError('Bildirimler yüklenirken bir hata oluştu');
@@ -145,67 +145,143 @@ export default function NotificationPopup({ isOpen, onClose }: NotificationPopup
     onClose();
   };
 
+  // Bildirim türüne göre ikon seçimi
+  const getNotificationIcon = (type?: string) => {
+    switch (type) {
+      case 'success':
+        return <CheckCircle className="h-5 w-5 text-emerald-500" />;
+      case 'warning':
+        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+      case 'error':
+        return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      case 'message':
+        return <MessageSquare className="h-5 w-5 text-indigo-500" />;
+      default:
+        return <Info className="h-5 w-5 text-blue-500" />;
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-start justify-end p-4">
-        <div ref={popupRef} className="w-full max-w-md transform bg-white rounded-lg shadow-xl">
-          <div className="flex items-center justify-between p-4 border-b">
-            <h3 className="text-lg font-medium text-gray-900">Bildirimler</h3>
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <div 
+          ref={popupRef} 
+          className="w-full max-w-md transform bg-white rounded-2xl shadow-2xl border border-indigo-100 overflow-hidden transition-all duration-300 ease-in-out"
+          style={{ maxHeight: 'calc(100vh - 40px)' }}
+        >
+          <div className="flex items-center justify-between p-4 border-b border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div className="flex items-center space-x-2">
+              <Bell className="h-5 w-5 text-indigo-600" />
+              <h3 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
+                Bildirimler
+              </h3>
+            </div>
             <button
               onClick={onClose}
-              className="p-1 text-gray-400 hover:text-gray-500"
+              className="p-1.5 rounded-full bg-white text-gray-500 hover:text-indigo-600 transition-colors duration-200 border border-gray-100 hover:border-indigo-200 shadow-sm"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
           
-          <div className="max-h-96 overflow-y-auto">
-            {loading && (
-              <LoadingSpinner size="small" />
-            )}
-            {error ? (
-              <div className="p-4 text-center text-red-500">{error}</div>
+          <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 140px)' }}>
+            {loading ? (
+              <div className="flex items-center justify-center p-10">
+                <LoadingSpinner size="small" />
+                <span className="ml-3 text-sm text-gray-500">Bildirimler yükleniyor...</span>
+              </div>
+            ) : error ? (
+              <div className="p-6 text-center">
+                <div className="mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-red-50 mb-4">
+                  <AlertTriangle className="h-6 w-6 text-red-500" />
+                </div>
+                <p className="text-sm font-medium text-red-500">{error}</p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="mt-3 text-xs text-gray-500 hover:text-indigo-600"
+                >
+                  Yeniden yükle
+                </button>
+              </div>
             ) : notifications.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">Bildirim bulunmuyor</div>
+              <div className="p-10 text-center">
+                <div className="p-6 bg-indigo-50 rounded-full mx-auto w-16 h-16 flex items-center justify-center mb-4">
+                  <Bell className="h-8 w-8 text-indigo-400" />
+                </div>
+                <p className="text-sm font-medium text-gray-700">Henüz bildiriminiz bulunmuyor</p>
+                <p className="text-xs text-gray-500 mt-1 mb-6">Yeni bildirimler geldiğinde burada görünecek</p>
+              </div>
             ) : (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-gray-100">
                 {notifications.map((notification) => (
                   <li 
                     key={notification.id}
-                    className={`p-4 hover:bg-gray-50 cursor-pointer ${!notification.is_read ? 'bg-blue-50' : ''}`}
+                    className={`p-5 hover:bg-indigo-50/40 cursor-pointer transition-colors duration-150
+                      ${!notification.is_read ? 'bg-indigo-50/70 border-l-4 border-indigo-500' : ''}`}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex space-x-3">
+                      <div className={`flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full 
+                        ${!notification.is_read ? 'bg-white' : 'bg-gray-50'} shadow-sm border border-gray-100`}>
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${!notification.is_read ? 'text-blue-600' : 'text-gray-900'}`}>
-                          {notification.title}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <div className="flex justify-between">
+                          <p className={`text-sm font-semibold ${!notification.is_read ? 'text-indigo-700' : 'text-gray-800'}`}>
+                            {notification.title}
+                          </p>
+                          <div className="flex items-center">
+                            {!notification.is_read && (
+                              <div className="h-2.5 w-2.5 rounded-full bg-indigo-600 mr-2"></div>
+                            )}
+                            <div className="text-xs text-gray-400 whitespace-nowrap">
+                              {(() => {
+                                try {
+                                  const date = new Date(notification.created_at);
+                                  if (isNaN(date.getTime())) return 'Geçersiz tarih';
+                                  
+                                  // Sadece saat veya tarih göster
+                                  const today = new Date();
+                                  const isToday = date.getDate() === today.getDate() && 
+                                    date.getMonth() === today.getMonth() && 
+                                    date.getFullYear() === today.getFullYear();
+                                    
+                                  return isToday 
+                                    ? format(date, 'HH:mm', { locale: tr })
+                                    : format(date, 'dd MMM', { locale: tr });
+                                } catch (error) {
+                                  console.error('Tarih formatlanırken hata oluştu:', error);
+                                  return 'Geçersiz tarih';
+                                }
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <p className="text-sm text-gray-600 mt-2 line-clamp-2">
                           {notification.message}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {(() => {
-                            try {
-                              const date = new Date(notification.created_at);
-                              // Tarih geçerli mi kontrol et
-                              if (isNaN(date.getTime())) {
-                                return 'Geçersiz tarih';
-                              }
-                              return format(date, 'PPpp', { locale: tr });
-                            } catch (error) {
-                              console.error('Tarih formatlanırken hata oluştu:', error);
-                              return 'Geçersiz tarih';
-                            }
-                          })()}
-                        </p>
+                        
+                        {notification.course_title && (
+                          <div className="mt-2 flex items-center">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
+                              {notification.course_title}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {notification.link && (
+                          <div className="mt-3 flex">
+                            <button className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center">
+                              <span>Görüntüle</span>
+                              <ExternalLink className="ml-1 h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      {!notification.is_read && (
-                        <div className="flex-shrink-0">
-                          <div className="h-2 w-2 rounded-full bg-blue-600"></div>
-                        </div>
-                      )}
                     </div>
                   </li>
                 ))}
@@ -213,12 +289,13 @@ export default function NotificationPopup({ isOpen, onClose }: NotificationPopup
             )}
           </div>
           
-          <div className="border-t p-3 text-center">
+          <div className="border-t border-indigo-100 p-4 bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
             <button
               onClick={viewAllNotifications}
-              className="w-full inline-flex justify-center text-sm font-medium text-blue-600 hover:text-blue-800"
+              className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-medium text-sm shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
             >
-              Tüm bildirimleri görüntüle
+              <span>Tüm Bildirimleri Görüntüle</span>
+              <MoreHorizontal className="ml-2 h-4 w-4" />
             </button>
           </div>
         </div>

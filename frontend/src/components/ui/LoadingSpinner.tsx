@@ -14,11 +14,11 @@ export default function LoadingSpinner({ fullScreen = false, size = 'medium' }: 
   
   const containerClasses = fullScreen 
     ? "flex justify-center items-center min-h-screen"
-    : "flex justify-center items-center p-8";
+    : "flex justify-center items-center p-1";
 
   return (
     <div className={containerClasses}>
-      <div className={`animate-spin rounded-full ${sizeClasses[size]} border-t-blue-500 border-b-blue-500 border-gray-200`}></div>
+      <div className={`animate-spin rounded-full ${sizeClasses[size]} border-t-indigo-500 border-r-purple-500 border-b-pink-500 border-l-transparent`}></div>
     </div>
   );
 } 

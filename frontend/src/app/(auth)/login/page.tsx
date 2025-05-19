@@ -9,6 +9,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
 import { AxiosError } from 'axios';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import Link from 'next/link';
+import { Mail, Lock, AlertCircle } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Geçerli bir email adresi giriniz'),
@@ -90,59 +92,97 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
-        <h2 className="text-3xl font-bold text-center">Giriş Yap</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
+      <div className="relative w-full max-w-md px-6 pt-10 pb-8 bg-white shadow-xl ring-1 ring-gray-900/5 sm:rounded-xl sm:px-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+            <Lock className="h-8 w-8 text-white" />
+          </div>
+        </div>
         
-        {redirect && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
-            Giriş yaptıktan sonra değerlendirme sayfasına yönlendirileceksiniz.
+        <div className="w-full">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Giriş Yap</h1>
+            <p className="text-gray-500 mb-8">Hesabınıza giriş yaparak eğitiminize devam edin</p>
           </div>
-        )}
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
+          
+          {redirect && (
+            <div className="mb-6 p-4 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-start">
+              <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+              <span>Giriş yaptıktan sonra değerlendirme sayfasına yönlendirileceksiniz.</span>
+            </div>
+          )}
+          
+          {error && (
+            <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-100 text-red-700 flex items-start">
+              <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              {...register('email')}
-              type="email"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-            )}
-          </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  {...register('email')}
+                  id="email"
+                  type="email"
+                  placeholder="ornek@email.com"
+                  className="mt-1 block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200"
+                />
+              </div>
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              )}
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Şifre
-            </label>
-            <input
-              {...register('password')}
-              type="password"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-            )}
-          </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Şifre
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  {...register('password')}
+                  id="password"
+                  type="password"
+                  placeholder="******"
+                  className="mt-1 block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-200"
+                />
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              )}
+            </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-            {isLoading ? <LoadingSpinner size="small" /> : 'Giriş Yap'}
-          </button>
-        </form>
+            <div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full text-white bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 font-medium"
+              >
+                {isLoading ? <LoadingSpinner size="small" /> : 'Giriş Yap'}
+              </button>
+            </div>
+          </form>
+          
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Hesabınız yok mu?{' '}
+              <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+                Kayıt Olun
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
