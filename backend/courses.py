@@ -2446,7 +2446,7 @@ def course_assignments(course_id):
                     'title': assignment.title,
                     'description': assignment.description,
                     'due_date': assignment.due_date.isoformat(),
-                    'total_points': assignment.max_points,
+                    'max_points': assignment.max_points,  # total_points yerine max_points kullan
                     'created_at': assignment.created_at.isoformat(),
                     'updated_at': assignment.created_at.isoformat()  # Şu an için created_at ile aynı
                 })
@@ -2454,59 +2454,73 @@ def course_assignments(course_id):
             return jsonify(assignments_data)
         
         elif request.method == 'POST':
+            # Debug log ekle
+            print("Received data:", request.get_json())
+            
             # Eğitmen kontrolü
             current_user_id = get_jwt_identity()
             if str(course.instructor_id) != current_user_id:
+                print("Permission error - instructor_id:", course.instructor_id, "current_user_id:", current_user_id)
                 return jsonify({'message': 'Bu kursa ödev ekleme yetkiniz yok'}), 403
             
             data = request.get_json()
-            if not data or 'title' not in data or 'description' not in data or 'due_date' not in data:
-                return jsonify({'message': 'Ödev başlığı, açıklaması ve son tarihi zorunludur'}), 400
+            if not data or 'title' not in data or 'description' not in data or 'due_date' not in data or 'lesson_id' not in data:
+                print("Missing required fields in data:", data)
+                return jsonify({'message': 'Ödev başlığı, açıklaması, dersi ve son tarihi zorunludur'}), 400
             
-            # Varsayılan olarak ilk derse ekle
-            lesson = Lesson.query.filter_by(course_id=course_id).order_by(Lesson.order.asc()).first()
-            if not lesson:
-                return jsonify({'message': 'Bu kursta henüz ders bulunmuyor'}), 400
+            # Dersi kontrol et
+            lesson = Lesson.query.get(data['lesson_id'])
+            if not lesson or lesson.course_id != course_id:
+                print(f"Invalid lesson_id: {data.get('lesson_id')} for course_id: {course_id}")
+                return jsonify({'message': 'Geçersiz ders seçimi'}), 400
             
-            # Ödev oluştur - total_points parametresini max_points olarak kullan
-            assignment = Assignment(
-                title=data['title'],
-                description=data['description'],
-                lesson_id=lesson.id,
-                due_date=datetime.fromisoformat(data['due_date']),
-                max_points=data.get('total_points', 100)  # total_points parametresini kullan
-            )
-            
-            db.session.add(assignment)
-            
-            # Kursa kayıtlı öğrencilere bildirim gönder
-            enrollments = Enrollment.query.filter_by(course_id=course_id).all()
-            for enrollment in enrollments:
-                notification = Notification(
-                    user_id=enrollment.student_id,
-                    course_id=course_id,
-                    type='new_assignment',
-                    title=f'Yeni Ödev: {assignment.title}',
-                    message=f'{course.title} kursuna yeni bir ödev eklendi: {assignment.title}. Son teslim tarihi: {assignment.due_date.strftime("%d.%m.%Y %H:%M")}',
-                    is_read=False,
-                    created_at=datetime.now(TURKEY_TZ),
-                    reference_id=assignment.id
+            try:
+                # Ödev oluştur
+                assignment = Assignment(
+                    title=data['title'],
+                    description=data['description'],
+                    lesson_id=data['lesson_id'],
+                    due_date=datetime.fromisoformat(data['due_date']),
+                    max_points=data.get('max_points', 100)
                 )
-                db.session.add(notification)
-            
-            db.session.commit()
-            
-            return jsonify({
-                'id': assignment.id,
-                'title': assignment.title,
-                'description': assignment.description,
-                'due_date': assignment.due_date.isoformat(),
-                'total_points': assignment.max_points,  # max_points'i total_points olarak dön
-                'created_at': assignment.created_at.isoformat(),
-                'updated_at': assignment.created_at.isoformat()
-            }), 201
+                
+                db.session.add(assignment)
+                
+                # Kursa kayıtlı öğrencilere bildirim gönder
+                enrollments = Enrollment.query.filter_by(course_id=course_id).all()
+                for enrollment in enrollments:
+                    notification = Notification(
+                        user_id=enrollment.student_id,
+                        course_id=course_id,
+                        type='new_assignment',
+                        title=f'Yeni Ödev: {assignment.title}',
+                        message=f'{course.title} kursuna yeni bir ödev eklendi: {assignment.title}. Son teslim tarihi: {assignment.due_date.strftime("%d.%m.%Y %H:%M")}',
+                        is_read=False,
+                        created_at=datetime.now(TURKEY_TZ),
+                        reference_id=assignment.id
+                    )
+                    db.session.add(notification)
+                
+                db.session.commit()
+                
+                return jsonify({
+                    'id': assignment.id,
+                    'title': assignment.title,
+                    'description': assignment.description,
+                    'due_date': assignment.due_date.isoformat(),
+                    'max_points': assignment.max_points,
+                    'lesson_id': assignment.lesson_id,
+                    'created_at': assignment.created_at.isoformat(),
+                    'updated_at': assignment.created_at.isoformat()
+                }), 201
+                
+            except Exception as e:
+                print("Error creating assignment:", str(e))
+                db.session.rollback()
+                return jsonify({'message': f'Ödev oluşturulurken bir hata oluştu: {str(e)}'}), 500
             
     except Exception as e:
+        print("Unexpected error:", str(e))
         return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
 # Ending the file properly

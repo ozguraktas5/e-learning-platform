@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
@@ -15,25 +15,26 @@ export default function AssignmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchAssignments();
-  }, [courseId, lessonId]);
-
-  async function fetchAssignments() {
+  const fetchAssignments = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await assignmentsApi.getLessonAssignments(
-        Number(courseId),
-        Number(lessonId)
+      const allAssignments = await assignmentsApi.getCourseAssignments(Number(courseId));
+      // Sadece bu derse ait ödevleri filtrele
+      const lessonAssignments = allAssignments.filter(
+        assignment => assignment.lesson_id === Number(lessonId)
       );
-      setAssignments(data);
+      setAssignments(lessonAssignments);
     } catch (err) {
       console.error('Error fetching assignments:', err);
       setError('Ödevler yüklenirken bir hata oluştu.');
     } finally {
       setLoading(false);
     }
-  }
+  }, [courseId, lessonId]);
+
+  useEffect(() => {
+    fetchAssignments();
+  }, [fetchAssignments]);
 
   // Ödevi silme fonksiyonu
   const handleDeleteAssignment = async (assignmentId: number) => {
@@ -43,11 +44,7 @@ export default function AssignmentsPage() {
 
     try {
       setDeleting(assignmentId);
-      await assignmentsApi.deleteAssignment(
-        Number(courseId),
-        Number(lessonId),
-        assignmentId
-      );
+      await assignmentsApi.deleteAssignment(Number(courseId), assignmentId);
       toast.success('Ödev başarıyla silindi');
       // Ödevleri yeniden yükle
       fetchAssignments();
@@ -99,7 +96,7 @@ export default function AssignmentsPage() {
         <div className="bg-red-50 p-4 rounded-md text-red-800">
           <h3 className="font-medium">Hata</h3>
           <p className="mt-2">{error}</p>
-          <Link href={`/courses/${courseId}/lessons/${lessonId}`} className="mt-4 block text-blue-600 hover:underline">
+          <Link href={`/instructor/courses/${courseId}/lessons/${lessonId}`} className="mt-4 block text-blue-600 hover:underline">
             Derse geri dön
           </Link>
         </div>
@@ -114,7 +111,7 @@ export default function AssignmentsPage() {
         
         {user?.role === 'instructor' && (
           <Link
-            href={`/courses/${courseId}/lessons/${lessonId}/assignment/create`}
+            href={`/instructor/courses/${courseId}/lessons/${lessonId}/assignment/create`}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
           >
             Yeni Ödev Oluştur
@@ -125,7 +122,7 @@ export default function AssignmentsPage() {
       {assignments.length === 0 ? (
         <div className="bg-gray-50 p-6 rounded-lg text-center">
           <p className="text-gray-600">Bu ders için henüz ödev bulunmamaktadır.</p>
-          <Link href={`/courses/${courseId}/lessons/${lessonId}`} className="mt-4 inline-block text-blue-600 hover:underline">
+          <Link href={`/instructor/courses/${courseId}/lessons/${lessonId}`} className="mt-4 inline-block text-blue-600 hover:underline">
             Derse geri dön
           </Link>
         </div>
@@ -211,7 +208,7 @@ export default function AssignmentsPage() {
                   </>
                 ) : (
                   <Link 
-                    href={`/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submissions`}
+                    href={`/instructor/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submissions`}
                     className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
                   >
                     Gönderileri Görüntüle
@@ -219,7 +216,7 @@ export default function AssignmentsPage() {
                 )}
                 
                 <Link 
-                  href={`/courses/${courseId}/lessons/${lessonId}`}
+                  href={`/instructor/courses/${courseId}/lessons/${lessonId}`}
                   className="border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50"
                 >
                   Derse Dön

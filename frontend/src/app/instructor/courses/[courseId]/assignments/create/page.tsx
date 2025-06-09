@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,11 +11,17 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
+interface Lesson {
+  id: number;
+  title: string;
+}
+
 const assignmentSchema = z.object({
   title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
   description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),
   due_date: z.string().min(1, 'Son teslim tarihi gerekli'),
-  total_points: z.number().min(1, 'Puan 1 veya daha büyük olmalıdır')
+  max_points: z.number().min(1, 'Puan 1 veya daha büyük olmalıdır'),
+  lesson_id: z.number().min(1, 'Ders seçimi zorunludur')
 });
 
 export default function CreateAssignmentPage() {
@@ -23,22 +29,45 @@ export default function CreateAssignmentPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
 
-  const { register, handleSubmit, formState: { errors, isDirty } } = useForm<CreateAssignmentData>({
+  const { register, handleSubmit, formState: { errors, isDirty } } = useForm<CreateAssignmentData & { lesson_id: number }>({
     resolver: zodResolver(assignmentSchema),
     defaultValues: {
       title: '',
       description: '',
-      due_date: new Date().toISOString().split('T')[0],
-      total_points: 100
+      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+      max_points: 100,
+      lesson_id: 0
     }
   });
 
   const numericCourseId = Number(courseId);
 
-  const onSubmit = async (data: CreateAssignmentData) => {
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        const response = await coursesApi.getCourseLessons(numericCourseId);
+        setLessons(response);
+      } catch (err) {
+        console.error('Error fetching lessons:', err);
+        setError('Dersler yüklenirken bir hata oluştu');
+      }
+    };
+
+    if (!isNaN(numericCourseId)) {
+      fetchLessons();
+    }
+  }, [numericCourseId]);
+
+  const onSubmit = async (data: CreateAssignmentData & { lesson_id: number }) => {
     if (isNaN(numericCourseId)) {
       setError('Geçersiz Kurs ID');
+      return;
+    }
+
+    if (!data.lesson_id) {
+      setError('Lütfen bir ders seçin');
       return;
     }
   
@@ -46,7 +75,10 @@ export default function CreateAssignmentPage() {
     setError(null);
 
     try {
-      const newAssignment = await assignmentsApi.createAssignment(numericCourseId, data);
+      const newAssignment = await assignmentsApi.createAssignment(numericCourseId, {
+        ...data,
+        lesson_id: Number(data.lesson_id)
+      });
       toast.success(`Ödev '${newAssignment.title}' oluşturuldu.`);
       router.push(`/instructor/courses/${courseId}/assignments`);
     } catch (err: unknown) {
@@ -95,6 +127,24 @@ export default function CreateAssignmentPage() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Ders</label>
+              <select
+                {...register('lesson_id', { valueAsNumber: true })}
+                className="block w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={0}>Ders Seçin</option>
+                {lessons.map(lesson => (
+                  <option key={lesson.id} value={lesson.id}>
+                    {lesson.title}
+                  </option>
+                ))}
+              </select>
+              {errors.lesson_id && (
+                <p className="mt-2 text-sm text-red-600">{errors.lesson_id.message}</p>
+              )}
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Başlık</label>
               <input
                 {...register('title')}
@@ -125,7 +175,7 @@ export default function CreateAssignmentPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Son Teslim Tarihi</label>
                 <input
                   {...register('due_date')}
-                  type="date"
+                  type="datetime-local"
                   className="block w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 {errors.due_date && (
@@ -136,14 +186,14 @@ export default function CreateAssignmentPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Toplam Puan</label>
                 <input
-                  {...register('total_points', { valueAsNumber: true })}
+                  {...register('max_points', { valueAsNumber: true })}
                   type="number"
                   min="1"
                   placeholder="100"
                   className="block w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                {errors.total_points && (
-                  <p className="mt-2 text-sm text-red-600">{errors.total_points.message}</p>
+                {errors.max_points && (
+                  <p className="mt-2 text-sm text-red-600">{errors.max_points.message}</p>
                 )}
               </div>
             </div>

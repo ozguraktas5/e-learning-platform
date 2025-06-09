@@ -13,7 +13,7 @@ interface Assignment {
   title: string;
   description: string;
   due_date: string;
-  total_points: number;
+  max_points: number;
   created_at: string;
   updated_at: string;
 }
@@ -133,7 +133,7 @@ export default function CourseAssignmentsPage() {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">{assignment.title}</h3>
                     <span className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-medium">
-                      {assignment.total_points} Puan
+                      {assignment.max_points} Puan
                     </span>
                   </div>
                   
