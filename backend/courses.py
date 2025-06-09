@@ -2418,4 +2418,95 @@ def check_enrollment_status(course_id):
     
     return jsonify({'is_enrolled': is_enrolled}), 200
 
+@courses.route('/<int:course_id>/assignments', methods=['GET', 'POST'])
+@jwt_required()
+def course_assignments(course_id):
+    """Kurs için tüm ödevleri getir veya yeni ödev oluştur"""
+    try:
+        # Kursu kontrol et
+        course = Course.query.get_or_404(course_id)
+        
+        if request.method == 'GET':
+            # Kursun tüm derslerini bul
+            lessons = Lesson.query.filter_by(course_id=course_id).all()
+            lesson_ids = [lesson.id for lesson in lessons]
+            
+            if not lesson_ids:
+                return jsonify([])
+            
+            # Derslere ait tüm ödevleri getir
+            assignments = Assignment.query.filter(Assignment.lesson_id.in_(lesson_ids)).all()
+            
+            # Ödevleri JSON formatına dönüştür
+            assignments_data = []
+            for assignment in assignments:
+                assignment_dict = assignment.to_dict()
+                assignments_data.append({
+                    'id': assignment.id,
+                    'title': assignment.title,
+                    'description': assignment.description,
+                    'due_date': assignment.due_date.isoformat(),
+                    'total_points': assignment.max_points,
+                    'created_at': assignment.created_at.isoformat(),
+                    'updated_at': assignment.created_at.isoformat()  # Şu an için created_at ile aynı
+                })
+            
+            return jsonify(assignments_data)
+        
+        elif request.method == 'POST':
+            # Eğitmen kontrolü
+            current_user_id = get_jwt_identity()
+            if str(course.instructor_id) != current_user_id:
+                return jsonify({'message': 'Bu kursa ödev ekleme yetkiniz yok'}), 403
+            
+            data = request.get_json()
+            if not data or 'title' not in data or 'description' not in data or 'due_date' not in data:
+                return jsonify({'message': 'Ödev başlığı, açıklaması ve son tarihi zorunludur'}), 400
+            
+            # Varsayılan olarak ilk derse ekle
+            lesson = Lesson.query.filter_by(course_id=course_id).order_by(Lesson.order.asc()).first()
+            if not lesson:
+                return jsonify({'message': 'Bu kursta henüz ders bulunmuyor'}), 400
+            
+            # Ödev oluştur - total_points parametresini max_points olarak kullan
+            assignment = Assignment(
+                title=data['title'],
+                description=data['description'],
+                lesson_id=lesson.id,
+                due_date=datetime.fromisoformat(data['due_date']),
+                max_points=data.get('total_points', 100)  # total_points parametresini kullan
+            )
+            
+            db.session.add(assignment)
+            
+            # Kursa kayıtlı öğrencilere bildirim gönder
+            enrollments = Enrollment.query.filter_by(course_id=course_id).all()
+            for enrollment in enrollments:
+                notification = Notification(
+                    user_id=enrollment.student_id,
+                    course_id=course_id,
+                    type='new_assignment',
+                    title=f'Yeni Ödev: {assignment.title}',
+                    message=f'{course.title} kursuna yeni bir ödev eklendi: {assignment.title}. Son teslim tarihi: {assignment.due_date.strftime("%d.%m.%Y %H:%M")}',
+                    is_read=False,
+                    created_at=datetime.now(TURKEY_TZ),
+                    reference_id=assignment.id
+                )
+                db.session.add(notification)
+            
+            db.session.commit()
+            
+            return jsonify({
+                'id': assignment.id,
+                'title': assignment.title,
+                'description': assignment.description,
+                'due_date': assignment.due_date.isoformat(),
+                'total_points': assignment.max_points,  # max_points'i total_points olarak dön
+                'created_at': assignment.created_at.isoformat(),
+                'updated_at': assignment.created_at.isoformat()
+            }), 201
+            
+    except Exception as e:
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
+
 # Ending the file properly
