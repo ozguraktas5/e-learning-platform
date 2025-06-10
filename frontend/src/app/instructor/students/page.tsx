@@ -421,28 +421,24 @@ export default function InstructorStudentsPage() {
                     </td>
                     <td className="py-4 px-4 text-right">
                       <div className="flex justify-end space-x-2">
-                        <button
+                        <Link
+                          href={`/instructor/students/${enrollment.student.id}/message`}
                           title="Mesaj Gönder"
                           className="p-1 text-gray-500 hover:text-blue-600"
-                          onClick={() => {
-                            toast.success(`${enrollment.student.name} öğrencisine mesaj gönderme özelliği yakında eklenecek.`);
-                          }}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                           </svg>
-                        </button>
-                        <button
+                        </Link>
+                        <Link
+                          href={`/instructor/students/${enrollment.student.id}/progress`}
                           title="İlerleme Detayları"
                           className="p-1 text-gray-500 hover:text-green-600"
-                          onClick={() => {
-                            toast.success(`${enrollment.student.name} öğrencisinin ilerleme detayları yakında eklenecek.`);
-                          }}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                           </svg>
-                        </button>
+                        </Link>
                       </div>
                     </td>
                   </tr>

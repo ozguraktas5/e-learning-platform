@@ -2233,7 +2233,18 @@ def get_lesson_assignments(course_id, lesson_id):
         assignments = Assignment.query.filter_by(lesson_id=lesson_id).all()
         
         # Ödevleri JSON formatına dönüştür
-        assignments_data = [assignment.to_dict() for assignment in assignments]
+        assignments_data = []
+        for assignment in assignments:
+            assignments_data.append({
+                'id': assignment.id,
+                'title': assignment.title,
+                'description': assignment.description,
+                'due_date': assignment.due_date.isoformat(),
+                'max_points': assignment.max_points,
+                'created_at': assignment.created_at.isoformat(),
+                'updated_at': assignment.created_at.isoformat(),
+                'lesson_id': assignment.lesson_id
+            })
         
         return jsonify(assignments_data)
         
@@ -2440,15 +2451,15 @@ def course_assignments(course_id):
             # Ödevleri JSON formatına dönüştür
             assignments_data = []
             for assignment in assignments:
-                assignment_dict = assignment.to_dict()
                 assignments_data.append({
                     'id': assignment.id,
                     'title': assignment.title,
                     'description': assignment.description,
                     'due_date': assignment.due_date.isoformat(),
-                    'max_points': assignment.max_points,  # total_points yerine max_points kullan
+                    'max_points': assignment.max_points,
                     'created_at': assignment.created_at.isoformat(),
-                    'updated_at': assignment.created_at.isoformat()  # Şu an için created_at ile aynı
+                    'updated_at': assignment.created_at.isoformat(),
+                    'lesson_id': assignment.lesson_id
                 })
             
             return jsonify(assignments_data)

@@ -51,7 +51,7 @@ export default function ReviewReplyPage() {
           // Eğer zaten yanıtlanmışsa değerlendirmeler sayfasına yönlendir
           if (reviewData.instructor_reply) {
             toast.error('Bu değerlendirme zaten yanıtlanmış');
-            router.push(`/courses/${courseId}/reviews`);
+            router.push(`/instructor/courses/${courseId}/reviews`);
           }
         }
       } catch (err) {
@@ -90,7 +90,7 @@ export default function ReviewReplyPage() {
 
       await reviewsApi.replyToReview(Number(courseId), Number(reviewId), replyData);
       toast.success('Yanıtınız başarıyla kaydedildi');
-      router.push(`/courses/${courseId}/reviews`);
+      router.push(`/instructor/courses/${courseId}/reviews`);
     } catch (err) {
       console.error('Error submitting reply:', err);
       toast.error('Yanıt gönderilirken bir hata oluştu');
@@ -112,8 +112,8 @@ export default function ReviewReplyPage() {
       <div className="p-6 bg-red-50 rounded-lg">
         <h2 className="text-xl font-semibold text-red-700 mb-2">Hata</h2>
         <p className="text-red-600">{error || 'Değerlendirme bilgisi bulunamadı'}</p>
-        <Link href={`/courses/${courseId}/reviews`} className="mt-4 inline-block text-blue-600 hover:underline">
-          Değerlendirmelere Dön
+        <Link href="/instructor/courses" className="mt-4 inline-block text-blue-600 hover:underline">
+          Kurslara Dön
         </Link>
       </div>
     );
@@ -153,7 +153,7 @@ export default function ReviewReplyPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Değerlendirmeye Yanıt Ver</h1>
         <Link
-          href={`/courses/${courseId}/reviews`}
+          href={`/instructor/courses/${courseId}/reviews`}
           className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
         >
           Değerlendirmelere Dön

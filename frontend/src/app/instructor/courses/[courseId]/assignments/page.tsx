@@ -16,6 +16,7 @@ interface Assignment {
   max_points: number;
   created_at: string;
   updated_at: string;
+  lesson_id: number;
 }
 
 export default function CourseAssignmentsPage() {
@@ -150,7 +151,7 @@ export default function CourseAssignmentsPage() {
                   
                   <div className="flex items-center justify-end space-x-2">
                     <Link 
-                      href={`/instructor/courses/${courseId}/assignments/${assignment.id}`}
+                      href={`/instructor/courses/${courseId}/lessons/${assignment.lesson_id}/assignment/${assignment.id}`}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center text-sm font-medium"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-2">

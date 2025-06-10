@@ -222,7 +222,7 @@ export default function EditCoursePage() {
       setIsSubmitting(true);
       await coursesApi.updateCourse(courseId?.toString() || '', formData);
       toast.success('Kurs başarıyla güncellendi!');
-      router.push(`/courses/${courseId}`);
+      router.push(`/instructor/courses/${courseId}`);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         toast.error('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');

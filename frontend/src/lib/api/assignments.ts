@@ -19,24 +19,13 @@ export interface Assignment {
 export interface AssignmentSubmission {
   id: number;
   assignment_id: number;
-  student: {
-    id: number;
-    name: string;
-    email: string;
-    avatar?: string;
-  };
+  user_id: number;
+  submission_text: string;
+  file_url: string | null;
   submitted_at: string;
-  status: 'submitted' | 'graded' | 'late' | 'resubmitted';
-  content: string;
-  attachments?: {
-    id: number;
-    name: string;
-    url: string;
-    type: string;
-  }[];
-  grade?: number;
-  feedback?: string;
-  graded_at?: string;
+  grade: number | null;
+  feedback: string | null;
+  graded_at: string | null;
 }
 
 export interface AssignmentStats {
@@ -90,9 +79,9 @@ const getInstructorAssignments = async (): Promise<Assignment[]> => {
   }
 };
 
-const getAssignmentSubmissions = async (assignmentId: number): Promise<AssignmentSubmission[]> => {
+const getAssignmentSubmissions = async (courseId: number, lessonId: number, assignmentId: number): Promise<AssignmentSubmission[]> => {
   try {
-    const { data } = await axios.get(`${API_URL}/assignments/${assignmentId}/submissions`, {
+    const { data } = await axios.get(`${API_URL}/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}/submissions`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }
@@ -161,7 +150,7 @@ export const assignmentsApi = {
   getCreateAssignmentData,
   // Get all assignments for a course
   getCourseAssignments: async (courseId: number): Promise<Assignment[]> => {
-    const response = await axios.get(`${API_URL}/api/courses/${courseId}/assignments`, {
+    const response = await axios.get(`${API_URL}/courses/${courseId}/assignments`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }
@@ -170,8 +159,8 @@ export const assignmentsApi = {
   },
 
   // Get a single assignment
-  getAssignment: async (courseId: number, assignmentId: number): Promise<Assignment> => {
-    const response = await axios.get(`${API_URL}/api/courses/${courseId}/assignments/${assignmentId}`, {
+  getAssignment: async (courseId: number, lessonId: number, assignmentId: number): Promise<Assignment> => {
+    const response = await axios.get(`${API_URL}/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }
@@ -181,7 +170,7 @@ export const assignmentsApi = {
 
   // Create a new assignment
   createAssignment: async (courseId: number, data: CreateAssignmentData): Promise<Assignment> => {
-    const response = await axios.post(`${API_URL}/api/courses/${courseId}/assignments`, data, {
+    const response = await axios.post(`${API_URL}/courses/${courseId}/assignments`, data, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }
@@ -191,7 +180,7 @@ export const assignmentsApi = {
 
   // Update an assignment
   updateAssignment: async (courseId: number, assignmentId: number, data: UpdateAssignmentData): Promise<Assignment> => {
-    const response = await axios.put(`${API_URL}/api/courses/${courseId}/assignments/${assignmentId}`, data, {
+    const response = await axios.put(`${API_URL}/courses/${courseId}/assignments/${assignmentId}`, data, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }
@@ -200,8 +189,8 @@ export const assignmentsApi = {
   },
 
   // Delete an assignment
-  deleteAssignment: async (courseId: number, assignmentId: number): Promise<void> => {
-    await axios.delete(`${API_URL}/api/courses/${courseId}/assignments/${assignmentId}`, {
+  deleteAssignment: async (courseId: number, lessonId: number, assignmentId: number): Promise<void> => {
+    await axios.delete(`${API_URL}/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       }

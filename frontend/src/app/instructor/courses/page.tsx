@@ -15,6 +15,13 @@ interface InstructorCourse extends Course {
   published?: boolean;
 }
 
+// HTML taglarını temizleme fonksiyonu
+const stripHtmlTags = (html: string) => {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+};
+
 export default function InstructorCoursesPage() {
   const [courses, setCourses] = useState<InstructorCourse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -295,7 +302,7 @@ export default function InstructorCoursesPage() {
                       <Link href={`/instructor/courses/${course.id}`} className="text-blue-600 hover:underline font-medium">
                         {course.title}
                       </Link>
-                      <p className="text-xs text-gray-500 mt-1 truncate max-w-xs">{course.description}</p>
+                      <p className="text-xs text-gray-500 mt-1 truncate max-w-xs">{stripHtmlTags(course.description)}</p>
                     </td>
                     <td className="py-3 px-4 text-center">{course.student_count}</td>
                     <td className="py-3 px-4 text-center">

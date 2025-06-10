@@ -26,6 +26,24 @@ export interface StudentStats {
   average_course_completion: number;
 }
 
+export interface StudentProgress {
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string;
+  courses: {
+    id: number;
+    title: string;
+    progress: number;
+    completed_lessons: number;
+    total_lessons: number;
+    last_activity: string;
+    completed_assignments: number;
+    total_assignments: number;
+    average_grade: number;
+  }[];
+}
+
 const getEnrolledStudents = async (): Promise<StudentEnrollment[]> => {
   try {
     const { data } = await api.get('/enrollments/instructor/students');
@@ -46,7 +64,18 @@ const getStudentStats = async (): Promise<StudentStats> => {
   }
 };
 
+const getStudentProgress = async (studentId: number): Promise<StudentProgress> => {
+  try {
+    const { data } = await api.get(`/enrollments/instructor/students/${studentId}/progress`);
+    return data;
+  } catch (error) {
+    console.error('Error fetching student progress:', error);
+    throw error;
+  }
+};
+
 export const instructorsApi = {
   getEnrolledStudents,
-  getStudentStats
+  getStudentStats,
+  getStudentProgress
 }; 

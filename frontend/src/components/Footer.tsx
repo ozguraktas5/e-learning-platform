@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { Mail, Phone, MapPin, BookOpen, Heart } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const { user } = useAuth();
   
   return (
     <footer className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border-t border-gray-200 mt-auto">
@@ -38,13 +40,13 @@ export default function Footer() {
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Hızlı Bağlantılar</h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200 flex items-center">
+                <Link href={user?.role === 'instructor' ? '/instructor/dashboard' : user?.role === 'student' ? '/student/dashboard' : '/'} className="text-gray-600 hover:text-indigo-600 transition-colors duration-200 flex items-center">
                   <div className="h-1.5 w-1.5 rounded-full bg-indigo-400 mr-2"></div>
                   Ana Sayfa
                 </Link>
               </li>
               <li>
-                <Link href="/courses" className="text-gray-600 hover:text-indigo-600 transition-colors duration-200 flex items-center">
+                <Link href={user?.role === 'instructor' ? '/instructor/courses' : '/student/courses'} className="text-gray-600 hover:text-indigo-600 transition-colors duration-200 flex items-center">
                   <div className="h-1.5 w-1.5 rounded-full bg-indigo-400 mr-2"></div>
                   Kurslar
                 </Link>

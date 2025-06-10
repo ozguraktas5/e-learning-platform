@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_cors import CORS
-from models import db, Course, Enrollment, Progress, Lesson, User
+from models import db, Course, Enrollment, Progress, Lesson, User, Assignment, AssignmentSubmission
 from datetime import datetime, UTC, timedelta
 
 enrollments = Blueprint('enrollments', __name__) # Enrollments blueprint'ini oluşturuyoruz.
@@ -437,4 +437,100 @@ def get_instructor_student_stats():
         'active_students': active_students,
         'completions_this_month': completions_this_month,
         'average_course_completion': average_completion
+    })
+
+@enrollments.route('/instructor/students/<int:student_id>/progress', methods=['GET'])
+@jwt_required()
+def get_student_progress(student_id):
+    """Belirli bir öğrencinin tüm kurslarındaki ilerleme detaylarını döndürür"""
+    user_id = get_jwt_identity()
+    
+    # Kullanıcının eğitmen olup olmadığını kontrol et
+    if not is_instructor(user_id):
+        return jsonify({'error': 'Only instructors can view student progress'}), 403
+    
+    # Öğrenciyi bul
+    student = User.query.get_or_404(student_id)
+    if student.role != 'student':
+        return jsonify({'error': 'User is not a student'}), 400
+    
+    # Eğitmenin kurslarını al
+    instructor_courses = Course.query.filter_by(instructor_id=user_id).all()
+    if not instructor_courses:
+        return jsonify({'error': 'No courses found for instructor'}), 404
+    
+    course_ids = [course.id for course in instructor_courses]
+    
+    # Öğrencinin bu kurslara kayıtlarını bul
+    enrollments = Enrollment.query.filter(
+        Enrollment.student_id == student_id,
+        Enrollment.course_id.in_(course_ids)
+    ).all()
+    
+    if not enrollments:
+        return jsonify({'error': 'Student is not enrolled in any of your courses'}), 404
+    
+    # Öğrenci bilgilerini ve kurs ilerlemelerini hazırla
+    courses_progress = []
+    for enrollment in enrollments:
+        course = Course.query.get(enrollment.course_id)
+        
+        # Kurs derslerini ve ödevlerini al
+        lessons = Lesson.query.filter_by(course_id=course.id).all()
+        assignments = Assignment.query.join(Lesson).filter(Lesson.course_id == course.id).all()
+        
+        # Tamamlanan dersleri say
+        completed_lessons = Progress.query.join(Lesson).filter(
+            Progress.enrollment_id == enrollment.id,
+            Progress.completed == True,
+            Lesson.course_id == course.id
+        ).count()
+        
+        # Tamamlanan ödevleri ve ortalama notu hesapla
+        completed_assignments = 0
+        total_grade = 0
+        graded_count = 0
+        
+        for assignment in assignments:
+            submission = AssignmentSubmission.query.filter_by(
+                assignment_id=assignment.id,
+                user_id=student_id
+            ).first()
+            
+            if submission and submission.submitted_at:
+                completed_assignments += 1
+                if submission.grade is not None:
+                    total_grade += submission.grade
+                    graded_count += 1
+        
+        # Son aktivite tarihini bul
+        last_activity = Progress.query.join(Lesson).filter(
+            Progress.enrollment_id == enrollment.id,
+            Lesson.course_id == course.id
+        ).order_by(Progress.completed_at.desc()).first()
+        
+        last_activity_at = None
+        if last_activity and last_activity.completed_at:
+            last_activity_at = last_activity.completed_at.isoformat()
+        else:
+            last_activity_at = enrollment.enrolled_at.isoformat()
+        
+        courses_progress.append({
+            'id': course.id,
+            'title': course.title,
+            'progress': int((completed_lessons / len(lessons) * 100) if lessons else 0),
+            'completed_lessons': completed_lessons,
+            'total_lessons': len(lessons),
+            'last_activity': last_activity_at,
+            'completed_assignments': completed_assignments,
+            'total_assignments': len(assignments),
+            'average_grade': round(total_grade / graded_count if graded_count > 0 else 0, 2)
+        })
+    
+    return jsonify({
+        'id': student.id,
+        'name': student.username,
+        'email': student.email,
+        'avatar': student.profile_image if hasattr(student, 'profile_image') else None,
+        'courses': courses_progress
     }) 

@@ -1,18 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { toast } from 'react-hot-toast';
 import { coursesApi, Course } from '@/lib/api/courses';
 import { reviewsApi, CourseReviewsResponse } from '@/lib/api/reviews';
-import { useAuth } from '@/hooks/useAuth';
 import StarRating from '@/components/StarRating';
 
 export default function CourseReviewsPage() {
   const { courseId } = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [reviewsData, setReviewsData] = useState<CourseReviewsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,41 +38,7 @@ export default function CourseReviewsPage() {
     fetchData();
   }, [courseId]);
 
-  const handleDeleteReview = async (reviewId: number) => {
-    if (!user) {
-      toast.error('Bu işlemi gerçekleştirmek için giriş yapmalısınız');
-      return;
-    }
-
-    if (!confirm('Bu değerlendirmeyi silmek istediğinize emin misiniz?')) {
-      return;
-    }
-
-    try {
-      await reviewsApi.deleteReview(Number(courseId), reviewId);
-      toast.success('Değerlendirme başarıyla silindi');
-      
-      // Değerlendirme listesini güncelle
-      const updatedReviews = reviewsData?.reviews.filter(
-        (review) => review.id !== reviewId
-      ) || [];
-      
-      setReviewsData(
-        reviewsData
-          ? {
-              ...reviewsData,
-              reviews: updatedReviews,
-              total_reviews: reviewsData.total_reviews - 1,
-            }
-          : null
-      );
-    } catch (err) {
-      console.error('Error deleting review:', err);
-      toast.error('Değerlendirme silinirken bir hata oluştu');
-    }
-  };
-
-  // Belirtilen tarihten bu yana geçen süreyi formatlar
+  // Format time ago function
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -104,8 +66,8 @@ export default function CourseReviewsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="p-6 flex justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
@@ -115,7 +77,7 @@ export default function CourseReviewsPage() {
       <div className="p-6 bg-red-50 rounded-lg">
         <h2 className="text-xl font-semibold text-red-700 mb-2">Hata</h2>
         <p className="text-red-600">{error || 'Kurs bulunamadı'}</p>
-        <Link href="/courses" className="mt-4 inline-block text-blue-600 hover:underline">
+        <Link href="/instructor/courses" className="mt-4 inline-block text-blue-600 hover:underline">
           Kurslara Dön
         </Link>
       </div>
@@ -126,22 +88,12 @@ export default function CourseReviewsPage() {
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Kurs Değerlendirmeleri</h1>
-        <div className="flex space-x-4">
-          {user && course && Number(user.id) !== course.instructor_id && (
-            <Link
-              href={`/courses/${courseId}/review`}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Değerlendir
-            </Link>
-          )}
-          <Link
-            href={`/courses/${courseId}`}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-          >
-            Kursa Dön
-          </Link>
-        </div>
+        <Link
+          href={`/instructor/courses/${courseId}`}
+          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+        >
+          Kursa Dön
+        </Link>
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
@@ -157,21 +109,13 @@ export default function CourseReviewsPage() {
         </div>
       </div>
 
-      {reviewsData?.reviews.length === 0 ? (
+      {!reviewsData?.reviews.length ? (
         <div className="bg-gray-50 p-8 rounded-lg text-center">
           <p className="text-gray-600">Henüz değerlendirme yapılmamış.</p>
-          {user && course && Number(user.id) !== course.instructor_id && (
-            <Link
-              href={`/courses/${courseId}/review`}
-              className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              İlk Değerlendirmeyi Yap
-            </Link>
-          )}
         </div>
       ) : (
         <div className="space-y-6">
-          {reviewsData?.reviews.map((review) => (
+          {reviewsData.reviews.map((review) => (
             <div key={review.id} className="bg-white p-6 rounded-lg shadow-sm">
               <div className="flex justify-between mb-2">
                 <div className="flex items-center">
@@ -205,34 +149,15 @@ export default function CourseReviewsPage() {
                 </div>
               )}
               
-              {/* Değerlendirme sahibi veya eğitmen için işlemler */}
-              {user && (Number(user.id) === review.user_id || (course.instructor_id === Number(user.id))) && (
-                <div className="mt-4 flex space-x-3 justify-end">
-                  {Number(user.id) === review.user_id && (
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => router.push(`/courses/${courseId}/reviews/${review.id}/edit`)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        Düzenle
-                      </button>
-                      <button
-                        onClick={() => handleDeleteReview(review.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        Sil
-                      </button>
-                    </div>
-                  )}
-                  
-                  {course.instructor_id === Number(user.id) && !review.instructor_reply && (
-                    <button
-                      onClick={() => router.push(`/courses/${courseId}/reviews/${review.id}/reply`)}
-                      className="text-green-600 hover:text-green-800"
-                    >
-                      Yanıtla
-                    </button>
-                  )}
+              {/* Eğitmen yanıt verme butonu */}
+              {!review.instructor_reply && (
+                <div className="mt-4 flex justify-end">
+                  <Link
+                    href={`/instructor/courses/${courseId}/reviews/${review.id}/reply`}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Yanıtla
+                  </Link>
                 </div>
               )}
             </div>
