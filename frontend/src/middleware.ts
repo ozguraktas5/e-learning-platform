@@ -23,6 +23,8 @@ export function middleware(request: NextRequest) {
     '/forgot-password',
     '/reset-password',
     '/courses',
+    '/about',
+    '/contact',
   ];
   
   // Öğrenci özel sayfaları

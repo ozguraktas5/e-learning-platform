@@ -1,5 +1,4 @@
-import axios from 'axios';
-import { API_URL } from '@/config';
+import api from './index';
 
 // Will be used when API endpoints are fully implemented
 // import axios from './index';
@@ -13,6 +12,11 @@ export interface Assignment {
   created_at: string;
   updated_at: string;
   lesson_id: number;
+  course_id: number;
+  course_title: string;
+  status: 'active' | 'expired' | 'draft';
+  submissions_count: number;
+  graded_count: number;
   submission_count?: number;
 }
 
@@ -53,7 +57,8 @@ export interface UpdateAssignmentData {
   title?: string;
   description?: string;
   due_date?: string;
-  total_points?: number;
+  max_points?: number;
+  is_published?: boolean;
 }
 
 export interface CourseWithLessons {
@@ -67,11 +72,7 @@ export interface CourseWithLessons {
 
 const getInstructorAssignments = async (): Promise<Assignment[]> => {
   try {
-    const { data } = await axios.get(`${API_URL}/instructor/assignments`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+    const { data } = await api.get(`/instructor/assignments`);
     return data;
   } catch (error) {
     console.error('Error fetching instructor assignments:', error);
@@ -81,11 +82,7 @@ const getInstructorAssignments = async (): Promise<Assignment[]> => {
 
 const getAssignmentSubmissions = async (courseId: number, lessonId: number, assignmentId: number): Promise<AssignmentSubmission[]> => {
   try {
-    const { data } = await axios.get(`${API_URL}/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}/submissions`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+    const { data } = await api.get(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}/submissions`);
     return data;
   } catch (error) {
     console.error(`Error fetching submissions for assignment ${assignmentId}:`, error);
@@ -99,13 +96,9 @@ const gradeSubmission = async (
   feedback: string
 ): Promise<{ success: boolean }> => {
   try {
-    const { data } = await axios.post(`${API_URL}/assignment-submissions/${submissionId}/grade`, {
+    const { data } = await api.post(`/assignment-submissions/${submissionId}/grade`, {
       grade,
       feedback
-    }, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
     });
     return data;
   } catch (error) {
@@ -116,11 +109,7 @@ const gradeSubmission = async (
 
 const getAssignmentStats = async (): Promise<AssignmentStats> => {
   try {
-    const { data } = await axios.get(`${API_URL}/instructor/assignments/stats`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+    const { data } = await api.get(`/instructor/assignments/stats`);
     return data;
   } catch (error) {
     console.error('Error fetching assignment statistics:', error);
@@ -130,11 +119,7 @@ const getAssignmentStats = async (): Promise<AssignmentStats> => {
 
 const getCreateAssignmentData = async (): Promise<{ courses: CourseWithLessons[] }> => {
   try {
-    const { data } = await axios.get(`${API_URL}/instructor/assignments/create`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+    const { data } = await api.get(`/instructor/assignments/create`);
     return data;
   } catch (error) {
     console.error('Error fetching assignment creation data:', error);
@@ -150,50 +135,30 @@ export const assignmentsApi = {
   getCreateAssignmentData,
   // Get all assignments for a course
   getCourseAssignments: async (courseId: number): Promise<Assignment[]> => {
-    const response = await axios.get(`${API_URL}/courses/${courseId}/assignments`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+    const response = await api.get(`/courses/${courseId}/assignments`);
     return response.data;
   },
 
   // Get a single assignment
   getAssignment: async (courseId: number, lessonId: number, assignmentId: number): Promise<Assignment> => {
-    const response = await axios.get(`${API_URL}/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+    const response = await api.get(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`);
     return response.data;
   },
 
   // Create a new assignment
   createAssignment: async (courseId: number, data: CreateAssignmentData): Promise<Assignment> => {
-    const response = await axios.post(`${API_URL}/courses/${courseId}/assignments`, data, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+    const response = await api.post(`/courses/${courseId}/assignments`, data);
     return response.data;
   },
 
   // Update an assignment
-  updateAssignment: async (courseId: number, assignmentId: number, data: UpdateAssignmentData): Promise<Assignment> => {
-    const response = await axios.put(`${API_URL}/courses/${courseId}/assignments/${assignmentId}`, data, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+  updateAssignment: async (courseId: number, lessonId: number, assignmentId: number, data: UpdateAssignmentData): Promise<Assignment> => {
+    const response = await api.put(`/api/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`, data);
     return response.data;
   },
 
   // Delete an assignment
   deleteAssignment: async (courseId: number, lessonId: number, assignmentId: number): Promise<void> => {
-    await axios.delete(`${API_URL}/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+    await api.delete(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`);
   }
 }; 

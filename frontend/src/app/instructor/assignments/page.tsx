@@ -302,7 +302,7 @@ export default function InstructorAssignmentsPage() {
                 {filteredAssignments.map(assignment => (
                   <tr key={assignment.id} className="hover:bg-gray-50">
                     <td className="py-3 px-4">
-                      <Link href={`/instructor/assignments/${assignment.id}`} className="font-medium text-blue-600 hover:underline">
+                      <Link href={`/instructor/courses/${assignment.course_id}/lessons/${assignment.lesson_id}/assignment/${assignment.id}`} className="font-medium text-blue-600 hover:underline">
                         {assignment.title}
                       </Link>
                     </td>
@@ -341,7 +341,7 @@ export default function InstructorAssignmentsPage() {
                     <td className="py-3 px-4 text-right">
                       <div className="flex justify-end space-x-2">
                         <Link 
-                          href={`/instructor/assignments/${assignment.id}`}
+                          href={`/instructor/courses/${assignment.course_id}/lessons/${assignment.lesson_id}/assignment/${assignment.id}`}
                           className="p-1 text-gray-500 hover:text-blue-600"
                           title="Görüntüle"
                         >
@@ -351,7 +351,7 @@ export default function InstructorAssignmentsPage() {
                           </svg>
                         </Link>
                         <Link 
-                          href={`/instructor/assignments/${assignment.id}/edit`}
+                          href={`/instructor/courses/${assignment.course_id}/lessons/${assignment.lesson_id}/assignment/${assignment.id}/edit`}
                           className="p-1 text-gray-500 hover:text-amber-600"
                           title="Düzenle"
                         >
@@ -361,7 +361,7 @@ export default function InstructorAssignmentsPage() {
                         </Link>
                         {assignment.submissions_count > assignment.graded_count && (
                           <Link 
-                            href={`/instructor/assignments/${assignment.id}/submissions`}
+                            href={`/instructor/courses/${assignment.course_id}/lessons/${assignment.lesson_id}/assignment/${assignment.id}/submissions`}
                             className="p-1 text-amber-600 hover:text-amber-800"
                             title="Teslimler"
                           >

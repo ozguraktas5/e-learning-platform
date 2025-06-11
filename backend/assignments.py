@@ -64,6 +64,7 @@ def get_instructor_assignments():
                 'description': assignment.description,
                 'course_id': course.id,
                 'course_title': course.title,
+                'lesson_id': assignment.lesson_id,
                 'due_date': assignment.due_date.isoformat() if assignment.due_date else None,
                 'created_at': assignment.created_at.isoformat(),
                 'status': status,
@@ -258,3 +259,62 @@ def create_assignment():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Error creating assignment: {str(e)}"}), 500 
+
+@assignments.route('/api/courses/<int:course_id>/lessons/<int:lesson_id>/assignment/<int:assignment_id>', methods=['PUT'])
+@login_required
+@instructor_required
+def update_assignment(course_id, lesson_id, assignment_id):
+    """
+    Bir ödevi günceller
+    """
+    instructor_id = request.user_id
+    
+    # Kursun eğitmene ait olduğunu kontrol et
+    course = Course.query.get_or_404(course_id)
+    if course.instructor_id != instructor_id:
+        return jsonify({"error": "Bu kursu düzenleme yetkiniz yok"}), 403
+    
+    # Dersin kursa ait olduğunu kontrol et
+    lesson = Lesson.query.get_or_404(lesson_id)
+    if lesson.course_id != course_id:
+        return jsonify({"error": "Bu ders bu kursa ait değil"}), 400
+    
+    # Ödevin derse ait olduğunu kontrol et
+    assignment = Assignment.query.get_or_404(assignment_id)
+    if assignment.lesson_id != lesson_id:
+        return jsonify({"error": "Bu ödev bu derse ait değil"}), 400
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
+    # Güncelleme işlemi
+    if 'title' in data:
+        assignment.title = data['title']
+    if 'description' in data:
+        assignment.description = data['description']
+    if 'due_date' in data:
+        assignment.due_date = datetime.datetime.fromisoformat(data['due_date'])
+    if 'max_points' in data:
+        assignment.max_points = data['max_points']
+    if 'is_published' in data:
+        assignment.is_published = data['is_published']
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'id': assignment.id,
+            'title': assignment.title,
+            'description': assignment.description,
+            'due_date': assignment.due_date.isoformat() if assignment.due_date else None,
+            'max_points': assignment.max_points,
+            'created_at': assignment.created_at.isoformat(),
+            'updated_at': assignment.updated_at.isoformat(),
+            'lesson_id': assignment.lesson_id,
+            'course_id': course_id,
+            'course_title': course.title,
+            'status': 'draft' if not assignment.is_published else 'active' if assignment.due_date > datetime.datetime.utcnow() else 'expired'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Ödev güncellenirken bir hata oluştu", "details": str(e)}), 500 

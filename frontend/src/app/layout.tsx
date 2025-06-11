@@ -33,8 +33,8 @@ export default function RootLayout({
           <main className="flex-grow">
             {children}
           </main>
+          <Footer />
         </Providers>
-        <Footer />
         <ToastContainer />
       </body>
     </html>
