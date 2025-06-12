@@ -271,25 +271,6 @@ export default function InstructorDashboard() {
           </div>
         )}
       </div>
-      
-      {/* Ödev Bildirimleri */}
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-xl font-semibold">Son Ödev Bildirimleri</h2>
-          <Link href="/instructor/assignments" className="text-blue-600 hover:underline text-sm">
-            Tüm Ödevler
-          </Link>
-        </div>
-        
-        <div className="p-6">
-          <Link 
-            href="/instructor/assignments" 
-            className="block w-full text-center py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
-          >
-            Değerlendirme Bekleyen Ödevler
-          </Link>
-        </div>
-      </div>
     </div>
   );
 } 

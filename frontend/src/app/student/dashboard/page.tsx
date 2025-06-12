@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { Book, Award, Bell, LineChart, ExternalLink, Clock, ArrowRight } from 'lucide-react';
+import { Book, Bell, ExternalLink } from 'lucide-react';
 import axios from 'axios';
-import { getImageUrl } from '@/lib/axios';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -17,7 +16,6 @@ const getCookie = (name: string) => {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return decodeURIComponent(parts.pop()!.split(';').shift() || '');
-  return '';
 };
 
 interface EnrolledCourse {
@@ -28,21 +26,10 @@ interface EnrolledCourse {
   last_accessed?: string;
 }
 
-interface Activity {
-  id: string;
-  type: 'completion' | 'enrollment' | 'certificate' | 'system';
-  title: string;
-  description: string;
-  course_id?: string;
-  course_title?: string;
-  date: string;
-}
-
 export default function StudentDashboard() {
   const { user } = useAuth();
   const router = useRouter();
   const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
-  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,11 +66,8 @@ export default function StudentDashboard() {
         }
 
         // Paralel olarak verileri çekelim
-        const [coursesResponse, activitiesResponse, notificationsResponse] = await Promise.all([
+        const [coursesResponse, notificationsResponse] = await Promise.all([
           axios.get(`${API_URL}/api/student/enrolled-courses`, {
-            headers: { Authorization: `Bearer ${authToken}` }
-          }),
-          axios.get(`${API_URL}/api/student/activities`, {
             headers: { Authorization: `Bearer ${authToken}` }
           }),
           axios.get(`${API_URL}/api/notifications/unread-count`, {
@@ -92,7 +76,6 @@ export default function StudentDashboard() {
         ]);
 
         setEnrolledCourses(coursesResponse.data.courses || []);
-        setRecentActivities(activitiesResponse.data.activities || []);
         setUnreadCount(notificationsResponse.data.count || 0);
       } catch (error) {
         console.error('Dashboard verileri alınamadı:', error);
@@ -112,246 +95,139 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
-      <div className="container mx-auto px-4 py-8">
-        {error && (
-          <div className="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-xl shadow-md" role="alert">
-            <p className="font-bold">Hata</p>
-            <p>{error}</p>
+    <div className="container mx-auto p-6 max-w-7xl">
+      {error && (
+        <div className="p-6">
+          <div className="bg-red-50 p-4 rounded-md text-red-800">
+            <h3 className="font-medium text-xl">Hata</h3>
+            <p className="mt-2">{error}</p>
             <button 
-              onClick={() => window.location.reload()} 
-              className="mt-2 bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded-md text-sm transition-all duration-200 shadow-sm"
+              onClick={() => router.push('/')}
+              className="mt-4 text-blue-600 hover:underline"
             >
-              Yeniden Dene
+              Ana Sayfaya Dön
             </button>
           </div>
-        )}
+        </div>
+      )}
+
+      {/* İstatistik Kartları */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+          <h3 className="text-gray-500 text-sm uppercase">Kayıtlı Kurslar</h3>
+          <p className="text-3xl font-bold">{enrolledCourses.length}</p>
+        </div>
         
-        <div className="mb-10 relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-200/30 via-purple-100/20 to-pink-200/30 rounded-3xl blur-2xl"></div>
-          <div className="p-8 rounded-2xl backdrop-blur-sm bg-white/70 border border-indigo-100/50 shadow-xl">
-            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
-              Hoş Geldin, {user.username}!
-            </h1>
-            <p className="text-gray-600 mt-3 text-lg">
-              Eğitim yolculuğunda ilerlemeni takip et ve yeni kurslar keşfet.
-            </p>
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+          <h3 className="text-gray-500 text-sm uppercase">Ortalama İlerleme</h3>
+          <p className="text-3xl font-bold">
+            {enrolledCourses.length 
+              ? Math.round(enrolledCourses.reduce((sum, course) => sum + course.progress, 0) / enrolledCourses.length) 
+              : 0}%
+          </p>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+          <h3 className="text-gray-500 text-sm uppercase">Tamamlanan Kurslar</h3>
+          <p className="text-3xl font-bold">
+            {enrolledCourses.filter(course => course.progress === 100).length}
+          </p>
+        </div>
+      </div>
+
+      {/* Hızlı Erişim Menüsü */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <Link href="/student/my-courses" className="bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 p-4 rounded-lg transition-colors flex items-center">
+          <div className="w-10 h-10 bg-indigo-500 text-white rounded-full flex items-center justify-center mr-3">
+            <Book className="w-6 h-6" />
           </div>
+          <span className="font-medium">Kayıtlı Kurslarım</span>
+        </Link>
+
+        <Link href="/student/courses" className="bg-purple-50 hover:bg-purple-100 border border-purple-200 p-4 rounded-lg transition-colors flex items-center">
+          <div className="w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center mr-3">
+            <Book className="w-6 h-6" />
+          </div>
+          <span className="font-medium">Kurslar</span>
+        </Link>
+
+        <Link href="/student/notifications" className="bg-amber-50 hover:bg-amber-100 border border-amber-200 p-4 rounded-lg transition-colors flex items-center">
+          <div className="w-10 h-10 bg-amber-500 text-white rounded-full flex items-center justify-center mr-3">
+            <Bell className="w-6 h-6" />
+          </div>
+          <span className="font-medium">Bildirimler</span>
+          {unreadCount > 0 && (
+            <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">{unreadCount}</span>
+          )}
+        </Link>
+      </div>
+
+      {/* Kayıtlı Kurslar Tablosu */}
+      <div className="bg-white rounded-lg shadow-md mb-8">
+        <div className="flex justify-between items-center p-6 border-b">
+          <h2 className="text-xl font-semibold">Kayıtlı Kurslarım</h2>
+          <Link href="/student/my-courses" className="text-blue-600 hover:underline text-sm">
+            Tümünü Görüntüle
+          </Link>
         </div>
 
-        {/* İstatistik Kartları */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-indigo-50 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md">
-                <Book className="h-6 w-6" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-indigo-500">Kayıtlı Kurslar</p>
-                <p className="text-2xl font-bold text-gray-800">{enrolledCourses.length}</p>
-              </div>
-            </div>
+        {enrolledCourses.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">
+            Henüz hiç kursa kayıt olmadınız. Yeni kurslara göz atmak için &quot;Kurslar&quot; bölümünü ziyaret edebilirsiniz.
           </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-indigo-50 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md">
-                <LineChart className="h-6 w-6" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-emerald-500">Ortalama İlerleme</p>
-                <p className="text-2xl font-bold text-gray-800">
-                  {enrolledCourses.length 
-                    ? Math.round(enrolledCourses.reduce((sum, course) => sum + course.progress, 0) / enrolledCourses.length) 
-                    : 0}%
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-indigo-50 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-md">
-                <Award className="h-6 w-6" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-purple-500">Tamamlanan</p>
-                <p className="text-2xl font-bold text-gray-800">
-                  {enrolledCourses.filter(course => course.progress === 100).length}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-indigo-50 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md">
-                <Bell className="h-6 w-6" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-pink-500">Bildirimler</p>
-                <p className="text-2xl font-bold text-gray-800">{unreadCount}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Ana İçerik Bölümü */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-          {/* Devam Eden Kurslar */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-lg border border-indigo-50 overflow-hidden">
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-                  Devam Eden Kurslar
-                </h2>
-                <Link 
-                  href="/student/my-courses" 
-                  className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1 transition-colors"
-                >
-                  <span>Tümünü Görüntüle</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-
-              <div className="p-6">
-                {enrolledCourses.length === 0 ? (
-                  <div className="text-center py-10 bg-gray-50 rounded-xl">
-                    <div className="p-3 bg-indigo-100 rounded-full mx-auto w-16 h-16 flex items-center justify-center mb-4">
-                      <Book className="h-8 w-8 text-indigo-500" />
-                    </div>
-                    <p className="text-gray-600 mb-3">Henüz hiç kursa kayıt olmadınız.</p>
-                    <Link 
-                      href="/student/courses" 
-                      className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-2 rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300"
-                    >
-                      Kursları Keşfet
-                      <ExternalLink className="h-4 w-4" />
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {enrolledCourses.slice(0, 4).map((course) => (
-                      <div 
-                        key={course.id} 
-                        className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
-                      >
-                        <div className="h-40 bg-gray-200 relative">
-                          {course.image_url ? (
-                            <img 
-                              src={getImageUrl(course.image_url)} 
-                              alt={course.title} 
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white text-4xl font-bold">
-                              {course.title.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          
-                          {/* İlerleme göstergesi - üst kısımda */}
-                          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-200">
-                            <div 
-                              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500" 
-                              style={{ width: `${course.progress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        
-                        <div className="p-5">
-                          <div className="flex justify-between items-center mb-3">
-                            <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 text-xs font-medium rounded-full">{course.progress}% tamamlandı</span>
-                            
-                            {course.last_accessed && (
-                              <div className="flex items-center text-gray-400 text-xs">
-                                <Clock className="h-3 w-3 mr-1" />
-                                <span>Son: {new Date(course.last_accessed).toLocaleDateString()}</span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <h3 className="font-bold text-lg mb-3 text-gray-800 line-clamp-1">{course.title}</h3>
-                          
-                          <Link 
-                            href={`/student/courses/${course.id}`}
-                            className="inline-block w-full text-center py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium shadow-sm hover:shadow-md transition-all duration-300"
-                          >
-                            Devam Et
-                          </Link>
-                        </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 text-gray-700 text-sm">
+                <tr>
+                  <th className="text-left py-3 px-4">Kurs Adı</th>
+                  <th className="text-center py-3 px-4">İlerleme</th>
+                  <th className="text-center py-3 px-4">Son Erişim</th>
+                  <th className="text-right py-3 px-4">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody>
+                {enrolledCourses.slice(0, 5).map(course => (
+                  <tr key={course.id} className="hover:bg-gray-50">
+                    <td className="py-3 px-4">
+                      <Link href={`/student/courses/${course.id}`} className="font-medium text-blue-600 hover:underline">
+                        {course.title}
+                      </Link>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className="bg-blue-600 h-2.5 rounded-full" 
+                          style={{ width: `${course.progress}%` }}
+                        ></div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+                      <span className="text-xs text-gray-500 mt-1 block">
+                        {course.progress}%
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center text-sm text-gray-500">
+                      {course.last_accessed ? new Date(course.last_accessed).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <Link 
+                        href={`/student/courses/${course.id}/lessons`}
+                        className="text-blue-600 hover:text-blue-800 inline-block mr-2"
+                      >
+                        <Book className="w-5 h-5" />
+                      </Link>
+                      <Link 
+                        href={`/student/courses/${course.id}`}
+                        className="text-gray-600 hover:text-gray-800 inline-block"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          {/* Son Aktiviteler */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg border border-indigo-50 overflow-hidden h-full">
-              <div className="p-6 border-b border-gray-100">
-                <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-                  Son Aktiviteler
-                </h2>
-              </div>
-
-              <div className="overflow-y-auto" style={{ maxHeight: 'calc(100% - 4rem)' }}>
-                {recentActivities.length === 0 ? (
-                  <div className="text-center py-10 px-6">
-                    <div className="p-3 bg-pink-100 rounded-full mx-auto w-16 h-16 flex items-center justify-center mb-4">
-                      <Bell className="h-8 w-8 text-pink-500" />
-                    </div>
-                    <p className="text-gray-600">Henüz hiç aktivite yok.</p>
-                  </div>
-                ) : (
-                  <ul className="divide-y divide-gray-100">
-                    {recentActivities.slice(0, 6).map((activity) => (
-                      <li key={activity.id} className="p-4 hover:bg-gray-50 transition-colors duration-200">
-                        <div className="flex space-x-4">
-                          <div className="flex-shrink-0">
-                            {activity.type === 'enrollment' && (
-                              <div className="p-2 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-sm">
-                                <Book className="h-5 w-5" />
-                              </div>
-                            )}
-                            {activity.type === 'completion' && (
-                              <div className="p-2 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 text-white shadow-sm">
-                                <Award className="h-5 w-5" />
-                              </div>
-                            )}
-                            {activity.type === 'certificate' && (
-                              <div className="p-2 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 text-white shadow-sm">
-                                <Award className="h-5 w-5" />
-                              </div>
-                            )}
-                            {activity.type === 'system' && (
-                              <div className="p-2 rounded-full bg-gradient-to-r from-gray-400 to-gray-500 text-white shadow-sm">
-                                <Bell className="h-5 w-5" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                            <p className="text-sm text-gray-500 line-clamp-2">{activity.description}</p>
-                            {activity.course_title && (
-                              <p className="text-xs text-indigo-400 mt-1 font-medium">
-                                {activity.course_title}
-                              </p>
-                            )}
-                            <p className="text-xs text-gray-400 mt-1">
-                              {new Date(activity.date).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

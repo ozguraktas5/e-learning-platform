@@ -230,7 +230,7 @@ def create_app():
     app.register_blueprint(enrollments, url_prefix='/enrollments')
     app.register_blueprint(notifications_bp, url_prefix='/api')
     app.register_blueprint(assignments)
-    app.register_blueprint(student_api)
+    app.register_blueprint(student_api, url_prefix='/api')
     
     # Veritabanı tablolarını oluştur
     with app.app_context():
