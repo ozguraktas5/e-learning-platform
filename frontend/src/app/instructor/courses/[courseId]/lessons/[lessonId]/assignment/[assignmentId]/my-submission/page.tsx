@@ -109,99 +109,101 @@ export default function MyAssignmentSubmissionPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Ödev Sonucu: {assignment.title}</h1>
-        <Link
-          href={`/courses/${courseId}/lessons/${lessonId}/assignments`} 
-          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-        >
-          Ödevlere Dön
-        </Link>
-      </div>
-
-      <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-medium mb-2">Ödev Bilgileri</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-            <div>
-              <span className="font-medium">Teslim Tarihi:</span> {formatDate(assignment.due_date)}
-            </div>
-            <div>
-              <span className="font-medium">Maksimum Puan:</span> {assignment.max_points}
-            </div>
-          </div>
-          
-          <div className="mt-3 text-sm">
-            <div className="font-medium mb-1">Açıklama:</div>
-            <div className="text-gray-700 whitespace-pre-line">{assignment.description}</div>
-          </div>
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Ödev Sonucu: {assignment.title}</h1>
+          <Link
+            href={`/courses/${courseId}/lessons/${lessonId}/assignments`} 
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+          >
+            Ödevlere Dön
+          </Link>
         </div>
-      </div>
 
-      {!submission ? (
-        <div className="bg-yellow-50 p-6 rounded-lg text-center">
-          <p className="text-yellow-800 font-medium">Henüz bu ödeve bir gönderi yapmadınız.</p>
-          <div className="mt-4">
-            <Link 
-              href={`/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submit`}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 inline-block"
-            >
-              Şimdi Gönder
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-medium">Gönderiniz</h2>
-              <div className="text-sm text-gray-500">
-                Gönderim Tarihi: {formatDate(submission.submitted_at)}
-              </div>
-            </div>
-            
-            <div className="bg-gray-50 p-4 rounded border whitespace-pre-line text-gray-800 min-h-[200px]">
-              {submission.submission_text || 'İçerik yok'}
-            </div>
-          </div>
-
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-medium mb-4">Değerlendirme Sonucu</h3>
-            
-            {submission.grade !== null && submission.grade !== undefined ? (
+        <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-medium mb-2">Ödev Bilgileri</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="text-2xl font-bold">
-                    {submission.grade} / {assignment.max_points}
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    submission.grade >= (assignment.max_points * 0.7) 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {submission.grade >= (assignment.max_points * 0.7) ? 'Başarılı' : 'Başarısız'}
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <div className="font-medium mb-2">Eğitmen Geri Bildirimi:</div>
-                  <div className="bg-blue-50 p-4 rounded border border-blue-100 text-gray-800 whitespace-pre-line min-h-[100px]">
-                    {submission.feedback || 'Geri bildirim yok'}
-                  </div>
-                </div>
-                
-                <div className="text-sm text-gray-500">
-                  Değerlendirme Tarihi: {submission.graded_at ? formatDate(submission.graded_at) : 'Değerlendirme bekliyor'}
-                </div>
+                <span className="font-medium">Teslim Tarihi:</span> {formatDate(assignment.due_date)}
               </div>
-            ) : (
-              <div className="bg-yellow-50 p-4 rounded text-yellow-800">
-                <p>Gönderiniz henüz değerlendirilmemiştir. Değerlendirme sonucu burada görüntülenecektir.</p>
+              <div>
+                <span className="font-medium">Maksimum Puan:</span> {assignment.max_points}
               </div>
-            )}
+            </div>
+            
+            <div className="mt-3 text-sm">
+              <div className="font-medium mb-1">Açıklama:</div>
+              <div className="text-gray-700 whitespace-pre-line">{assignment.description}</div>
+            </div>
           </div>
         </div>
-      )}
+
+        {!submission ? (
+          <div className="bg-yellow-50 p-6 rounded-lg text-center">
+            <p className="text-yellow-800 font-medium">Henüz bu ödeve bir gönderi yapmadınız.</p>
+            <div className="mt-4">
+              <Link 
+                href={`/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submit`}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 inline-block"
+              >
+                Şimdi Gönder
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-medium">Gönderiniz</h2>
+                <div className="text-sm text-gray-500">
+                  Gönderim Tarihi: {formatDate(submission.submitted_at)}
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded border whitespace-pre-line text-gray-800 min-h-[200px]">
+                {submission.submission_text || 'İçerik yok'}
+              </div>
+            </div>
+
+            <div className="border-t pt-6">
+              <h3 className="text-lg font-medium mb-4">Değerlendirme Sonucu</h3>
+              
+              {submission.grade !== null && submission.grade !== undefined ? (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="text-2xl font-bold">
+                      {submission.grade} / {assignment.max_points}
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      submission.grade >= (assignment.max_points * 0.7) 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {submission.grade >= (assignment.max_points * 0.7) ? 'Başarılı' : 'Başarısız'}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="font-medium mb-2">Eğitmen Geri Bildirimi:</div>
+                    <div className="bg-blue-50 p-4 rounded border border-blue-100 text-gray-800 whitespace-pre-line min-h-[100px]">
+                      {submission.feedback || 'Geri bildirim yok'}
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-gray-500">
+                    Değerlendirme Tarihi: {submission.graded_at ? formatDate(submission.graded_at) : 'Değerlendirme bekliyor'}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-yellow-50 p-4 rounded text-yellow-800">
+                  <p>Gönderiniz henüz değerlendirilmemiştir. Değerlendirme sonucu burada görüntülenecektir.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

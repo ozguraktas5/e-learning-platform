@@ -149,7 +149,7 @@ export default function ReviewReplyPage() {
   const showInstructorWarning = !user || !isInstructor;
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Değerlendirmeye Yanıt Ver</h1>
         <Link

@@ -313,6 +313,7 @@ class Assignment(db.Model):
     due_date = db.Column(db.DateTime(timezone=True), nullable=False)
     max_points = db.Column(db.Integer, nullable=False, default=100)
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     is_published = db.Column(db.Boolean, default=True)
     
     # İlişkiler
@@ -335,6 +336,7 @@ class Assignment(db.Model):
             'due_date': self.due_date.isoformat(),
             'max_points': self.max_points,
             'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
             'submission_count': len(self.submissions),
             'is_published': self.is_published
         }

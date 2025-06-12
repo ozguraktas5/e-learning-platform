@@ -45,7 +45,7 @@ export default function SendMessagePage() {
 
   return (
     <div className="container mx-auto p-6">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Öğrenciye Mesaj Gönder</h1>
           <Link

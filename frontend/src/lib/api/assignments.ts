@@ -153,7 +153,7 @@ export const assignmentsApi = {
 
   // Update an assignment
   updateAssignment: async (courseId: number, lessonId: number, assignmentId: number, data: UpdateAssignmentData): Promise<Assignment> => {
-    const response = await api.put(`/api/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`, data);
+    const response = await api.put(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`, data);
     return response.data;
   },
 

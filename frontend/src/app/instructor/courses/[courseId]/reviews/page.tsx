@@ -85,7 +85,7 @@ export default function CourseReviewsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Kurs Değerlendirmeleri</h1>
         <Link

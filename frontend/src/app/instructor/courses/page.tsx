@@ -212,7 +212,7 @@ export default function InstructorCoursesPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto max-w-7xl p-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Kurslarım</h1>
         <Link

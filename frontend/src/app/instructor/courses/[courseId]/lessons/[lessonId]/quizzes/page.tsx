@@ -94,7 +94,7 @@ export default function QuizzesPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">
           {lesson?.title} - Sınavlar

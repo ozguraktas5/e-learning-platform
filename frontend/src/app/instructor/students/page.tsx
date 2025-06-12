@@ -177,7 +177,7 @@ export default function InstructorStudentsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 max-w-7xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <h1 className="text-3xl font-bold">Öğrencilerim</h1>
         <div className="mt-4 md:mt-0">

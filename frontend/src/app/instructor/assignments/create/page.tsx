@@ -145,7 +145,7 @@ export default function CreateAssignmentPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto max-w-7xl p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Yeni Ödev Oluştur</h1>
         <Link

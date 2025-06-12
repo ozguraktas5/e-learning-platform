@@ -16,9 +16,12 @@ def login_required(f):
         try:
             verify_jwt_in_request()
             user_id = get_jwt_identity()
-            request.user_id = user_id  # Request objesine user_id ekle
+            print("Debug - login_required decorator - User ID from token:", user_id, "Type:", type(user_id))
+            request.user_id = int(user_id)  # String'i integer'a çevir
+            print("Debug - login_required decorator - User ID after conversion:", request.user_id, "Type:", type(request.user_id))
             return f(*args, **kwargs)
         except Exception as e:
+            print("Debug - login_required decorator - Exception:", str(e))
             return jsonify({"msg": "Authentication required"}), 401
     return decorated
 
@@ -28,10 +31,14 @@ def instructor_required(f):
         try:
             verify_jwt_in_request()
             claims = get_jwt()
+            print("Debug - instructor_required decorator - Token claims:", claims)
+            print("Debug - instructor_required decorator - Role:", claims.get('role'))
             if claims.get('role') != 'instructor':
+                print("Debug - instructor_required decorator - Authorization failed: role is not instructor")
                 return jsonify({"msg": "Instructor privileges required"}), 403
             return f(*args, **kwargs)
         except Exception as e:
+            print("Debug - instructor_required decorator - Exception:", str(e))
             return jsonify({"msg": "Authentication required"}), 401
     return decorated
 

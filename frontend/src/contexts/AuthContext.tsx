@@ -140,7 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Client tarafında çalışmasını sağla (SSR için kontrol)
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token') || getCookie('token');
-      if (token) {
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (token && refreshToken) {  // Sadece hem token hem refresh token varsa işlem yap
         try {
           const decoded = jwtDecode(token) as DecodedToken;
           // Token'ın süresi dolmuş mu kontrol et

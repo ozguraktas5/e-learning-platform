@@ -142,98 +142,100 @@ export default function EditLessonPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Dersi Düzenle</h1>
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6">Dersi Düzenle</h1>
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Başlık</label>
-          <input
-            {...register('title')}
-            type="text"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          />
-          {errors.title && (
-            <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">İçerik (HTML destekler)</label>
-          <textarea
-            {...register('content')}
-            rows={6}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          />
-          {errors.content && (
-            <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Sıra</label>
-          <input
-            {...register('order', { valueAsNumber: true })}
-            type="number"
-            min="1"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          />
-          {errors.order && (
-            <p className="mt-1 text-sm text-red-600">{errors.order.message}</p>
-          )}
-        </div>
-
-        {currentLesson?.video_url && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Mevcut Video</label>
-            <video
-              src={`${BASE_URL}${currentLesson.video_url}`}
-              controls
-              className="w-full rounded-md mb-2 max-h-48"
-            />
-            <p className="text-sm text-gray-500 mb-2">
-              Yeni bir video yüklerseniz, mevcut video değiştirilecektir.
-            </p>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
           </div>
         )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            {currentLesson?.video_url ? 'Videoyu Değiştir (İsteğe bağlı)' : 'Video Ekle (İsteğe bağlı)'}
-          </label>
-          <input
-            type="file"
-            accept="video/*"
-            onChange={handleFileChange}
-            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          />
-          {selectedFile && (
-             <p className="mt-1 text-sm text-green-600">Seçilen dosya: {selectedFile.name}</p>
-          )}
-        </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Başlık</label>
+            <input
+              {...register('title')}
+              type="text"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+            {errors.title && (
+              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+            )}
+          </div>
 
-        <div className="flex gap-4">
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 transition duration-150 ease-in-out"
-          >
-            {loading ? 'Güncelleniyor...' : 'Dersi Güncelle'}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-150 ease-in-out"
-          >
-            İptal
-          </button>
-        </div>
-      </form>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">İçerik (HTML destekler)</label>
+            <textarea
+              {...register('content')}
+              rows={6}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+            {errors.content && (
+              <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Sıra</label>
+            <input
+              {...register('order', { valueAsNumber: true })}
+              type="number"
+              min="1"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+            {errors.order && (
+              <p className="mt-1 text-sm text-red-600">{errors.order.message}</p>
+            )}
+          </div>
+
+          {currentLesson?.video_url && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Mevcut Video</label>
+              <video
+                src={`${BASE_URL}${currentLesson.video_url}`}
+                controls
+                className="w-full rounded-md mb-2 max-h-48"
+              />
+              <p className="text-sm text-gray-500 mb-2">
+                Yeni bir video yüklerseniz, mevcut video değiştirilecektir.
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              {currentLesson?.video_url ? 'Videoyu Değiştir (İsteğe bağlı)' : 'Video Ekle (İsteğe bağlı)'}
+            </label>
+            <input
+              type="file"
+              accept="video/*"
+              onChange={handleFileChange}
+              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            {selectedFile && (
+               <p className="mt-1 text-sm text-green-600">Seçilen dosya: {selectedFile.name}</p>
+            )}
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 transition duration-150 ease-in-out"
+            >
+              {loading ? 'Güncelleniyor...' : 'Dersi Güncelle'}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition duration-150 ease-in-out"
+            >
+              İptal
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 } 

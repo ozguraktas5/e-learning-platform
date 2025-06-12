@@ -188,7 +188,7 @@ export default function AssignmentSubmissionsPage() {
   }
   
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto max-w-7xl p-6">
       <div className="mb-6">
         <button
           onClick={() => router.back()}

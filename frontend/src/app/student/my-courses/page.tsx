@@ -99,7 +99,7 @@ export default function MyCoursesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
-      <div className="max-w-7xl mx-auto p-8">
+      <div className="max-w-6xl mx-auto p-8">
         <div className="mb-10 relative">
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-200/30 via-purple-100/20 to-pink-200/30 rounded-3xl blur-2xl"></div>
           <div className="p-8 rounded-2xl backdrop-blur-sm bg-white/70 border border-indigo-100/50 shadow-xl">

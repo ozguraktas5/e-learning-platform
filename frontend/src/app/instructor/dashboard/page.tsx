@@ -134,11 +134,7 @@ export default function InstructorDashboard() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Eğitmen Paneli</h1>
-      </div>
-      
+    <div className="container mx-auto p-6 max-w-7xl">
       {/* İstatistik Kartları */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -191,15 +187,6 @@ export default function InstructorDashboard() {
             </svg>
           </div>
           <span className="font-medium">Ödevler</span>
-        </Link>
-        
-        <Link href="/instructor/profile" className="bg-purple-50 hover:bg-purple-100 border border-purple-200 p-4 rounded-lg transition-colors flex items-center">
-          <div className="w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center mr-3">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-            </svg>
-          </div>
-          <span className="font-medium">Profilim</span>
         </Link>
       </div>
       
