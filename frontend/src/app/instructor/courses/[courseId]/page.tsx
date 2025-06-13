@@ -9,6 +9,7 @@ import Link from 'next/link';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import Image from 'next/image';
 import { API_URL } from '@/config';
+import { translateLevelToTurkish } from '@/lib/utils/courseUtils';
 
 export default function CourseDetail() {
   const { courseId } = useParams();
@@ -183,7 +184,7 @@ export default function CourseDetail() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Seviye</span>
-                <span className="font-medium">{course.level}</span>
+                <span className="font-medium">{translateLevelToTurkish(course.level)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Fiyat</span>

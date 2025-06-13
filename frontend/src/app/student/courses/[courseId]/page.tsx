@@ -10,6 +10,7 @@ import Link from 'next/link';
 import api from '@/lib/axios';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Book, Star, Users, Clock, ShoppingCart, Edit, Trash2, BookOpen, Award } from 'lucide-react';
+import { translateLevelToTurkish } from '@/lib/utils/courseUtils';
 
 export default function CourseDetail() {
   const { courseId } = useParams();
@@ -136,7 +137,7 @@ export default function CourseDetail() {
                 <div className="flex items-center mt-2 text-gray-600">
                   <div className="flex items-center mr-4">
                     <Award className="h-4 w-4 mr-1 text-amber-500" />
-                    <span>{course.level}</span>
+                    <span>{translateLevelToTurkish(course.level)}</span>
                   </div>
                   <div className="flex items-center">
                     <BookOpen className="h-4 w-4 mr-1 text-indigo-500" />

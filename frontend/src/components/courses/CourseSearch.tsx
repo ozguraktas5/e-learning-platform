@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { getFullUrl } from '@/lib/utils';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Search, Filter, ArrowUpDown, Clock, Users, Tag, BookOpen, Bookmark } from 'lucide-react';
+import { translateLevelToTurkish } from '@/lib/utils/courseUtils';
 
 const LEVELS = ['Başlangıç', 'Orta', 'İleri'];
 const SORT_OPTIONS = [
@@ -337,7 +338,7 @@ export default function CourseSearch() {
                       )}
                       {course.level && (
                         <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-medium ${getLevelBadgeColor(course.level)}`}>
-                          {course.level}
+                          {translateLevelToTurkish(course.level)}
                         </div>
                       )}
                       {course.category && (

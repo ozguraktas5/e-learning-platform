@@ -6,6 +6,8 @@ import { assignmentsApi, Assignment, AssignmentSubmission } from '@/lib/api/assi
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { ArrowLeft, ClipboardList, Clock, Award, CheckCircle, AlertTriangle, FileText, MessageSquare, Calendar } from 'lucide-react';
 
 export default function MyAssignmentSubmissionPage() {
   const { courseId, lessonId, assignmentId } = useParams();
@@ -21,7 +23,7 @@ export default function MyAssignmentSubmissionPage() {
     // Öğrenci kontrolü
     if (user && user.role !== 'student') {
       toast.error('Bu sayfayı görüntüleme yetkiniz yok');
-      router.push(`/courses/${courseId}/lessons/${lessonId}`);
+      router.push(`/student/courses/${courseId}/lessons/${lessonId}`);
       return;
     }
 
@@ -46,9 +48,15 @@ export default function MyAssignmentSubmissionPage() {
           );
           setSubmission(submissionData);
         } catch (submissionErr) {
-          console.error('Error fetching submission:', submissionErr);
-          // Hata kullanıcıya gösterilmeyecek, sadece loglayıp, submission'ı null bırakacağız
-          // Bu şekilde kullanıcı ödev gönderisi oluşturma seçeneğini görecek
+          // 404 hatası submission olmadığını gösterir, bu normal bir durum
+          const error = submissionErr as { response?: { status?: number } };
+          if (error?.response?.status === 404) {
+            console.log('No submission found for this assignment - this is expected');
+            setSubmission(null);
+          } else {
+            console.error('Error fetching submission:', submissionErr);
+          }
+          // Her iki durumda da submission null kalacak ve kullanıcı gönderi yapma seçeneğini görecek
         }
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -86,122 +94,193 @@ export default function MyAssignmentSubmissionPage() {
   };
 
   if (loading) {
-    return (
-      <div className="p-6 flex justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <LoadingSpinner size="large" fullScreen />;
   }
 
   if (error || !assignment) {
     return (
-      <div className="p-6">
-        <div className="bg-red-50 p-4 rounded-md text-red-800">
-          <h3 className="font-medium">Hata</h3>
-          <p className="mt-2">{error || 'Ödev bulunamadı'}</p>
-          <Link href={`/courses/${courseId}/lessons/${lessonId}/assignments`} className="mt-4 block text-blue-600 hover:underline">
-            Ödevlere geri dön
-          </Link>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-800 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="h-6 w-6" />
+              <h3 className="font-semibold text-lg">Hata Oluştu</h3>
+            </div>
+            <p className="mb-4">{error || 'Ödev bulunamadı'}</p>
+            <Link 
+              href={`/student/courses/${courseId}/lessons/${lessonId}/assignments`} 
+              className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Ödevlere Geri Dön
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Ödev Sonucu: {assignment.title}</h1>
-        <Link
-          href={`/courses/${courseId}/lessons/${lessonId}/assignments`} 
-          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-        >
-          Ödevlere Dön
-        </Link>
-      </div>
-
-      <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-medium mb-2">Ödev Bilgileri</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-            <div>
-              <span className="font-medium">Teslim Tarihi:</span> {formatDate(assignment.due_date)}
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link 
+                  href={`/student/courses/${courseId}/lessons/${lessonId}/assignments`}
+                  className="p-2 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="h-5 w-5 text-indigo-600" />
+                </Link>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    {assignment.title}
+                  </h1>
+                  <p className="text-gray-600 mt-1">Ödev Sonucu</p>
+                </div>
+              </div>
+              <ClipboardList className="h-8 w-8 text-indigo-600" />
             </div>
-            <div>
-              <span className="font-medium">Maksimum Puan:</span> {assignment.max_points}
+          </div>
+        </div>
+
+        {/* Assignment Details */}
+        <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-indigo-600" />
+            Ödev Bilgileri
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
+              <Clock className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-sm text-blue-600 font-medium">Teslim Tarihi</p>
+                <p className="text-blue-800 font-semibold">{formatDate(assignment.due_date)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg">
+              <Award className="h-5 w-5 text-purple-600" />
+              <div>
+                <p className="text-sm text-purple-600 font-medium">Maksimum Puan</p>
+                <p className="text-purple-800 font-semibold">{assignment.max_points}</p>
+              </div>
             </div>
           </div>
           
-          <div className="mt-3 text-sm">
-            <div className="font-medium mb-1">Açıklama:</div>
-            <div className="text-gray-700 whitespace-pre-line">{assignment.description}</div>
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h3 className="font-medium text-gray-900 mb-2">Açıklama:</h3>
+            <p className="text-gray-700 whitespace-pre-line leading-relaxed">{assignment.description}</p>
           </div>
         </div>
-      </div>
 
-      {!submission ? (
-        <div className="bg-yellow-50 p-6 rounded-lg text-center">
-          <p className="text-yellow-800 font-medium">Henüz bu ödeve bir gönderi yapmadınız.</p>
-          <div className="mt-4">
+        {/* Submission Status */}
+        {!submission ? (
+          <div className="backdrop-blur-sm bg-yellow-50/90 border border-yellow-200 rounded-2xl p-6 shadow-lg text-center">
+            <AlertTriangle className="h-16 w-16 text-yellow-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-yellow-800 mb-2">Henüz Gönderi Yok</h3>
+            <p className="text-yellow-700 mb-6">Bu ödeve henüz bir gönderi yapmadınız.</p>
             <Link 
-              href={`/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submit`}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 inline-block"
+              href={`/student/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submit`}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
             >
+              <ClipboardList className="h-4 w-4" />
               Şimdi Gönder
             </Link>
           </div>
-        </div>
-      ) : (
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-medium">Gönderiniz</h2>
-              <div className="text-sm text-gray-500">
-                Gönderim Tarihi: {formatDate(submission.submitted_at)}
+        ) : (
+          <div className="space-y-6">
+            {/* Submission Content */}
+            <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-indigo-600" />
+                  Gönderiniz
+                </h2>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Calendar className="h-4 w-4" />
+                  <span>Gönderim: {formatDate(submission.submitted_at)}</span>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-4 min-h-[200px]">
+                <p className="text-gray-800 whitespace-pre-line leading-relaxed">
+                  {submission.submission_text || 'İçerik yok'}
+                </p>
               </div>
             </div>
-            
-            <div className="bg-gray-50 p-4 rounded border whitespace-pre-line text-gray-800 min-h-[200px]">
-              {submission.submission_text || 'İçerik yok'}
-            </div>
-          </div>
 
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-medium mb-4">Değerlendirme Sonucu</h3>
-            
-            {submission.grade !== null && submission.grade !== undefined ? (
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="text-2xl font-bold">
-                    {submission.grade} / {assignment.max_points}
+            {/* Evaluation Results */}
+            <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                <Award className="h-5 w-5 text-indigo-600" />
+                Değerlendirme Sonucu
+              </h3>
+              
+              {submission.grade !== null && submission.grade !== undefined ? (
+                <div className="space-y-6">
+                  {/* Grade Display */}
+                  <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-gray-900 mb-1">
+                        {submission.grade} / {assignment.max_points}
+                      </div>
+                      <div className={`px-4 py-2 rounded-full text-sm font-medium ${
+                        submission.grade >= (assignment.max_points * 0.7) 
+                          ? 'bg-green-100 text-green-800 border border-green-200' 
+                          : 'bg-red-100 text-red-800 border border-red-200'
+                      }`}>
+                        {submission.grade >= (assignment.max_points * 0.7) ? (
+                          <span className="flex items-center gap-1">
+                            <CheckCircle className="h-4 w-4" />
+                            Başarılı
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            <AlertTriangle className="h-4 w-4" />
+                            Başarısız
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    submission.grade >= (assignment.max_points * 0.7) 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {submission.grade >= (assignment.max_points * 0.7) ? 'Başarılı' : 'Başarısız'}
+                  
+                  {/* Feedback */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-indigo-600" />
+                      Eğitmen Geri Bildirimi
+                    </h4>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 min-h-[100px]">
+                      <p className="text-gray-800 whitespace-pre-line leading-relaxed">
+                        {submission.feedback || 'Geri bildirim yok'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Grading Date */}
+                  <div className="flex items-center gap-2 text-sm text-gray-600 pt-4 border-t border-gray-200">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      Değerlendirme Tarihi: {submission.graded_at ? formatDate(submission.graded_at) : 'Değerlendirme bekliyor'}
+                    </span>
                   </div>
                 </div>
-                
-                <div className="mb-4">
-                  <div className="font-medium mb-2">Eğitmen Geri Bildirimi:</div>
-                  <div className="bg-blue-50 p-4 rounded border border-blue-100 text-gray-800 whitespace-pre-line min-h-[100px]">
-                    {submission.feedback || 'Geri bildirim yok'}
-                  </div>
+              ) : (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                  <Clock className="h-12 w-12 text-yellow-600 mx-auto mb-3" />
+                  <h4 className="font-semibold text-yellow-800 mb-2">Değerlendirme Bekleniyor</h4>
+                  <p className="text-yellow-700">
+                    Gönderiniz henüz değerlendirilmemiştir. Değerlendirme sonucu burada görüntülenecektir.
+                  </p>
                 </div>
-                
-                <div className="text-sm text-gray-500">
-                  Değerlendirme Tarihi: {submission.graded_at ? formatDate(submission.graded_at) : 'Değerlendirme bekliyor'}
-                </div>
-              </div>
-            ) : (
-              <div className="bg-yellow-50 p-4 rounded text-yellow-800">
-                <p>Gönderiniz henüz değerlendirilmemiştir. Değerlendirme sonucu burada görüntülenecektir.</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 } 

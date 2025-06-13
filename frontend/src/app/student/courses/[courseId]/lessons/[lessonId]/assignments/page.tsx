@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { assignmentsApi, Assignment } from '@/lib/api/assignments';
 import { useAuth } from '@/hooks/useAuth';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { ArrowLeft, ClipboardList, Clock, Award, AlertTriangle, Trash2 } from 'lucide-react';
 
 export default function AssignmentsPage() {
   const { courseId, lessonId } = useParams();
@@ -35,7 +37,7 @@ export default function AssignmentsPage() {
     }
   }
 
-  // Ödevi silme fonksiyonu
+  // Ödevi silme fonksiyonu (instructor için)
   const handleDeleteAssignment = async (assignmentId: number) => {
     if (!confirm('Bu ödevi silmek istediğinize emin misiniz?')) {
       return;
@@ -49,7 +51,6 @@ export default function AssignmentsPage() {
         assignmentId
       );
       toast.success('Ödev başarıyla silindi');
-      // Ödevleri yeniden yükle
       fetchAssignments();
     } catch (err) {
       console.error('Error deleting assignment:', err);
@@ -82,153 +83,179 @@ export default function AssignmentsPage() {
     const now = new Date();
     const diff = due.getTime() - now.getTime();
     const days = diff / (1000 * 60 * 60 * 24);
-    return days <= 3 && days > 0; // 3 gün veya daha az kalmış
+    return days <= 3 && days > 0;
   };
 
   if (loading) {
-    return (
-      <div className="p-6 flex justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <LoadingSpinner size="large" fullScreen />;
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <div className="bg-red-50 p-4 rounded-md text-red-800">
-          <h3 className="font-medium">Hata</h3>
-          <p className="mt-2">{error}</p>
-          <Link href={`/courses/${courseId}/lessons/${lessonId}`} className="mt-4 block text-blue-600 hover:underline">
-            Derse geri dön
-          </Link>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-800 shadow-lg">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="h-6 w-6" />
+              <h3 className="font-semibold text-lg">Hata Oluştu</h3>
+            </div>
+            <p className="mb-4">{error}</p>
+            <Link 
+              href={`/student/courses/${courseId}/lessons/${lessonId}`} 
+              className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Derse Geri Dön
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Ödevler</h1>
-        
-        {user?.role === 'instructor' && (
-          <Link
-            href={`/courses/${courseId}/lessons/${lessonId}/assignment/create`}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-          >
-            Yeni Ödev Oluştur
-          </Link>
-        )}
-      </div>
-
-      {assignments.length === 0 ? (
-        <div className="bg-gray-50 p-6 rounded-lg text-center">
-          <p className="text-gray-600">Bu ders için henüz ödev bulunmamaktadır.</p>
-          <Link href={`/courses/${courseId}/lessons/${lessonId}`} className="mt-4 inline-block text-blue-600 hover:underline">
-            Derse geri dön
-          </Link>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {assignments.map(assignment => (
-            <div key={assignment.id} className="border rounded-lg p-4 shadow-sm bg-white">
-              <div className="flex justify-between items-start">
-                <h2 className="text-xl font-semibold">{assignment.title}</h2>
-                <div className="flex items-center gap-2">
-                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    isPastDue(assignment.due_date) 
-                      ? 'bg-red-100 text-red-800' 
-                      : isCloseToDue(assignment.due_date) 
-                        ? 'bg-yellow-100 text-yellow-800' 
-                        : 'bg-green-100 text-green-800'
-                  }`}>
-                    {isPastDue(assignment.due_date) 
-                      ? 'Süresi Dolmuş' 
-                      : isCloseToDue(assignment.due_date) 
-                        ? 'Son Tarih Yaklaşıyor' 
-                        : 'Aktif'}
-                  </div>
-                  {user?.role === 'instructor' && (
-                    <button
-                      onClick={() => handleDeleteAssignment(assignment.id)}
-                      disabled={deleting === assignment.id}
-                      className="text-red-600 hover:text-red-800 bg-red-100 hover:bg-red-200 p-1 rounded-full"
-                      title="Ödevi Sil"
-                    >
-                      {deleting === assignment.id ? (
-                        <span className="inline-block w-5 h-5 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></span>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      )}
-                    </button>
-                  )}
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link 
+                  href={`/student/courses/${courseId}/lessons/${lessonId}`}
+                  className="p-2 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="h-5 w-5 text-indigo-600" />
+                </Link>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    Ödevler
+                  </h1>
+                  <p className="text-gray-600 mt-1">Bu dersin ödevlerini görüntüleyin</p>
                 </div>
               </div>
-              
-              <div className="mt-2 text-gray-600">
-                <p>Teslim Tarihi: {formatDate(assignment.due_date)}</p>
-                <p>Maksimum Puan: {assignment.max_points}</p>
-                {user?.role === 'instructor' && (
-                  <p>Gönderim Sayısı: {assignment.submission_count || 0}</p>
-                )}
-              </div>
-              
-              <div className="mt-4">
-                {assignment.description.length > 150 
-                  ? `${assignment.description.substring(0, 150)}...` 
-                  : assignment.description}
-              </div>
-              
-              <div className="mt-4 flex gap-2">
-                {user?.role === 'student' ? (
-                  <>
-                    <Link 
-                      href={`/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submit`}
-                      className={`px-4 py-2 rounded-md ${
-                        isPastDue(assignment.due_date)
-                          ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
-                      onClick={(e) => {
-                        if (isPastDue(assignment.due_date)) {
-                          e.preventDefault();
-                          toast.error('Bu ödevin son teslim tarihi geçmiştir.');
-                        }
-                      }}
-                    >
-                      {isPastDue(assignment.due_date) ? 'Süre Doldu' : 'Ödevi Gönder'}
-                    </Link>
-                    
-                    <Link 
-                      href={`/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/my-submission`}
-                      className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-                    >
-                      Sonucu Gör
-                    </Link>
-                  </>
-                ) : (
-                  <Link 
-                    href={`/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submissions`}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                  >
-                    Gönderileri Görüntüle
-                  </Link>
-                )}
-                
-                <Link 
-                  href={`/courses/${courseId}/lessons/${lessonId}`}
-                  className="border border-gray-300 px-4 py-2 rounded-md hover:bg-gray-50"
-                >
-                  Derse Dön
-                </Link>
-              </div>
+              <ClipboardList className="h-8 w-8 text-indigo-600" />
             </div>
-          ))}
+          </div>
         </div>
-      )}
+
+        {assignments.length === 0 ? (
+          <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-12 text-center">
+            <ClipboardList className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">Henüz Ödev Yok</h3>
+            <p className="text-gray-600 mb-6">Bu ders için henüz ödev eklenmemiş.</p>
+            <Link 
+              href={`/student/courses/${courseId}/lessons/${lessonId}`} 
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all duration-200"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Derse Geri Dön
+            </Link>
+          </div>
+        ) : (
+          <div className="grid gap-6">
+            {assignments.map(assignment => (
+              <div key={assignment.id} className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-200">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">{assignment.title}</h2>
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        <span>Son Tarih: {formatDate(assignment.due_date)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Award className="h-4 w-4" />
+                        <span>Maksimum Puan: {assignment.max_points}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      isPastDue(assignment.due_date) 
+                        ? 'bg-red-100 text-red-700 border border-red-200' 
+                        : isCloseToDue(assignment.due_date) 
+                          ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' 
+                          : 'bg-green-100 text-green-700 border border-green-200'
+                    }`}>
+                      {isPastDue(assignment.due_date) 
+                        ? 'Süresi Dolmuş' 
+                        : isCloseToDue(assignment.due_date) 
+                          ? 'Son Tarih Yaklaşıyor' 
+                          : 'Aktif'}
+                    </div>
+                    
+                    {user?.role === 'instructor' && (
+                      <button
+                        onClick={() => handleDeleteAssignment(assignment.id)}
+                        disabled={deleting === assignment.id}
+                        className="p-2 text-red-600 hover:text-red-800 bg-red-100 hover:bg-red-200 rounded-lg transition-colors"
+                        title="Ödevi Sil"
+                      >
+                        {deleting === assignment.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-600 border-t-transparent"></div>
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <p className="text-gray-700">
+                    {assignment.description.length > 200 
+                      ? `${assignment.description.substring(0, 200)}...` 
+                      : assignment.description}
+                  </p>
+                </div>
+                
+                <div className="flex gap-3 flex-wrap">
+                  {user?.role === 'student' ? (
+                    <>
+                      <Link 
+                        href={`/student/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submit`}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                          isPastDue(assignment.due_date)
+                            ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:-translate-y-0.5'
+                        }`}
+                        onClick={(e) => {
+                          if (isPastDue(assignment.due_date)) {
+                            e.preventDefault();
+                            toast.error('Bu ödevin son teslim tarihi geçmiştir.');
+                          }
+                        }}
+                      >
+                        <ClipboardList className="h-4 w-4" />
+                        {isPastDue(assignment.due_date) ? 'Süre Doldu' : 'Ödevi Gönder'}
+                      </Link>
+                      
+                      <Link 
+                        href={`/student/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/my-submission`}
+                        className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <Award className="h-4 w-4" />
+                        Sonucu Gör
+                      </Link>
+                    </>
+                  ) : (
+                    <Link 
+                      href={`/student/courses/${courseId}/lessons/${lessonId}/assignment/${assignment.id}/submissions`}
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200"
+                    >
+                      <ClipboardList className="h-4 w-4" />
+                      Gönderileri Görüntüle
+                    </Link>
+                  )}
+                  
+
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

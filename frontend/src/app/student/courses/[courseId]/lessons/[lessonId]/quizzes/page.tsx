@@ -8,6 +8,8 @@ import { lessonApi } from '@/lib/api/lessons';
 import { quizApi } from '@/lib/api/quiz';
 import { useAuth } from '@/hooks/useAuth';
 import { Quiz } from '@/types/quiz';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { ArrowLeft, HelpCircle, Clock, Award, Plus, Edit, Trash2 } from 'lucide-react';
 
 interface Lesson {
   id: number;
@@ -75,111 +77,129 @@ export default function QuizzesPage() {
   };
 
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse flex space-x-4">
-          <div className="flex-1 space-y-6 py-1">
-            <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="h-24 bg-gray-200 rounded col-span-1"></div>
-                <div className="h-24 bg-gray-200 rounded col-span-1"></div>
-                <div className="h-24 bg-gray-200 rounded col-span-1"></div>
+    return <LoadingSpinner size="large" fullScreen />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
+      <div className="container mx-auto p-6 max-w-7xl">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link 
+                  href={`/student/courses/${courseId}/lessons/${lessonId}`}
+                  className="p-2 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="h-5 w-5 text-indigo-600" />
+                </Link>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    {lesson?.title} - Sınavlar
+                  </h1>
+                  <p className="text-gray-600 mt-1">Ders sınavlarını görüntüleyin ve çözün</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {isInstructor && (
+                  <Link 
+                    href={`/student/courses/${courseId}/lessons/${lessonId}/quiz/create`} 
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Yeni Sınav Ekle
+                  </Link>
+                )}
+                <HelpCircle className="h-8 w-8 text-indigo-600" />
               </div>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">
-          {lesson?.title} - Sınavlar
-        </h1>
         
-        <div className="flex space-x-2">
-          <Link 
-            href={`/courses/${courseId}/lessons/${lessonId}`} 
-            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100"
-          >
-            Derse Dön
-          </Link>
-          
-          {isInstructor && (
-            <Link 
-              href={`/courses/${courseId}/lessons/${lessonId}/quiz/create`} 
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Yeni Sınav Ekle
-            </Link>
-          )}
-        </div>
-      </div>
-      
-      {quizzes.length === 0 ? (
-        <div className="bg-white p-6 rounded-lg shadow-sm border text-center">
-          <h3 className="text-lg font-medium text-gray-800">Bu ders için sınav bulunmamaktadır</h3>
-          {isInstructor && (
-            <p className="mt-2 text-gray-600">
-              Öğrencilerin öğrenme düzeyini ölçmek için bir sınav ekleyebilirsiniz.
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quizzes.map((quiz) => (
-            <div key={quiz.id} className="bg-white rounded-lg shadow-sm border overflow-hidden">
-              <div className="bg-blue-50 p-4 border-b">
-                <h3 className="font-medium text-lg text-gray-800">{quiz.title}</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {quiz.question_count} Soru • {quiz.time_limit ? `${quiz.time_limit} Dakika` : 'Süre Sınırı Yok'}
-                </p>
-              </div>
-              
-              <div className="p-4">
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {quiz.description || 'Bu sınav için açıklama bulunmamaktadır.'}
-                </p>
+        {/* Content */}
+        {quizzes.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-lg border border-indigo-50 p-12 text-center">
+            <div className="p-6 bg-indigo-50 rounded-full mx-auto w-24 h-24 flex items-center justify-center mb-6">
+              <HelpCircle className="h-12 w-12 text-indigo-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Bu ders için sınav bulunmamaktadır</h3>
+            {isInstructor ? (
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                Öğrencilerin öğrenme düzeyini ölçmek için bir sınav ekleyebilirsiniz.
+              </p>
+            ) : (
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                Henüz bu ders için sınav eklenmemiş. Daha sonra tekrar kontrol edin.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {quizzes.map((quiz) => (
+              <div key={quiz.id} className="bg-white rounded-2xl shadow-lg border border-indigo-50 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 border-b border-indigo-100">
+                  <h3 className="font-bold text-xl text-gray-800 mb-2">{quiz.title}</h3>
+                  <div className="flex items-center text-sm text-gray-600 space-x-4">
+                    <div className="flex items-center">
+                      <HelpCircle className="h-4 w-4 mr-1 text-indigo-500" />
+                      <span>{quiz.question_count} Soru</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-1 text-purple-500" />
+                      <span>{quiz.time_limit ? `${quiz.time_limit} Dakika` : 'Süre Sınırı Yok'}</span>
+                    </div>
+                  </div>
+                </div>
                 
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-500">
-                    Geçme Notu: {quiz.passing_score}%
+                <div className="p-6">
+                  <p className="text-gray-600 text-sm mb-6 line-clamp-3 leading-relaxed">
+                    {quiz.description || 'Bu sınav için açıklama bulunmamaktadır.'}
+                  </p>
+                  
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center bg-emerald-50 px-3 py-1 rounded-full">
+                      <Award className="h-4 w-4 mr-1 text-emerald-600" />
+                      <span className="text-sm font-medium text-emerald-700">
+                        Geçme Notu: {quiz.passing_score}%
+                      </span>
+                    </div>
                   </div>
                   
                   <div className="flex space-x-2">
                     {isInstructor ? (
                       <>
                         <Link
-                          href={`/courses/${courseId}/lessons/${lessonId}/quiz/${quiz.id}/edit`}
-                          className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
+                          href={`/student/courses/${courseId}/lessons/${lessonId}/quiz/${quiz.id}/edit`}
+                          className="flex items-center gap-1 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg font-medium transition-colors flex-1 justify-center"
                         >
+                          <Edit className="h-4 w-4" />
                           Düzenle
                         </Link>
                         <button
                           onClick={() => handleDeleteQuiz(quiz.id, quiz.title)}
-                          className="text-xs px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded"
+                          className="flex items-center gap-1 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg font-medium transition-colors"
                         >
+                          <Trash2 className="h-4 w-4" />
                           Sil
                         </button>
                       </>
                     ) : (
                       <Link
-                        href={`/courses/${courseId}/lessons/${lessonId}/quiz/${quiz.id}`}
-                        className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded"
+                        href={`/student/courses/${courseId}/lessons/${lessonId}/quiz/${quiz.id}`}
+                        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
                       >
+                        <HelpCircle className="h-5 w-5" />
                         Sınava Başla
                       </Link>
                     )}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

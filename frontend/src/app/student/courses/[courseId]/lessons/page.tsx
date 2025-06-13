@@ -11,6 +11,8 @@ import Link from 'next/link';
 import no_video from '../../../../../../../uploads/no_video.png';
 import Image from 'next/image';
 import { getFullUrl } from '@/lib/utils';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { ArrowLeft, BookOpen, Play, Edit, Trash2, Plus, Eye } from 'lucide-react';
 
 export default function CourseLessonsPage() {
   const { courseId } = useParams();
@@ -56,7 +58,7 @@ export default function CourseLessonsPage() {
 
   // Function to handle edit button click
   const handleEditLesson = (lessonId: number) => {
-    router.push(`/courses/${courseId}/lessons/${lessonId}/edit`);
+    router.push(`/student/courses/${courseId}/lessons/${lessonId}/edit`);
   };
 
   // Function to handle delete button click
@@ -79,114 +81,148 @@ export default function CourseLessonsPage() {
   };
 
   if (loading) {
-    return <div className="p-4">Loading lessons...</div>;
+    return <LoadingSpinner fullScreen size="large" />;
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">
-          {courseTitle} - Dersler <span className="text-lg font-normal text-gray-500">({lessons.length} ders)</span>
-        </h1>
-        {/* TODO: Link to a page/modal for adding a new lesson */}
-        <Link href={`/courses/${courseId}/lessons/create`} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-          Yeni Ders Ekle
-        </Link>
-      </div>
-
-      <div className="flex items-center mb-6">
-        <Link 
-          href={`/courses/${courseId}`}
-          className="text-blue-600 hover:text-blue-800 flex items-center"
-        >
-          <span className="mr-1">←</span> Kurs Detaylarına Dön
-        </Link>
-      </div>
-
-      {lessons.length === 0 ? (
-        <p>Bu kursa henüz ders eklenmemiş.</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {lessons.map((lesson) => (
-            <div 
-              key={lesson.id} 
-              className="border rounded-lg overflow-hidden shadow hover:shadow-md transition-shadow duration-200 bg-white flex flex-col"
-            >
-              {/* Conditional Video/Image Display */}
-              <div className="aspect-video bg-gray-200 flex items-center justify-center overflow-hidden">
-                {lesson.video_url ? (
-                  <video 
-                    src={getFullUrl(lesson.video_url)} 
-                    controls 
-                    muted // Start muted to avoid autoplay issues
-                    playsInline // Important for mobile playback
-                    preload="metadata" // Load only metadata initially for faster page load
-                    className="object-cover w-full h-full" // Use object-cover for aspect ratio
-                    title={lesson.title} // Add title for accessibility
-                  >
-                    Your browser does not support the video tag.
-                  </video>
-                ) : ( // Show no_video image if no video exists
-                  <Image 
-                    src={no_video}
-                    alt="No video available"
-                    className="object-contain w-1/2 h-1/2" 
-                  />
-                )}
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link 
+                  href={`/student/courses/${courseId}`}
+                  className="p-2 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors"
+                >
+                  <ArrowLeft className="h-5 w-5 text-indigo-600" />
+                </Link>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    {courseTitle}
+                  </h1>
+                  <p className="text-gray-600 mt-1">
+                    {lessons.length} ders bulundu
+                  </p>
+                </div>
               </div>
-
-              {/* Card Content */}
-              <div className="p-4 flex flex-col flex-grow">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold">{lesson.title}</h3>
-                  <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    Sıra Numarası: {lesson.order}
-                  </span>
-                </div>
-                
-                {/* Content Preview */}
-                <p className="text-gray-600 text-sm mb-3 line-clamp-3">
-                  {lesson.content?.length > 150 
-                    ? `${lesson.content.substring(0, 150)}...` 
-                    : lesson.content || 'Bu ders için içerik bulunmamaktadır.'}
-                </p>
-                
-                {/* Buttons at the bottom */}
-                <div className="flex justify-end space-x-2 mt-auto">
-                  <Link 
-                    href={`/courses/${courseId}/lessons/${lesson.id}`}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded text-sm flex items-center"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Detaylar
-                  </Link>
-                  <button 
-                    onClick={() => handleEditLesson(lesson.id)}
-                    className="border border-gray-300 hover:bg-gray-100 text-gray-800 font-semibold py-1 px-3 rounded text-sm"
-                  >
-                    Düzenle
-                  </button> 
-                  <button 
-                    onClick={() => handleDeleteLesson(lesson.id, lesson.title)}
-                    className="bg-red-500 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded text-sm"
-                  >
-                    Sil
-                  </button>
-                </div>
+              <div className="flex items-center gap-3">
+                <Link 
+                  href={`/student/courses/${courseId}/lessons/create`} 
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  <Plus className="h-4 w-4" />
+                  Yeni Ders Ekle
+                </Link>
+                <BookOpen className="h-8 w-8 text-indigo-600" />
               </div>
             </div>
-          ))}
+          </div>
         </div>
-      )}
+
+        {/* Lessons Grid */}
+        {lessons.length === 0 ? (
+          <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-12 text-center">
+            <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">Henüz Ders Yok</h3>
+            <p className="text-gray-600 mb-6">Bu kursa henüz ders eklenmemiş.</p>
+            <Link 
+              href={`/student/courses/${courseId}/lessons/create`} 
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              İlk Dersi Ekle
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {lessons.map((lesson) => (
+              <div 
+                key={lesson.id} 
+                className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200"
+              >
+                {/* Video/Image Section */}
+                <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden relative">
+                  {lesson.video_url ? (
+                    <div className="relative w-full h-full group">
+                      <video 
+                        src={getFullUrl(lesson.video_url)} 
+                        controls 
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="object-cover w-full h-full"
+                        title={lesson.title}
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                        <Play className="h-12 w-12 text-white" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <Image 
+                        src={no_video}
+                        alt="No video available"
+                        className="object-contain w-16 h-16 mb-2 opacity-50" 
+                      />
+                      <span className="text-sm">Video yok</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Content */}
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
+                      {lesson.title}
+                    </h3>
+                    <div className="ml-3 px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-medium rounded-full whitespace-nowrap">
+                      #{lesson.order}
+                    </div>
+                  </div>
+                  
+                  {/* Content Preview */}
+                  <div className="mb-4">
+                    <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
+                      {lesson.content?.length > 120 
+                        ? `${lesson.content.substring(0, 120)}...` 
+                        : lesson.content || 'Bu ders için içerik bulunmamaktadır.'}
+                    </p>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 flex-wrap">
+                    <Link 
+                      href={`/student/courses/${courseId}/lessons/${lesson.id}`}
+                      className="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-2 rounded-lg hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 text-sm font-medium"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Detaylar
+                    </Link>
+                    <button 
+                      onClick={() => handleEditLesson(lesson.id)}
+                      className="inline-flex items-center gap-1 border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                      title="Dersi Düzenle"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button> 
+                    <button 
+                      onClick={() => handleDeleteLesson(lesson.id, lesson.title)}
+                      className="inline-flex items-center gap-1 bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm"
+                      title="Dersi Sil"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
-// Placeholder for Lesson type if not defined in coursesApi
-// interface Lesson {
-//   id: number;
-//   title: string;
-//   // Add other relevant lesson properties
-// } 

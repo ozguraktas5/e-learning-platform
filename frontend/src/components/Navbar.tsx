@@ -13,8 +13,6 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
-  const isInstructorDashboard = pathname?.includes('/instructor/');
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -50,55 +48,17 @@ export default function Navbar() {
             
             {/* Desktop menu */}
             <div className="hidden sm:ml-10 sm:flex sm:space-x-8">
-              {user?.role === 'instructor' && (
+              {user && (
                 <Link
-                  href="/instructor/dashboard"
+                  href={user.role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'}
                   className={`inline-flex items-center px-4 py-2 rounded-md text-base font-medium ${
-                    pathname === '/instructor/dashboard'
+                    pathname === (user.role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard')
                       ? 'bg-indigo-50 text-indigo-600'
                       : 'text-gray-500 hover:text-indigo-600 transition-colors'
                   }`}
                 >
                   Anasayfa
                 </Link>
-              )}
-              
-              {user && !isInstructorDashboard && user?.role !== 'instructor' && (
-                <Link
-                  href={user?.role === 'student' ? "/student/courses" : "/courses"}
-                  className={`inline-flex items-center px-4 py-2 text-base font-medium ${
-                    pathname.includes('/courses') 
-                      ? 'text-gray-900' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Kurslar
-                </Link>
-              )}
-              
-              {user?.role === 'student' && (
-                <>
-                  <Link
-                    href="/student/my-courses"
-                    className={`inline-flex items-center px-1 py-4 text-sm font-medium border-b-2 ${
-                      pathname === '/student/my-courses' 
-                        ? 'border-purple-500 text-gray-900' 
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    }`}
-                  >
-                    Kayıtlı Kurslarım
-                  </Link>
-                  <Link
-                    href="/student/enrollment-history"
-                    className={`inline-flex items-center px-1 py-4 text-sm font-medium border-b-2 ${
-                      pathname === '/student/enrollment-history' 
-                        ? 'border-pink-500 text-gray-900' 
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    }`}
-                  >
-                    Kayıt Geçmişi
-                  </Link>
-                </>
               )}
             </div>
           </div>
@@ -170,39 +130,13 @@ export default function Navbar() {
       {/* Mobile menu */}
       <div className={`sm:hidden ${isMobileMenuOpen ? 'block' : 'hidden'}`}>
         <div className="px-2 pt-2 pb-3 space-y-1">
-          {user?.role === 'instructor' && (
+          {user && (
             <Link
-              href="/instructor/dashboard"
+              href={user.role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'}
               className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
             >
               Anasayfa
             </Link>
-          )}
-          
-          {user && !isInstructorDashboard && user?.role !== 'instructor' && (
-            <Link
-              href={user?.role === 'student' ? "/student/courses" : "/courses"}
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
-            >
-              Kurslar
-            </Link>
-          )}
-          
-          {user?.role === 'student' && (
-            <>
-              <Link
-                href="/student/my-courses"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
-              >
-                Kayıtlı Kurslarım
-              </Link>
-              <Link
-                href="/student/enrollment-history"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-gray-50"
-              >
-                Kayıt Geçmişi
-              </Link>
-            </>
           )}
           
           {user ? (

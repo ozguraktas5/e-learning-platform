@@ -139,6 +139,12 @@ export const assignmentsApi = {
     return response.data;
   },
 
+  // Get assignments for a specific lesson
+  getLessonAssignments: async (courseId: number, lessonId: number): Promise<Assignment[]> => {
+    const response = await api.get(`/courses/${courseId}/lessons/${lessonId}/assignments`);
+    return response.data;
+  },
+
   // Get a single assignment
   getAssignment: async (courseId: number, lessonId: number, assignmentId: number): Promise<Assignment> => {
     const response = await api.get(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`);
@@ -160,5 +166,16 @@ export const assignmentsApi = {
   // Delete an assignment
   deleteAssignment: async (courseId: number, lessonId: number, assignmentId: number): Promise<void> => {
     await api.delete(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`);
+  },
+
+  // Submit an assignment
+  submitAssignment: async (courseId: number, lessonId: number, assignmentId: number, data: { text: string }): Promise<void> => {
+    await api.post(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}/submit`, data);
+  },
+
+  // Get user's submission for an assignment
+  getUserSubmission: async (courseId: number, lessonId: number, assignmentId: number): Promise<AssignmentSubmission> => {
+    const response = await api.get(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}/my-submission`);
+    return response.data;
   }
 }; 

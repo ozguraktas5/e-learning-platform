@@ -85,7 +85,7 @@ export default function MyCoursesPage() {
               Öğrenmeye başlamak için kursları keşfedin ve kendinizi geliştirin
             </p>
             <Link 
-              href="/courses" 
+              href="/student/courses" 
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
             >
               Kursları Keşfet
@@ -186,7 +186,7 @@ export default function MyCoursesPage() {
               
               <div className="p-6 pt-2">
                 <Link
-                  href={`/courses/${course.id}`}
+                  href={`/student/courses/${course.id}`}
                   className="flex items-center justify-center gap-2 w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium shadow-sm hover:shadow-md transition-all duration-300"
                 >
                   <span>Kursa Git</span>

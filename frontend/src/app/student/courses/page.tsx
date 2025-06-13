@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { coursesApi, Course } from '@/lib/api/courses';
 import { toast } from 'react-hot-toast';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { translateLevelToTurkish } from '@/lib/utils/courseUtils';
+import { BookOpen, Search, Filter, Star, User, Tag, DollarSign, Eye, ArrowUpDown, X } from 'lucide-react';
 
 export default function CoursesPage() {
   const { user } = useAuth();
@@ -72,34 +75,10 @@ export default function CoursesPage() {
     } else if (filterStatus === 'top-rated') {
       return (course.average_rating || 0) >= 4.5;
     } else if (filterStatus === 'beginner') {
-      return course.level.toLowerCase() === 'başlangıç';
+      return course.level.toLowerCase() === 'beginner';
     }
     
     return true;
-  };
-
-  // Sıralama için sütun başlığı
-  const renderSortableHeader = (label: string, key: string) => {
-    const isActive = sortBy === key;
-    
-    return (
-      <button 
-        onClick={() => {
-          if (isActive) {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-          } else {
-            setSortBy(key);
-            setSortOrder('desc');
-          }
-        }}
-        className={`flex items-center space-x-1 ${isActive ? 'text-blue-600' : 'text-gray-700'}`}
-      >
-        <span>{label}</span>
-        {isActive && (
-          <span className="ml-1">{sortOrder === 'asc' ? '↑' : '↓'}</span>
-        )}
-      </button>
-    );
   };
 
   const filteredAndSortedCourses = courses
@@ -107,135 +86,213 @@ export default function CoursesPage() {
     .sort(sortCourses);
 
   if (loading) {
-    return (
-      <div className="container mx-auto p-6 flex justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <LoadingSpinner size="large" fullScreen />;
   }
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="bg-red-50 p-4 rounded-md text-red-800">
-          <h3 className="font-medium text-xl">Hata</h3>
-          <p className="mt-2">{error}</p>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
+        <div className="container mx-auto p-6">
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-800 shadow-lg">
+            <h3 className="font-semibold text-xl mb-2">Hata Oluştu</h3>
+            <p>{error}</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto max-w-7xl p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Kurslar</h1>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
+      <div className="max-w-7xl mx-auto p-8">
+        {/* Header */}
+        <div className="mb-10 relative">
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-200/30 via-purple-100/20 to-pink-200/30 rounded-3xl blur-2xl"></div>
+          <div className="p-8 rounded-2xl backdrop-blur-sm bg-white/70 border border-indigo-100/50 shadow-xl">
+            <div className="flex items-center space-x-3">
+              <BookOpen className="h-8 w-8 text-indigo-600" />
+              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
+                Tüm Kurslar
+              </h1>
+            </div>
+            <p className="text-gray-600 mt-2 ml-11">
+              Mevcut tüm kursları keşfedin ve öğrenmeye başlayın
+            </p>
+          </div>
+        </div>
+        
+        {/* Filtreleme ve Arama */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-indigo-100 p-6 mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+            <div className="flex-1">
+              <label htmlFor="search" className="block text-sm font-semibold text-gray-700 mb-2">
+                <Search className="inline h-4 w-4 mr-1" />
+                Kurs Ara
+              </label>
+              <input
+                type="text"
+                id="search"
+                placeholder="Kurs adına göre ara..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+              />
+            </div>
+            
+            <div className="flex-1">
+              <label htmlFor="status" className="block text-sm font-semibold text-gray-700 mb-2">
+                <Filter className="inline h-4 w-4 mr-1" />
+                Filtrele
+              </label>
+              <select
+                id="status"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+              >
+                <option value="all">Tüm Kurslar</option>
+                <option value="top-rated">En İyi Değerlendirilenler (4.5+)</option>
+                <option value="beginner">Başlangıç Seviyesi</option>
+              </select>
+            </div>
+            
+            <div className="flex-1">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <ArrowUpDown className="inline h-4 w-4 mr-1" />
+                Sıralama
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="flex-1 border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                >
+                  <option value="created_at">Tarih</option>
+                  <option value="title">İsim</option>
+                  <option value="average_rating">Puan</option>
+                </select>
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="px-3 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  title={sortOrder === 'asc' ? 'Azalan' : 'Artan'}
+                >
+                  {sortOrder === 'asc' ? '↑' : '↓'}
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilterStatus('all');
+                  setSortBy('created_at');
+                  setSortOrder('desc');
+                }}
+                className="inline-flex items-center gap-2 px-4 py-3 text-indigo-600 hover:bg-indigo-50 rounded-lg border border-indigo-200 transition-colors"
+              >
+                <X className="h-4 w-4" />
+                Temizle
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Kurslar Grid */}
+        {filteredAndSortedCourses.length === 0 ? (
+          <div className="text-center p-12 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-indigo-100">
+            <div className="p-6 bg-indigo-50 rounded-full mx-auto w-24 h-24 flex items-center justify-center mb-6">
+              <Search className="h-12 w-12 text-indigo-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Hiç kurs bulunamadı</h3>
+            <p className="text-gray-600 mb-8 max-w-md mx-auto">
+              {searchQuery || filterStatus !== 'all' 
+                ? 'Arama kriterlerinize uygun kurs bulunamadı. Filtreleri değiştirmeyi deneyin.'
+                : 'Henüz hiç kurs bulunmuyor.'}
+            </p>
+            {(searchQuery || filterStatus !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilterStatus('all');
+                }}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+              >
+                Filtreleri Temizle
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredAndSortedCourses.map(course => (
+              <div 
+                key={course.id} 
+                className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-indigo-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+              >
+                <div className="relative h-48 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-white text-4xl font-bold">
+                      {course.title.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  
+                  {/* Rating Badge */}
+                  {course.average_rating && course.average_rating > 0 && (
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
+                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                      <span className="text-xs font-medium text-gray-800">
+                        {course.average_rating.toFixed(1)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Level Badge */}
+                  <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1">
+                    <span className="text-xs font-medium text-gray-800">
+                      {translateLevelToTurkish(course.level)}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="p-6">
+                  <h2 className="text-xl font-bold text-gray-800 mb-3 line-clamp-2">
+                    {course.title}
+                  </h2>
+                  
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                    {course.description}
+                  </p>
+                  
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <User className="h-4 w-4 mr-2 text-indigo-400" />
+                      <span>{course.instructor_name}</span>
+                    </div>
+                    
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <Tag className="h-4 w-4 mr-2 text-indigo-400" />
+                      <span>{course.category}</span>
+                    </div>
+                    
+                    <div className="flex items-center text-gray-600 text-sm">
+                      <DollarSign className="h-4 w-4 mr-2 text-indigo-400" />
+                      <span className="font-semibold text-gray-800">{course.price} TL</span>
+                    </div>
+                  </div>
+                  
+                  <Link
+                    href={`/student/courses/${course.id}`}
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium shadow-sm hover:shadow-md transition-all duration-300"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span>Kursu İncele</span>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      
-      {/* Filtreleme ve Arama */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="w-full md:w-1/3">
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Ara</label>
-            <input
-              type="text"
-              id="search"
-              placeholder="Kurs adına göre ara..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          
-          <div className="w-full md:w-1/3">
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Filtrele</label>
-            <select
-              id="status"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">Tüm Kurslar</option>
-              <option value="top-rated">En İyi Değerlendirilenler</option>
-              <option value="beginner">Başlangıç Seviyesi</option>
-            </select>
-          </div>
-          
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setFilterStatus('all');
-                setSortBy('created_at');
-                setSortOrder('desc');
-              }}
-              className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-md border border-blue-600"
-            >
-              Filtreleri Temizle
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      {/* Kurslar Tablosu */}
-      {filteredAndSortedCourses.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-md p-10 text-center">
-          <h3 className="text-xl font-medium text-gray-700">Hiç kurs bulunamadı</h3>
-          <p className="mt-2 text-gray-500">
-            {searchQuery || filterStatus !== 'all' 
-              ? 'Arama kriterlerinize uygun kurs bulunamadı. Filtreleri değiştirmeyi deneyin.'
-              : 'Henüz hiç kurs bulunmuyor.'}
-          </p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 text-gray-700 text-sm">
-                <tr>
-                  <th className="py-3 px-4 text-left">{renderSortableHeader('Kurs Adı', 'title')}</th>
-                  <th className="py-3 px-4 text-center">{renderSortableHeader('Değerlendirme', 'average_rating')}</th>
-                  <th className="py-3 px-4 text-center">Eğitmen</th>
-                  <th className="py-3 px-4 text-center">Kategori</th>
-                  <th className="py-3 px-4 text-center">Fiyat</th>
-                  <th className="py-3 px-4 text-right">İşlemler</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedCourses.map(course => (
-                  <tr key={course.id} className="hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <Link href={`/student/courses/${course.id}`} className="text-blue-600 hover:underline font-medium">
-                        {course.title}
-                      </Link>
-                      <p className="text-xs text-gray-500 mt-1 truncate max-w-xs">{course.description}</p>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center">
-                        <span>{course.average_rating?.toFixed(1) || 'N/A'}</span>
-                        {course.average_rating && course.average_rating > 0 && <span className="text-yellow-500 ml-1">★</span>}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center">{course.instructor_name}</td>
-                    <td className="py-3 px-4 text-center">{course.category}</td>
-                    <td className="py-3 px-4 text-center">{course.price} TL</td>
-                    <td className="py-3 px-4 text-right">
-                      <Link 
-                        href={`/student/courses/${course.id}`}
-                        className="text-blue-600 hover:text-blue-800 inline-block"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
