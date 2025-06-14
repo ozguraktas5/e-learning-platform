@@ -11,13 +11,8 @@ def get_profile():
     current_user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
     current_user = User.query.get(current_user_id) # Kullanıcıyı al
     
-    return jsonify({
-        'id': current_user.id,
-        'username': current_user.username,
-        'email': current_user.email,
-        'role': current_user.role,
-        'created_at': current_user.created_at.isoformat()
-    })
+    # Use the to_dict method to include all profile fields
+    return jsonify(current_user.to_dict())
 
 @profiles.route('/profile', methods=['PUT'])
 @jwt_required()
@@ -42,17 +37,18 @@ def update_profile():
             return jsonify({'message': 'Username already in use'}), 400
         current_user.username = data['username']
     
+    # Student profile fields
+    if current_user.role == 'student':
+        if 'interests' in data:
+            current_user.interests = data['interests']
+        if 'education_level' in data:
+            current_user.education_level = data['education_level']
+    
     db.session.commit() # Değişiklikleri kaydediyoruz.
     
     return jsonify({
         'message': 'Profile updated successfully',
-        'profile': {
-            'id': current_user.id,
-            'username': current_user.username,
-            'email': current_user.email,
-            'role': current_user.role,
-            'created_at': current_user.created_at.isoformat()
-        }
+        'profile': current_user.to_dict()
     })
 
 @profiles.route('/profile/password', methods=['PUT'])

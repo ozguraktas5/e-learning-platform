@@ -112,7 +112,7 @@ export default function CourseReviewsPage() {
       <div className="p-6 bg-red-50 rounded-lg">
         <h2 className="text-xl font-semibold text-red-700 mb-2">Hata</h2>
         <p className="text-red-600">{error || 'Kurs bulunamadı'}</p>
-        <Link href="/courses" className="mt-4 inline-block text-blue-600 hover:underline">
+        <Link href="/student/courses" className="mt-4 inline-block text-blue-600 hover:underline">
           Kurslara Dön
         </Link>
       </div>
@@ -120,20 +120,20 @@ export default function CourseReviewsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="max-w-7xl mx-auto p-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Kurs Değerlendirmeleri</h1>
         <div className="flex space-x-4">
           {user && course && Number(user.id) !== course.instructor_id && (
             <Link
-              href={`/courses/${courseId}/review`}
+              href={`/student/courses/${courseId}/review`}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               Değerlendir
             </Link>
           )}
           <Link
-            href={`/courses/${courseId}`}
+            href={`/student/courses/${courseId}`}
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
           >
             Kursa Dön
@@ -159,7 +159,7 @@ export default function CourseReviewsPage() {
           <p className="text-gray-600">Henüz değerlendirme yapılmamış.</p>
           {user && course && Number(user.id) !== course.instructor_id && (
             <Link
-              href={`/courses/${courseId}/review`}
+              href={`/student/courses/${courseId}/review`}
               className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
               İlk Değerlendirmeyi Yap
@@ -208,7 +208,7 @@ export default function CourseReviewsPage() {
                   {Number(user.id) === review.user_id && (
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => router.push(`/courses/${courseId}/reviews/${review.id}/edit`)}
+                        onClick={() => router.push(`/student/courses/${courseId}/reviews/${review.id}/edit`)}
                         className="text-blue-600 hover:text-blue-800"
                       >
                         Düzenle
@@ -224,7 +224,7 @@ export default function CourseReviewsPage() {
                   
                   {course.instructor_id === Number(user.id) && !review.instructor_reply && (
                     <button
-                      onClick={() => router.push(`/courses/${courseId}/reviews/${review.id}/reply`)}
+                      onClick={() => router.push(`/student/courses/${courseId}/reviews/${review.id}/reply`)}
                       className="text-green-600 hover:text-green-800"
                     >
                       Yanıtla

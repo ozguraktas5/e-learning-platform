@@ -3,6 +3,8 @@ import axios from './index';
 interface ProfileResponse {
   username: string;
   email: string;
+  interests?: string;
+  education_level?: string;
 }
 
 interface InstructorProfileResponse extends ProfileResponse {
@@ -18,6 +20,8 @@ interface InstructorProfileResponse extends ProfileResponse {
 interface ProfileUpdateBody {
   username: string;
   email: string;
+  interests?: string;
+  education_level?: string;
 }
 
 interface InstructorProfileUpdateBody extends ProfileUpdateBody {

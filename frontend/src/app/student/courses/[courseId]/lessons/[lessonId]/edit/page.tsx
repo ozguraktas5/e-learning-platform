@@ -126,7 +126,7 @@ export default function EditLessonPage() {
   if (error && !currentLesson) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-800 shadow-lg">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="h-6 w-6" />
@@ -148,7 +148,7 @@ export default function EditLessonPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">

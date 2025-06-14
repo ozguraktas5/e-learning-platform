@@ -21,6 +21,10 @@ class User(db.Model):
     linkedin = db.Column(db.String(255), nullable=True)
     twitter = db.Column(db.String(255), nullable=True)
     
+    # Student profile fields
+    interests = db.Column(db.String(500), nullable=True)
+    education_level = db.Column(db.String(50), nullable=True)
+    
     # İlişkiler
     enrollments = db.relationship('Enrollment', backref='student', lazy=True, foreign_keys='Enrollment.student_id')
     created_courses = db.relationship('Course', backref='instructor', lazy=True, foreign_keys='Course.instructor_id')
@@ -50,6 +54,13 @@ class User(db.Model):
                     'linkedin': self.linkedin,
                     'twitter': self.twitter
                 }
+            })
+        
+        # Add student profile fields if role is student
+        if self.role == 'student':
+            user_data.update({
+                'interests': self.interests,
+                'education_level': self.education_level
             })
             
         return user_data

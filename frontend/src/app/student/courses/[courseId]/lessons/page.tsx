@@ -86,7 +86,7 @@ export default function CourseLessonsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">

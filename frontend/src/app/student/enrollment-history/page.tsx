@@ -129,7 +129,7 @@ export default function EnrollmentHistoryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 text-red-700 p-5 rounded-xl shadow-md" role="alert">
             <div className="flex items-center mb-2">

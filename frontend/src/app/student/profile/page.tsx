@@ -49,15 +49,16 @@ export default function StudentProfilePage() {
       return;
     }
 
-    // Normalde öğrenci profilini getirecek bir API endpoint olacak
-    // Şimdilik mevcut profile API'sini kullanıyoruz
+    // Profil bilgilerini yükle
     profileApi.getProfile()
-      .then((data) => reset({
-        username: data.username,
-        email: data.email,
-        interests: '',  // API'den gelmiyorsa boş string kullan
-        educationLevel: '', // API'den gelmiyorsa boş string kullan
-      }))
+      .then((data) => {
+        reset({
+          username: data.username,
+          email: data.email,
+          interests: data.interests || '',
+          educationLevel: data.education_level || '',
+        });
+      })
       .catch((err) => {
         console.error(err);
         toast.error('Profil bilgileri yüklenirken hata oluştu');
@@ -67,17 +68,18 @@ export default function StudentProfilePage() {
 
   const onSubmit = async (data: StudentProfileForm) => {
     try {
-      // Normalde öğrenci profil güncellemesi için özel bir endpoint olacak
-      // Şimdilik genel profil güncelleme fonksiyonunu kullanıyoruz
-      const res = await profileApi.updateProfile({
+      // Tüm profil bilgilerini güncelle
+      await profileApi.updateProfile({
         username: data.username,
         email: data.email,
+        interests: data.interests,
+        education_level: data.educationLevel,
       });
-      toast.success(res.message || 'Profil başarıyla güncellendi');
+      
+      toast.success('Profil başarıyla güncellendi');
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      const msg = err.response?.data?.message ?? 'Profil güncellenemedi';
-      toast.error(msg);
+      console.error('Profile update error:', error);
+      toast.error('Profil güncellenirken bir hata oluştu');
     }
   };
 
@@ -87,7 +89,7 @@ export default function StudentProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50 py-8">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-md p-6 border border-gray-100">
           <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-100">
             <div className="p-3 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md">

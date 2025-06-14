@@ -65,7 +65,7 @@ export default function CourseReviewPage() {
 
       await reviewsApi.createReview(Number(courseId), reviewData);
       toast.success('Değerlendirmeniz başarıyla kaydedildi');
-      router.push(`/courses/${courseId}/reviews`);
+      router.push(`/student/courses/${courseId}/reviews`);
     } catch (error) {
       console.error('Error submitting review:', error);
       
@@ -97,7 +97,7 @@ export default function CourseReviewPage() {
       <div className="p-6 bg-red-50 rounded-lg">
         <h2 className="text-xl font-semibold text-red-700 mb-2">Hata</h2>
         <p className="text-red-600">{error || 'Kurs bulunamadı'}</p>
-        <Link href="/courses" className="mt-4 inline-block text-blue-600 hover:underline">
+        <Link href="/student/courses" className="mt-4 inline-block text-blue-600 hover:underline">
           Kurslara Dön
         </Link>
       </div>
@@ -105,11 +105,11 @@ export default function CourseReviewPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="max-w-7xl mx-auto p-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Kurs Değerlendirme</h1>
         <Link
-          href={`/courses/${courseId}`}
+          href={`/student/courses/${courseId}`}
           className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 transition"
         >
           Kursa Dön

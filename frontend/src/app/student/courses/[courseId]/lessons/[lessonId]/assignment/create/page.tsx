@@ -79,7 +79,7 @@ export default function CreateAssignmentPage() {
   const minDate = today.toISOString().slice(0, 16); // format: YYYY-MM-DDThh:mm
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Yeni Ödev Oluştur</h1>
 
       {error && (
