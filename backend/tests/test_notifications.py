@@ -1,34 +1,36 @@
-import pytest
-from datetime import datetime, timedelta, UTC
-from models import db, User, Course, Lesson, Assignment, Notification, Enrollment, AssignmentSubmission
-from werkzeug.security import generate_password_hash
-import json
-from queue import Queue
-from threading import Thread
-from time import sleep
+import pytest #pytest kütüphanesini import ediyoruz
+from datetime import datetime, timedelta, UTC #datetime modülünü import ediyoruz
+from models import db, User, Course, Lesson, Assignment, Notification, Enrollment, AssignmentSubmission #models.py dosyasındaki modelleri import ediyoruz
+from werkzeug.security import generate_password_hash #werkzeug kütüphanesinden generate_password_hash fonksiyonunu import ediyoruz
+import json #json kütüphanesini import ediyoruz
+from queue import Queue #queue kütüphanesini import ediyoruz
+from threading import Thread #threading kütüphanesini import ediyoruz
+from time import sleep #time kütüphanesini import ediyoruz
 
-@pytest.fixture(scope='function')
-def setup_test_data(test_app, session):
+@pytest.fixture(scope='function') #pytest.fixture decorator'unu kullanarak bir test verisi oluşturuyoruz
+def setup_test_data(test_app, session): #test_app ve session parametrelerini alan bir pytest fixture oluşturuyoruz
     # Test kullanıcıları oluştur
-    student = User(
+    #test_app: test uygulaması
+    #session: test veritabanı oturumu
+    student = User( #test kullanıcılarını oluşturuyoruz
         username='test_student',
         email='student@test.com',
         password_hash=generate_password_hash('password123'),
         role='student'
     )
     
-    instructor = User(
+    instructor = User( #test kullanıcılarını oluşturuyoruz
         username='test_instructor',
         email='instructor@test.com',
         password_hash=generate_password_hash('password123'),
         role='instructor'
     )
     
-    session.add_all([student, instructor])
-    session.commit()
+    session.add_all([student, instructor]) #test kullanıcılarını veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
     
     # Test kursu oluştur
-    course = Course(
+    course = Course( #test kursu oluşturuyoruz
         title='Test Course',
         description='Test Description',
         instructor_id=instructor.id
@@ -37,7 +39,7 @@ def setup_test_data(test_app, session):
     session.commit()
     
     # Test dersi oluştur
-    lesson = Lesson(
+    lesson = Lesson( #test dersi oluşturuyoruz      
         title='Test Lesson',
         content='Test Content',
         course_id=course.id,
@@ -47,14 +49,14 @@ def setup_test_data(test_app, session):
     session.commit()
     
     # Öğrenciyi kursa kaydet
-    enrollment = Enrollment(
+    enrollment = Enrollment( #test öğrenciyi kursa kaydediyoruz
         student_id=student.id,
         course_id=course.id
     )
     session.add(enrollment)
     session.commit()
     
-    yield {
+    yield { #test verilerini döndürüyoruz
         'student': student,
         'instructor': instructor,
         'course': course,
@@ -70,40 +72,40 @@ def setup_test_data(test_app, session):
     session.execute(db.delete(User))
     session.commit()
 
-def test_check_assignment_due_dates(test_client, setup_test_data, session):
+def test_check_assignment_due_dates(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # Test için yaklaşan bir ödev oluştur
     now = datetime.now(UTC)
-    assignment = Assignment(
+    assignment = Assignment( #test ödevi oluşturuyoruz
         title='Test Assignment',
         description='Test Description',
         lesson_id=setup_test_data['lesson'].id,
         due_date=now + timedelta(days=2),
         created_at=now  # created_at'i de UTC olarak ayarla
     )
-    session.add(assignment)
-    session.commit()
+    session.add(assignment) #test ödevini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Yaklaşan ödev bildirimlerini kontrol et
-    response = test_client.post(
-        '/api/courses/check-assignment-due-dates',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.post( #test isteği gönderiyoruz
+        '/api/courses/check-assignment-due-dates', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
-    assert data['notifications_count'] == 1
-    assert 'Test Assignment' in data['message']
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz    
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert data['notifications_count'] == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
+    assert 'Test Assignment' in data['message'] #test isteğinin yanıtındaki mesajı kontrol ediyoruz
 
-def test_unread_notifications(test_client, setup_test_data, session):
+def test_unread_notifications(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # Test bildirimi oluştur
-    notification = Notification(
+    notification = Notification( #test bildirimi oluşturuyoruz
         user_id=setup_test_data['student'].id,
         course_id=setup_test_data['course'].id,
         type='test_notification',
@@ -111,30 +113,29 @@ def test_unread_notifications(test_client, setup_test_data, session):
         message='Test Message',
         is_read=False
     )
-    session.add(notification)
-    session.commit()
+    session.add(notification) #test bildirimini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
     
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
     
     # Okunmamış bildirimleri kontrol et
-    response = test_client.get(
-        '/api/courses/notifications/unread',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.get( #test isteği gönderiyoruz
+        '/api/courses/notifications/unread', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
     
-    assert response.status_code == 200
-    data = response.get_json()
-    assert data['count'] == 1
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert data['count'] == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
 
-def test_mark_notification_read(test_client, setup_test_data, session):
+def test_mark_notification_read(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     """Test marking a notification as read"""
-    # Create a test notification for the student
-    notification = Notification(
+    notification = Notification( #test bildirimi oluşturuyoruz
         user_id=setup_test_data['student'].id,
         course_id=setup_test_data['course'].id,
         type='test_notification',
@@ -143,35 +144,35 @@ def test_mark_notification_read(test_client, setup_test_data, session):
         is_read=False,
         created_at=datetime.now(UTC)
     )
-    session.add(notification)
-    session.commit()
+    session.add(notification) #test bildirimini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
-    # Login as student
-    login_response = test_client.post('/api/auth/login', json={
+    # Öğrenci olarak giriş yap
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    assert login_response.status_code == 200
+    assert login_response.status_code == 200 
     token = login_response.get_json()['access_token']
 
-    # Mark notification as read
-    response = test_client.post(
-        f'/api/courses/notifications/{notification.id}/read',
-        headers={'Authorization': f'Bearer {token}'}
+    # Bildirimi okundu olarak işaretle
+    response = test_client.post( #test isteği gönderiyoruz
+        f'/api/courses/notifications/{notification.id}/read', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
-    assert data['message'] == 'Notification marked as read successfully'
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert data['message'] == 'Notification marked as read successfully' #test isteğinin yanıtındaki mesajı kontrol ediyoruz
 
-    # Verify the notification is marked as read
-    updated_notification = session.get(Notification, notification.id)
-    assert updated_notification.is_read == True
-    assert updated_notification.read_at is not None
+    # Bildirimin okundu olarak işaretlendiğini kontrol et
+    updated_notification = session.get(Notification, notification.id) #test bildirimini veritabanından alıyoruz
+    assert updated_notification.is_read == True #test bildiriminin okundu olarak işaretlendiğini kontrol ediyoruz
+    assert updated_notification.read_at is not None #test bildiriminin okundu tarihi boş olmadığını kontrol ediyoruz
 
-def test_mark_all_notifications_read(test_client, setup_test_data, session):
+def test_mark_all_notifications_read(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # Birden fazla test bildirimi oluştur
-    notifications = [
+    notifications = [ #test bildirimlerini oluşturuyoruz
         Notification(
             user_id=setup_test_data['student'].id,
             course_id=setup_test_data['course'].id,
@@ -181,146 +182,146 @@ def test_mark_all_notifications_read(test_client, setup_test_data, session):
             is_read=False
         ) for i in range(3)
     ]
-    session.add_all(notifications)
-    session.commit()
+    session.add_all(notifications) #test bildirimlerini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
     
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
     
     # Tüm bildirimleri okundu olarak işaretle
-    response = test_client.post(
-        '/api/courses/notifications/mark-all-read',
-        headers={'Authorization': f'Bearer {token}'}
-    )
+    response = test_client.post( #test isteği gönderiyoruz
+        '/api/courses/notifications/mark-all-read', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
+    )           
     
-    assert response.status_code == 200
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
     
     # Tüm bildirimlerin okundu olarak işaretlendiğini kontrol et
-    stmt = db.select(Notification).filter_by(
+    stmt = db.select(Notification).filter_by( #test bildirimlerini filtrelemek için bir sorgu oluşturuyoruz
         user_id=setup_test_data['student'].id,
         is_read=False
     )
-    unread_count = len(session.scalars(stmt).all())
-    assert unread_count == 0
+    unread_count = len(session.scalars(stmt).all()) #test bildirimlerinin sayısını alıyoruz
+    assert unread_count == 0 #test bildirimlerinin sayısını kontrol ediyoruz
 
-def test_check_assignment_due_dates_no_enrollment(test_client, setup_test_data, session):
+def test_check_assignment_due_dates_no_enrollment(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # Öğrencinin kurs kaydını sil
-    session.execute(db.delete(Enrollment))
-    session.commit()
+    session.execute(db.delete(Enrollment)) #test öğrencinin kurs kaydını siliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Test için yaklaşan bir ödev oluştur
     now = datetime.now(UTC)
-    assignment = Assignment(
+    assignment = Assignment( #test ödevi oluşturuyoruz
         title='Test Assignment',
         description='Test Description',
         lesson_id=setup_test_data['lesson'].id,
         due_date=now + timedelta(days=2)
     )
-    session.add(assignment)
-    session.commit()
+    session.add(assignment) #test ödevini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Yaklaşan ödev bildirimlerini kontrol et
-    response = test_client.post(
-        '/api/courses/check-assignment-due-dates',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.post( #test isteği gönderiyoruz
+        '/api/courses/check-assignment-due-dates', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
 
-    assert response.status_code == 404
-    data = response.get_json()
-    assert 'Kayıtlı olduğunuz kurs bulunmamaktadır' in data['message']
+    assert response.status_code == 404 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert 'Kayıtlı olduğunuz kurs bulunmamaktadır' in data['message'] #test isteğinin yanıtındaki mesajı kontrol ediyoruz
 
-def test_check_assignment_due_dates_past_due(test_client, setup_test_data, session):
+def test_check_assignment_due_dates_past_due(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # Test için süresi geçmiş bir ödev oluştur
     now = datetime.now(UTC)
-    assignment = Assignment(
+    assignment = Assignment( #test ödevi oluşturuyoruz
         title='Past Due Assignment',
         description='Test Description',
         lesson_id=setup_test_data['lesson'].id,
         due_date=now - timedelta(days=1)  # Dün teslim tarihi olan ödev
     )
-    session.add(assignment)
-    session.commit()
+    session.add(assignment) #test ödevini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Yaklaşan ödev bildirimlerini kontrol et
-    response = test_client.post(
-        '/api/courses/check-assignment-due-dates',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.post( #test isteği gönderiyoruz
+        '/api/courses/check-assignment-due-dates', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
     assert data['notifications_count'] == 0  # Süresi geçmiş ödev için bildirim oluşturulmamalı
 
-def test_check_assignment_due_dates_already_submitted(test_client, setup_test_data, session):
+def test_check_assignment_due_dates_already_submitted(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # Test için yaklaşan bir ödev oluştur
     now = datetime.now(UTC)
-    assignment = Assignment(
+    assignment = Assignment( #test ödevi oluşturuyoruz
         title='Submitted Assignment',
         description='Test Description',
         lesson_id=setup_test_data['lesson'].id,
         due_date=now + timedelta(days=2)
     )
-    session.add(assignment)
-    session.commit()
+    session.add(assignment) #test ödevini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Ödev teslimini oluştur
-    submission = AssignmentSubmission(
+    submission = AssignmentSubmission( #test ödev teslimi oluşturuyoruz
         assignment_id=assignment.id,
         user_id=setup_test_data['student'].id,
         submission_text='Test Submission'
     )
-    session.add(submission)
-    session.commit()
+    session.add(submission) #test ödev teslimini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Yaklaşan ödev bildirimlerini kontrol et
-    response = test_client.post(
-        '/api/courses/check-assignment-due-dates',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.post( #test isteği gönderiyoruz
+        '/api/courses/check-assignment-due-dates', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
     assert data['notifications_count'] == 0  # Teslim edilmiş ödev için bildirim oluşturulmamalı
 
-def test_check_assignment_due_dates_duplicate_notification(test_client, setup_test_data, session):
+def test_check_assignment_due_dates_duplicate_notification(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # Test için yaklaşan bir ödev oluştur
     now = datetime.now(UTC)
-    assignment = Assignment(
+    assignment = Assignment( #test ödevi oluşturuyoruz
         title='Test Assignment',
         description='Test Description',
         lesson_id=setup_test_data['lesson'].id,
         due_date=now + timedelta(days=2)
     )
-    session.add(assignment)
-    session.commit()
+    session.add(assignment) #test ödevini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Aynı ödev için önceden bildirim oluştur
-    notification = Notification(
+    notification = Notification( #test bildirimi oluşturuyoruz
         user_id=setup_test_data['student'].id,
         course_id=setup_test_data['course'].id,
         type='assignment_due',
@@ -329,31 +330,31 @@ def test_check_assignment_due_dates_duplicate_notification(test_client, setup_te
         message='Test Message',
         is_read=False
     )
-    session.add(notification)
-    session.commit()
+    session.add(notification) #test bildirimini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Yaklaşan ödev bildirimlerini kontrol et
-    response = test_client.post(
-        '/api/courses/check-assignment-due-dates',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.post( #test isteği gönderiyoruz
+        '/api/courses/check-assignment-due-dates', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
     assert data['notifications_count'] == 0  # Aynı ödev için tekrar bildirim oluşturulmamalı
 
-def test_notification_pagination(test_client, setup_test_data, session):
+def test_notification_pagination(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # 15 adet test bildirimi oluştur
-    notifications = []
-    for i in range(15):
-        notification = Notification(
+    notifications = [] #test bildirimlerini oluşturuyoruz
+    for i in range(15): #15 adet test bildirimi oluşturuyoruz
+        notification = Notification( #test bildirimi oluşturuyoruz
             user_id=setup_test_data['student'].id,
             course_id=setup_test_data['course'].id,
             type='test_notification',
@@ -361,60 +362,60 @@ def test_notification_pagination(test_client, setup_test_data, session):
             message=f'Test Message {i+1}',
             is_read=False
         )
-        notifications.append(notification)
+        notifications.append(notification) #test bildirimlerini listeye ekliyoruz
     
-    session.add_all(notifications)
-    session.commit()
+    session.add_all(notifications) #test bildirimlerini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # İlk sayfa (10 bildirim)
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread?page=1&per_page=10',
         headers={'Authorization': f'Bearer {token}'}
     )
     
-    assert response.status_code == 200
-    data = response.get_json()
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
     assert len(data['notifications']) == 10  # İlk sayfada 10 bildirim olmalı
     assert data['total_count'] == 15  # Toplam 15 bildirim olmalı
     assert data['total_pages'] == 2  # Toplam 2 sayfa olmalı
 
     # İkinci sayfa (5 bildirim)
-    response = test_client.get(
-        '/api/courses/notifications/unread?page=2&per_page=10',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.get( #test isteği gönderiyoruz
+        '/api/courses/notifications/unread?page=2&per_page=10', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
     
-    assert response.status_code == 200
-    data = response.get_json()
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
     assert len(data['notifications']) == 5  # İkinci sayfada 5 bildirim olmalı
 
-def test_notification_filtering_by_course(test_client, setup_test_data, session):
+def test_notification_filtering_by_course(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # Farklı kurslar için bildirimler oluştur
-    course2 = Course(
+    course2 = Course( #test kursu oluşturuyoruz
         title='Test Course 2',
         description='Test Description 2',
         instructor_id=setup_test_data['instructor'].id
     )
-    session.add(course2)
-    session.commit()
+    session.add(course2) #test kursunu veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # İkinci kursa da öğrenciyi kaydet
-    enrollment2 = Enrollment(
+    enrollment2 = Enrollment( #test öğrencinin kurs kaydını oluşturuyoruz
         student_id=setup_test_data['student'].id,
         course_id=course2.id
     )
-    session.add(enrollment2)
-    session.commit()
+    session.add(enrollment2) #test öğrencinin kurs kaydını veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Her kurs için bildirimler oluştur
-    notifications = [
+    notifications = [ #test bildirimlerini oluşturuyoruz
         Notification(
             user_id=setup_test_data['student'].id,
             course_id=setup_test_data['course'].id,
@@ -432,41 +433,41 @@ def test_notification_filtering_by_course(test_client, setup_test_data, session)
             is_read=False
         )
     ]
-    session.add_all(notifications)
-    session.commit()
+    session.add_all(notifications) #test bildirimlerini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Kurs 1 için bildirimleri kontrol et
-    response = test_client.get(
-        f'/api/courses/notifications/unread?course_id={setup_test_data["course"].id}',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.get( #test isteği gönderiyoruz
+        f'/api/courses/notifications/unread?course_id={setup_test_data["course"].id}', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
     
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['notifications']) == 1
-    assert 'Course 1' in data['notifications'][0]['title']
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert len(data['notifications']) == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
+    assert 'Course 1' in data['notifications'][0]['title'] #test isteğinin yanıtındaki bildirimin başlığını kontrol ediyoruz
 
     # Kurs 2 için bildirimleri kontrol et
-    response = test_client.get(
-        f'/api/courses/notifications/unread?course_id={course2.id}',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.get( #test isteği gönderiyoruz
+        f'/api/courses/notifications/unread?course_id={course2.id}', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
     
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['notifications']) == 1
-    assert 'Course 2' in data['notifications'][0]['title']
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert len(data['notifications']) == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
+    assert 'Course 2' in data['notifications'][0]['title'] #test isteğinin yanıtındaki bildirimin başlığını kontrol ediyoruz
 
-def test_notification_type_filtering(test_client, setup_test_data, session):
+def test_notification_type_filtering(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # Farklı tiplerde bildirimler oluştur
-    notifications = [
+    notifications = [ #test bildirimlerini oluşturuyoruz
         Notification(
             user_id=setup_test_data['student'].id,
             course_id=setup_test_data['course'].id,
@@ -492,41 +493,41 @@ def test_notification_type_filtering(test_client, setup_test_data, session):
             is_read=False
         )
     ]
-    session.add_all(notifications)
-    session.commit()
+    session.add_all(notifications) #test bildirimlerini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Assignment bildirimleri için filtrele
-    response = test_client.get(
-        '/api/courses/notifications/unread?type=assignment_due',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.get( #test isteği gönderiyoruz
+        '/api/courses/notifications/unread?type=assignment_due', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
     
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['notifications']) == 1
-    assert data['notifications'][0]['type'] == 'assignment_due'
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert len(data['notifications']) == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
+    assert data['notifications'][0]['type'] == 'assignment_due' #test isteğinin yanıtındaki bildirimin tipini kontrol ediyoruz
 
     # Grade bildirimleri için filtrele
-    response = test_client.get(
-        '/api/courses/notifications/unread?type=grade_posted',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.get( #test isteği gönderiyoruz
+        '/api/courses/notifications/unread?type=grade_posted', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
     
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['notifications']) == 1
-    assert data['notifications'][0]['type'] == 'grade_posted'
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert len(data['notifications']) == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
+    assert data['notifications'][0]['type'] == 'grade_posted' #test isteğinin yanıtındaki bildirimin tipini kontrol ediyoruz
 
-def test_instructor_notifications(test_client, setup_test_data, session):
+def test_instructor_notifications(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # Eğitmen için bildirimler oluştur
-    notifications = [
+    notifications = [ #test bildirimlerini oluşturuyoruz
         Notification(
             user_id=setup_test_data['instructor'].id,
             course_id=setup_test_data['course'].id,
@@ -544,29 +545,29 @@ def test_instructor_notifications(test_client, setup_test_data, session):
             is_read=False
         )
     ]
-    session.add_all(notifications)
-    session.commit()
+    session.add_all(notifications) #test bildirimlerini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Eğitmen olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'instructor@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Eğitmenin bildirimlerini kontrol et
-    response = test_client.get(
-        '/api/courses/notifications/unread',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.get( #test isteği gönderiyoruz   
+        '/api/courses/notifications/unread', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
     
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['notifications']) == 2
-    assert any(n['type'] == 'new_submission' for n in data['notifications'])
-    assert any(n['type'] == 'course_enrollment' for n in data['notifications'])
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert len(data['notifications']) == 2 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
+    assert any(n['type'] == 'new_submission' for n in data['notifications']) #test isteğinin yanıtındaki bildirimlerin tipini kontrol ediyoruz
+    assert any(n['type'] == 'course_enrollment' for n in data['notifications']) #test isteğinin yanıtındaki bildirimlerin tipini kontrol ediyoruz
 
-def test_notification_date_filtering(test_client, setup_test_data, session):
+def test_notification_date_filtering(test_client, setup_test_data, session): #test_client, setup_test_data ve session parametrelerini alan bir test fonksiyonu oluşturuyoruz
     # Farklı tarihlerde bildirimler oluştur
     now = datetime.now(UTC)
     
@@ -574,7 +575,7 @@ def test_notification_date_filtering(test_client, setup_test_data, session):
     old_date = (now - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
     recent_date = (now - timedelta(hours=1)).replace(microsecond=0)
     
-    notifications = [
+    notifications = [ #test bildirimlerini oluşturuyoruz
         Notification(
             user_id=setup_test_data['student'].id,
             course_id=setup_test_data['course'].id,
@@ -594,40 +595,34 @@ def test_notification_date_filtering(test_client, setup_test_data, session):
             created_at=recent_date  # 1 saat önce
         )
     ]
-    session.add_all(notifications)
-    session.commit()
-
-    # Debug için yazdır
-    print(f"\nTest Debug:")
-    print(f"Now: {now}")
-    print(f"Old notification date: {old_date}")
-    print(f"Recent notification date: {recent_date}")
+    session.add_all(notifications) #test bildirimlerini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Son 24 saat içindeki bildirimleri filtrele
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread?since=24h',
         headers={'Authorization': f'Bearer {token}'}
     )
     
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['notifications']) == 1
-    assert 'Recent' in data['notifications'][0]['title']
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert len(data['notifications']) == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
+    assert 'Recent' in data['notifications'][0]['title'] #test isteğinin yanıtındaki bildirimin başlığını kontrol ediyoruz
 
     # Son 1 hafta içindeki bildirimleri filtrele
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread?since=7d',
-        headers={'Authorization': f'Bearer {token}'}
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
     
-    assert response.status_code == 200
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz    
     data = response.get_json()
     print(f"\nResponse data for 7d filter: {data}")  # Debug için
     assert len(data['notifications']) == 2  # Hem eski hem yeni bildirim görünmeli
@@ -635,7 +630,7 @@ def test_notification_date_filtering(test_client, setup_test_data, session):
 def test_notification_bulk_operations(test_client, setup_test_data, session):
     # Çoklu bildirim oluştur
     notifications = []
-    for i in range(5):
+    for i in range(5): #5 adet test bildirimi oluşturuyoruz
         notification = Notification(
             user_id=setup_test_data['student'].id,
             course_id=setup_test_data['course'].id,
@@ -644,38 +639,38 @@ def test_notification_bulk_operations(test_client, setup_test_data, session):
             message=f'Test Message {i+1}',
             is_read=False
         )
-        notifications.append(notification)
+        notifications.append(notification) #test bildirimlerini listeye ekliyoruz
     
-    session.add_all(notifications)
-    session.commit()
+    session.add_all(notifications) #test bildirimlerini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Seçili bildirimleri okundu olarak işaretle
     notification_ids = [notifications[0].id, notifications[2].id]
-    response = test_client.post(
-        '/api/courses/notifications/mark-selected-read',
-        json={'notification_ids': notification_ids},
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.post( #test isteği gönderiyoruz
+        '/api/courses/notifications/mark-selected-read', #test isteğinin yolu
+        json={'notification_ids': notification_ids}, #test isteğinin body'si
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
     
-    assert response.status_code == 200
-    data = response.get_json()
-    assert data['updated_count'] == 2
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert data['updated_count'] == 2 #test isteğinin yanıtındaki güncellenen bildirim sayısını kontrol ediyoruz
 
     # Okunmamış bildirimleri kontrol et
-    response = test_client.get(
-        '/api/courses/notifications/unread',
-        headers={'Authorization': f'Bearer {token}'}
+    response = test_client.get( #test isteği gönderiyoruz
+        '/api/courses/notifications/unread', #test isteğinin yolu
+        headers={'Authorization': f'Bearer {token}'} #test isteğinin headers'ı
     )
     
-    assert response.status_code == 200
-    data = response.get_json()
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
     assert len(data['notifications']) == 3  # 5 bildirimden 2'si okundu 
 
 def test_invalid_notification_id(test_client, setup_test_data, session):
