@@ -624,7 +624,6 @@ def test_notification_date_filtering(test_client, setup_test_data, session): #te
     
     assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz    
     data = response.get_json()
-    print(f"\nResponse data for 7d filter: {data}")  # Debug için
     assert len(data['notifications']) == 2  # Hem eski hem yeni bildirim görünmeli
 
 def test_notification_bulk_operations(test_client, setup_test_data, session):
@@ -694,21 +693,21 @@ def test_notification_authorization(test_client, setup_test_data, session):
     # Başka bir kullanıcının bildirimini okuma denemesi
     notification = Notification(
         user_id=setup_test_data['instructor'].id,  # Eğitmenin bildirimi
-        course_id=setup_test_data['course'].id,
+        course_id=setup_test_data['course'].id, #Kursun bildirimi
         type='test_notification',
         title='Test Notification',
         message='Test Message',
         is_read=False
     )
-    session.add(notification)
-    session.commit()
+    session.add(notification) #Bildirimi veritabanına ekliyoruz
+    session.commit() #Veritabanına yapılan değişiklikleri kaydediyoruz
     
     # Öğrenci olarak giriş yap
     login_response = test_client.post('/api/auth/login', json={
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
     
     # Eğitmenin bildirimini okuma denemesi
     response = test_client.post(
@@ -716,56 +715,56 @@ def test_notification_authorization(test_client, setup_test_data, session):
         headers={'Authorization': f'Bearer {token}'}
     )
     
-    assert response.status_code == 403
-    data = response.get_json()
-    assert 'You do not have permission to read this notification' in data['message']
+    assert response.status_code == 403 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert 'You do not have permission to read this notification' in data['message'] #test isteğinin yanıtındaki mesajı kontrol ediyoruz
 
 def test_invalid_filter_parameters(test_client, setup_test_data, session):
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
     
     # Geçersiz tarih filtresi
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread?since=invalid_date',
         headers={'Authorization': f'Bearer {token}'}
     )
-    assert response.status_code == 400
-    data = response.get_json()
-    assert 'Geçersiz tarih filtresi' in data['message']
+    assert response.status_code == 400 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert 'Geçersiz tarih filtresi' in data['message'] #test isteğinin yanıtındaki mesajı kontrol ediyoruz
     
     # Geçersiz sayfa numarası
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread?page=0',
         headers={'Authorization': f'Bearer {token}'}
     )
-    assert response.status_code == 400
-    data = response.get_json()
-    assert 'Sayfa numarası 1 veya daha büyük olmalıdır' in data['message']
+    assert response.status_code == 400 #test isteğinin başarılı olup olmadığını kontrol ediyoruz    
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert 'Sayfa numarası 1 veya daha büyük olmalıdır' in data['message'] #test isteğinin yanıtındaki mesajı kontrol ediyoruz
     
     # Geçersiz sayfa boyutu
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread?per_page=-1',
         headers={'Authorization': f'Bearer {token}'}
     )
-    assert response.status_code == 400
-    data = response.get_json()
-    assert 'Sayfa boyutu 1 veya daha büyük olmalıdır' in data['message']
+    assert response.status_code == 400 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert 'Sayfa boyutu 1 veya daha büyük olmalıdır' in data['message'] #test isteğinin yanıtındaki mesajı kontrol ediyoruz
 
 def test_notification_empty_message(test_client, setup_test_data, session):
     """Boş mesaj içeriği ile bildirim oluşturma testi"""
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Boş mesajlı bildirim oluştur
-    notification = Notification(
+    notification = Notification( #test bildirimi oluşturuyoruz
         user_id=setup_test_data['student'].id,
         course_id=setup_test_data['course'].id,
         type='test_notification',
@@ -773,34 +772,34 @@ def test_notification_empty_message(test_client, setup_test_data, session):
         message='',  # Boş mesaj
         is_read=False
     )
-    session.add(notification)
-    session.commit()
+    session.add(notification) #test bildirimini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Bildirimi getir
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread',
         headers={'Authorization': f'Bearer {token}'}
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['notifications']) == 1
-    assert data['notifications'][0]['message'] == ''
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert len(data['notifications']) == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
+    assert data['notifications'][0]['message'] == '' #test isteğinin yanıtındaki bildirimin mesajını kontrol ediyoruz
 
 def test_notification_very_long_title(test_client, setup_test_data, session):
     """Çok uzun başlıklı bildirim testi"""
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # 500 karakterlik başlık oluştur
     long_title = 'A' * 500
 
     # Uzun başlıklı bildirim oluştur
-    notification = Notification(
+    notification = Notification( #test bildirimi oluşturuyoruz
         user_id=setup_test_data['student'].id,
         course_id=setup_test_data['course'].id,
         type='test_notification',
@@ -808,32 +807,32 @@ def test_notification_very_long_title(test_client, setup_test_data, session):
         message='Test Message',
         is_read=False
     )
-    session.add(notification)
-    session.commit()
+    session.add(notification) #test bildirimini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Bildirimi getir
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread',
         headers={'Authorization': f'Bearer {token}'}
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['notifications']) == 1
-    assert len(data['notifications'][0]['title']) == 500
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert len(data['notifications']) == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
+    assert len(data['notifications'][0]['title']) == 500 #test isteğinin yanıtındaki bildirimin başlığının uzunluğunu kontrol ediyoruz
 
 def test_notification_special_characters(test_client, setup_test_data, session):
     """Özel karakterler içeren bildirim testi"""
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Özel karakterler içeren bildirim oluştur
     special_message = "!@#$%^&*()_+<>?:\"{}|~`';\\/.,[]"
-    notification = Notification(
+    notification = Notification( #test bildirimi oluşturuyoruz
         user_id=setup_test_data['student'].id,
         course_id=setup_test_data['course'].id,
         type='test_notification',
@@ -841,32 +840,32 @@ def test_notification_special_characters(test_client, setup_test_data, session):
         message=special_message,
         is_read=False
     )
-    session.add(notification)
-    session.commit()
+    session.add(notification) #test bildirimini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Bildirimi getir
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread',
         headers={'Authorization': f'Bearer {token}'}
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['notifications']) == 1
-    assert data['notifications'][0]['message'] == special_message
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert len(data['notifications']) == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
+    assert data['notifications'][0]['message'] == special_message #test isteğinin yanıtındaki bildirimin mesajını kontrol ediyoruz
 
 def test_notification_unicode_characters(test_client, setup_test_data, session):
     """Unicode karakterler içeren bildirim testi"""
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Unicode karakterler içeren bildirim oluştur
     unicode_message = "🎓 Eğitim 📚 Türkçe karakterler: ğüşıöç 🌟 More emojis: 🎯🎨"
-    notification = Notification(
+    notification = Notification( #test bildirimi oluşturuyoruz
         user_id=setup_test_data['student'].id,
         course_id=setup_test_data['course'].id,
         type='test_notification',
@@ -874,33 +873,33 @@ def test_notification_unicode_characters(test_client, setup_test_data, session):
         message=unicode_message,
         is_read=False
     )
-    session.add(notification)
-    session.commit()
+    session.add(notification) #test bildirimini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Bildirimi getir
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread',
         headers={'Authorization': f'Bearer {token}'}
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['notifications']) == 1
-    assert data['notifications'][0]['message'] == unicode_message
-    assert data['notifications'][0]['title'] == 'Unicode Test 🎉'
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert len(data['notifications']) == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
+    assert data['notifications'][0]['message'] == unicode_message #test isteğinin yanıtındaki bildirimin mesajını kontrol ediyoruz
+    assert data['notifications'][0]['title'] == 'Unicode Test 🎉' #test isteğinin yanıtındaki bildirimin başlığını kontrol ediyoruz
 
 def test_notification_html_content(test_client, setup_test_data, session):
     """HTML içerik ile bildirim testi"""
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # HTML içerikli bildirim oluştur
     html_message = "<h1>Test Başlık</h1><p>Test paragraf <strong>kalın metin</strong></p><script>alert('test')</script>"
-    notification = Notification(
+    notification = Notification( #test bildirimi oluşturuyoruz
         user_id=setup_test_data['student'].id,
         course_id=setup_test_data['course'].id,
         type='test_notification',
@@ -908,25 +907,25 @@ def test_notification_html_content(test_client, setup_test_data, session):
         message=html_message,
         is_read=False
     )
-    session.add(notification)
-    session.commit()
+    session.add(notification) #test bildirimini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Bildirimi getir
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread',
         headers={'Authorization': f'Bearer {token}'}
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
-    assert len(data['notifications']) == 1
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert len(data['notifications']) == 1 #test isteğinin yanıtındaki bildirim sayısını kontrol ediyoruz
     # HTML içeriğin escape edilip edilmediğini kontrol et
-    assert '<script>' not in data['notifications'][0]['message']
+    assert '<script>' not in data['notifications'][0]['message'] #test isteğinin yanıtındaki bildirimin mesajında script etiketi olmadığını kontrol ediyoruz
 
 def test_concurrent_read_notification(test_client, setup_test_data, session, test_app):
     """Test concurrent read operations on a notification"""
     # Create a test notification
-    notification = Notification(
+    notification = Notification( #test bildirimi oluşturuyoruz
         user_id=setup_test_data['student'].id,
         course_id=setup_test_data['course'].id,
         type='test_notification',
@@ -935,67 +934,58 @@ def test_concurrent_read_notification(test_client, setup_test_data, session, tes
         is_read=False,
         created_at=datetime.now(UTC)
     )
-    session.add(notification)
-    session.commit()
-    notification_id = notification.id
-    print(f"\nCreated test notification with ID: {notification_id}")
+    session.add(notification) #test bildirimini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
+    notification_id = notification.id #test bildiriminin id'sini alıyoruz
 
-    # Login as student
-    login_response = test_client.post('/api/auth/login', json={
+    # Öğrenci olarak giriş yap
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
     assert login_response.status_code == 200, f"Login failed: {login_response.get_json()}"
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
     headers = {'Authorization': f'Bearer {token}'}
 
-    # Queue to store results from threads
-    results = Queue()
+    # Test bildiriminin okunup okunamadığını kontrol etmek için kullanıyoruz
+    results = Queue() #test bildiriminin okunup okunamadığını kontrol etmek için kullanıyoruz
 
-    def make_request(thread_id):
+    def make_request(thread_id): #test bildiriminin okunup okunamadığını kontrol etmek için kullanıyoruz
         try:
-            print(f"Thread {thread_id} starting request...")
             with test_app.test_client() as client:
                 response = client.post(
                     f'/api/courses/notifications/{notification_id}/read',
                     headers=headers
                 )
-                print(f"Thread {thread_id} response: {response.status_code} - {response.get_json()}")
                 results.put(response.status_code)
         except Exception as e:
-            print(f"Thread {thread_id} error: {str(e)}")
             results.put(500)
 
-    # Create and start threads with a slight delay between them
+    # Threadleri oluştur ve başlat
     threads = []
     for i in range(3):
         thread = Thread(target=make_request, args=(i,))
         threads.append(thread)
         thread.start()
-        sleep(0.1)  # Small delay between thread starts
+        sleep(0.1) #Threadler arasında küçük bir gecikme bırakıyoruz    
 
-    # Wait for all threads to complete
+    # Threadlerin tamamlanmasını bekliyoruz
     for thread in threads:
         thread.join()
 
-    # Collect results
+    # Threadlerin sonuçlarını topluyoruz
     status_codes = []
     while not results.empty():
         status_codes.append(results.get())
 
-    print(f"All status codes: {status_codes}")
-
-    # Verify results
+    # Threadlerin sonuçlarını kontrol ediyoruz
     success_count = status_codes.count(200)
     conflict_count = status_codes.count(409)
-    
-    print(f"Success count: {success_count}")
-    print(f"Conflict count: {conflict_count}")
     
     assert success_count == 1, f"Expected exactly one success, got {success_count}"
     assert conflict_count == 2, f"Expected two conflicts, got {conflict_count}"
 
-    # Verify the notification is marked as read
+    # Test bildiriminin okunup okunamadığını kontrol ediyoruz
     session.refresh(notification)
     assert notification.is_read == True, "Notification should be marked as read"
     assert notification.read_at is not None, "read_at should be set"
@@ -1005,7 +995,7 @@ def test_notification_performance_large_dataset(test_client, setup_test_data, se
     # 100 adet bildirim oluştur
     notifications = []
     for i in range(100):
-        notification = Notification(
+        notification = Notification( #test bildirimi oluşturuyoruz
             user_id=setup_test_data['student'].id,
             course_id=setup_test_data['course'].id,
             type='test_notification',
@@ -1015,26 +1005,26 @@ def test_notification_performance_large_dataset(test_client, setup_test_data, se
             created_at=datetime.now(UTC) - timedelta(minutes=i)  # Her bildirim 1 dakika arayla
         )
         notifications.append(notification)
-    session.add_all(notifications)
-    session.commit()
+    session.add_all(notifications) #test bildirimlerini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Sayfalandırma ile bildirimleri getir ve süreyi ölç
     start_time = datetime.now()
-    response = test_client.get(
+    response = test_client.get( #test isteği gönderiyoruz
         '/api/courses/notifications/unread?page=1&per_page=50',
         headers={'Authorization': f'Bearer {token}'}
     )
     end_time = datetime.now()
     response_time = (end_time - start_time).total_seconds()
 
-    assert response.status_code == 200
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
     data = response.get_json()
     assert len(data['notifications']) == 50  # Sayfa başına 50 bildirim
     assert data['total_count'] == 100  # Toplam 100 bildirim
@@ -1110,8 +1100,8 @@ def test_notification_mixed_content_types(test_client, setup_test_data, session)
         headers={'Authorization': f'Bearer {token}'}
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz    
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
     assert len(data['notifications']) == len(successful_notifications)  # SQL injection içeren bildirim hariç
 
     # Her başarılı bildirim için içerik kontrolü
@@ -1131,10 +1121,10 @@ def test_notification_mixed_content_types(test_client, setup_test_data, session)
             # Markdown içeriği doğrula
             assert '#' in notification['message']
 
-def test_notification_stress_concurrent_reads(test_client, setup_test_data, session):
+def test_notification_stress_concurrent_reads(test_client, setup_test_data, session): #Eş zamanlı okuma işlemleri stres testi
     """Eş zamanlı okuma işlemleri stres testi"""
     # Test bildirimi oluştur
-    notification = Notification(
+    notification = Notification( #test bildirimi oluşturuyoruz
         user_id=setup_test_data['student'].id,
         course_id=setup_test_data['course'].id,
         type='test_notification',
@@ -1143,75 +1133,66 @@ def test_notification_stress_concurrent_reads(test_client, setup_test_data, sess
         is_read=False,
         created_at=datetime.now(UTC)
     )
-    session.add(notification)
-    session.commit()
-    notification_id = notification.id
-    print(f"\nCreated test notification with ID: {notification_id}")
+    session.add(notification) #test bildirimini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
+    notification_id = notification.id #test bildiriminin id'sini alıyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
     assert login_response.status_code == 200, f"Login failed: {login_response.get_json()}"
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
     headers = {'Authorization': f'Bearer {token}'}
 
-    # Queue to store results from threads
+    # Threadlerin sonuçlarını toplamak için kullanıyoruz
     results = Queue()
 
-    def make_request(thread_id):
+    def make_request(thread_id): #test bildiriminin okunup okunamadığını kontrol etmek için kullanıyoruz
         try:
-            print(f"Thread {thread_id} starting request...")
             response = test_client.post(
                 f'/api/courses/notifications/{notification_id}/read',
                 headers=headers
             )
-            print(f"Thread {thread_id} response: {response.status_code} - {response.get_json()}")
             results.put(response.status_code)
         except Exception as e:
-            print(f"Thread {thread_id} error: {str(e)}")
             results.put(500)
 
-    # Create and start threads with a slight delay between them
+    # Threadleri oluştur ve başlat
     threads = []
     for i in range(3):
         thread = Thread(target=make_request, args=(i,))
         threads.append(thread)
         thread.start()
-        sleep(0.1)  # Small delay between thread starts
+        sleep(0.1) #Threadler arasında küçük bir gecikme bırakıyoruz
 
-    # Wait for all threads to complete
+    # Threadlerin tamamlanmasını bekliyoruz
     for thread in threads:
         thread.join()
 
-    # Collect results
+    # Threadlerin sonuçlarını topluyoruz
     status_codes = []
     while not results.empty():
         status_codes.append(results.get())
 
-    print(f"All status codes: {status_codes}")
-
-    # Verify results
+    # Threadlerin sonuçlarını kontrol ediyoruz
     success_count = status_codes.count(200)
     conflict_count = status_codes.count(409)
-    
-    print(f"Success count: {success_count}")
-    print(f"Conflict count: {conflict_count}")
     
     assert success_count == 1, f"Expected exactly one success, got {success_count}"
     assert conflict_count == 2, f"Expected two conflicts, got {conflict_count}"
 
-    # Verify the notification is marked as read
-    session.refresh(notification)
+    # Test bildiriminin okunup okunamadığını kontrol ediyoruz
+    session.refresh(notification) 
     assert notification.is_read == True, "Notification should be marked as read"
     assert notification.read_at is not None, "read_at should be set"
 
-def test_notification_cleanup_old_notifications(test_client, setup_test_data, session):
+def test_notification_cleanup_old_notifications(test_client, setup_test_data, session): #Eski bildirimlerin temizlenmesi testi
     """Eski bildirimlerin temizlenmesi testi"""
     # Farklı tarihlerde bildirimler oluştur
     now = datetime.now(UTC)
-    notifications = [
+    notifications = [ #test bildirimleri oluşturuyoruz
         # 1 yıl önce
         Notification(
             user_id=setup_test_data['student'].id,
@@ -1253,34 +1234,34 @@ def test_notification_cleanup_old_notifications(test_client, setup_test_data, se
             created_at=now
         )
     ]
-    session.add_all(notifications)
-    session.commit()
+    session.add_all(notifications) #test bildirimlerini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # Temizlik işlemi endpoint'ini çağır
-    response = test_client.post(
+    response = test_client.post( #test isteği gönderiyoruz
         '/api/courses/notifications/cleanup',
         json={'days_threshold': 90},  # 90 günden eski bildirimleri temizle
         headers={'Authorization': f'Bearer {token}'}
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
     assert data['deleted_count'] == 2  # 1 yıl ve 6 ay önceki bildirimler silinmeli
 
     # Kalan bildirimleri kontrol et
-    remaining = session.scalars(
+    remaining = session.scalars( #test bildirimlerini veritabanından alıyoruz
         db.select(Notification)
         .filter_by(user_id=setup_test_data['student'].id)
     ).all()
     
-    assert len(remaining) == 2  # Sadece 1 ay önce ve bugünkü bildirimler kalmalı
+    assert len(remaining) == 2  # Sadece 1 ay önce ve bugünkü bildirimler kalmalı (2 adet)
     
     # Tarihleri karşılaştırmadan önce UTC'ye çevir
     threshold_date = (now - timedelta(days=90))
@@ -1288,12 +1269,12 @@ def test_notification_cleanup_old_notifications(test_client, setup_test_data, se
         created_at = notification.created_at if notification.created_at.tzinfo else notification.created_at.replace(tzinfo=UTC)
         assert created_at > threshold_date
 
-def test_notification_bulk_status_update(test_client, setup_test_data, session):
+def test_notification_bulk_status_update(test_client, setup_test_data, session): #Toplu bildirim durumu güncelleme testi
     """Toplu bildirim durumu güncelleme testi"""
     # 5 bildirim oluştur
-    notifications = []
+    notifications = [] #test bildirimleri oluşturuyoruz
     for i in range(5):
-        notification = Notification(
+        notification = Notification( #test bildirimi oluşturuyoruz
             user_id=setup_test_data['student'].id,
             course_id=setup_test_data['course'].id,
             type='test_notification',
@@ -1302,19 +1283,19 @@ def test_notification_bulk_status_update(test_client, setup_test_data, session):
             is_read=False
         )
         notifications.append(notification)
-    session.add_all(notifications)
-    session.commit()
+    session.add_all(notifications) #test bildirimlerini veritabanına ekliyoruz
+    session.commit() #veritabanına yapılan değişiklikleri kaydediyoruz
 
     # Öğrenci olarak giriş yap
-    login_response = test_client.post('/api/auth/login', json={
+    login_response = test_client.post('/api/auth/login', json={ #test kullanıcısının giriş yapması için bir istek gönderiyoruz
         'email': 'student@test.com',
         'password': 'password123'
     })
-    token = login_response.get_json()['access_token']
+    token = login_response.get_json()['access_token'] #giriş yapan kullanıcının token'ını alıyoruz
 
     # 3 bildirimi seç ve durumlarını güncelle
     selected_ids = [notifications[0].id, notifications[2].id, notifications[4].id]
-    response = test_client.post(
+    response = test_client.post( #test isteği gönderiyoruz
         '/api/courses/notifications/bulk-update',
         json={
             'notification_ids': selected_ids,
@@ -1324,17 +1305,17 @@ def test_notification_bulk_status_update(test_client, setup_test_data, session):
         headers={'Authorization': f'Bearer {token}'}
     )
 
-    assert response.status_code == 200
-    data = response.get_json()
-    assert data['updated_count'] == 3
+    assert response.status_code == 200 #test isteğinin başarılı olup olmadığını kontrol ediyoruz
+    data = response.get_json() #test isteğinin yanıtını alıyoruz
+    assert data['updated_count'] == 3 #test isteğinin yanıtındaki güncellenen bildirim sayısını kontrol ediyoruz
 
     # Güncellenen bildirimleri kontrol et
-    updated_notifications = session.scalars(
+    updated_notifications = session.scalars( #test bildirimlerini veritabanından alıyoruz
         db.select(Notification)
         .filter(Notification.id.in_(selected_ids))
     ).all()
 
-    for notification in updated_notifications:
-        assert notification.is_read == True
-        assert notification.type == 'updated_type'
-        assert notification.read_at is not None 
+    for notification in updated_notifications: #güncellenen bildirimleri kontrol ediyoruz
+        assert notification.is_read == True #güncellenen bildirimlerin okunup okunamadığını kontrol ediyoruz
+        assert notification.type == 'updated_type' #güncellenen bildirimlerin tipinin güncellendiğini kontrol ediyoruz
+        assert notification.read_at is not None #güncellenen bildirimlerin okunma tarihinin güncellendiğini kontrol ediyoruz

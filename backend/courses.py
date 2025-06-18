@@ -1,32 +1,30 @@
-from flask import Blueprint, jsonify, request, current_app, url_for, render_template, send_from_directory, make_response
-from models import db, Course, Lesson, User, Enrollment, Review, Progress, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Assignment, AssignmentSubmission, Notification, LessonDocument
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from werkzeug.utils import secure_filename
-import os
-import re
-from datetime import datetime, timedelta, timezone, UTC
-import mimetypes
-import random
-import json
-import uuid
-import bleach
-from sqlalchemy import or_, and_, func, desc
+from flask import Blueprint, jsonify, request, current_app, url_for, render_template, send_from_directory, make_response #flask modülünü import ediyoruz
+from models import db, Course, Lesson, User, Enrollment, Review, Progress, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Assignment, AssignmentSubmission, Notification, LessonDocument #models modülünü import ediyoruz
+from flask_jwt_extended import jwt_required, get_jwt_identity #flask_jwt_extended modülünü import ediyoruz
+from werkzeug.utils import secure_filename #werkzeug modülünü import ediyoruz
+import os #os modülünü import ediyoruz
+import re #re modülünü import ediyoruz
+from datetime import datetime, timedelta, timezone, UTC #datetime modülünü import ediyoruz
+import mimetypes #mimetypes modülünü import ediyoruz
+import random #random modülünü import ediyoruz
+import json #json modülünü import ediyoruz
+import uuid #uuid modülünü import ediyoruz
+import bleach #bleach modülünü import ediyoruz
+from sqlalchemy import or_, and_, func, desc #sqlalchemy modülünü import ediyoruz#sqlalchemy modülünü import ediyoruz
 import logging
 from utils import upload_file_to_gcs
 
 # İstanbul/Türkiye saat dilimini tanımla (UTC+3)
-TURKEY_TZ = timezone(timedelta(hours=3))
+TURKEY_TZ = timezone(timedelta(hours=3)) #Türkiye saat dilimini tanımlıyoruz.
 
 # Blueprint oluştur
-courses = Blueprint('courses', __name__)
+courses = Blueprint('courses', __name__) #courses modülünü oluşturuyoruz.
 
 # HTML temizleme için izin verilen etiketler
-ALLOWED_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'ul', 'ol', 
-               'li', 'strong', 'em', 'a', 'img', 'div', 'span', 'blockquote',
-               'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td']
+ALLOWED_TAGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'ul', 'ol', 'li', 'strong', 'em', 'a', 'img', 'div', 'span', 'blockquote', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td'] #HTML temizleme için izin verilen etiketleri tanımlıyoruz.
 
 # İzin verilen HTML özellikleri  
-ALLOWED_ATTRIBUTES = {
+ALLOWED_ATTRIBUTES = { 
     'a': ['href', 'title', 'target', 'rel'],
     'img': ['src', 'alt', 'width', 'height', 'class'],
     'div': ['class', 'id', 'style'],
@@ -40,7 +38,7 @@ def sanitize_html(content):
     if not any(f'<{tag}' in content.lower() for tag in ALLOWED_TAGS + ['script', 'style', 'iframe']):
         return content
         
-    return bleach.clean(
+    return bleach.clean( 
         content,
         tags=ALLOWED_TAGS,
         attributes=ALLOWED_ATTRIBUTES,
@@ -48,179 +46,179 @@ def sanitize_html(content):
     )
 
 def is_instructor(user_id): # Kullanıcının eğitmen olup olmadığını kontrol et
-    user = User.query.get(user_id)
-    return user and user.role == 'instructor'
+    user = User.query.get(user_id) #user'u alıyoruz
+    return user and user.role == 'instructor' #user'un role'u instructor ise True döndürüyoruz.
 
 @courses.route('/', methods=['POST'])
-@jwt_required()
-def create_course():
+@jwt_required() #jwt_required decoratorını kullanıyoruz
+def create_course(): #create_course fonksiyonunu tanımlıyoruz
     try:
         # Kullanıcının eğitmen olup olmadığını kontrol et
-        user_id = get_jwt_identity()
-        current_app.logger.info(f'Creating course request from user: {user_id}')
+        user_id = get_jwt_identity() #user_id'yi alıyoruz
+        current_app.logger.info(f'Creating course request from user: {user_id}') #user_id'yi logluyoruz
         
-        if not is_instructor(user_id):
-            current_app.logger.warning(f'User {user_id} is not an instructor')
-            return jsonify({'error': 'Only instructors can create courses'}), 403
+        if not is_instructor(user_id): #user_id'nin instructor olup olmadığını kontrol ediyoruz
+            current_app.logger.warning(f'User {user_id} is not an instructor') #user_id'nin instructor olmadığını logluyoruz
+            return jsonify({'error': 'Only instructors can create courses'}), 403 #user_id'nin instructor olmadığı durumda boş bir liste döndürüyoruz
 
         # Form verilerini al
-        title = request.form.get('title')
-        description = request.form.get('description')
-        price = request.form.get('price', 0)
-        category = request.form.get('category')
-        level = request.form.get('level')
+        title = request.form.get('title') #title'yi alıyoruz
+        description = request.form.get('description') #description'yi alıyoruz
+        price = request.form.get('price', 0) #price'yi alıyoruz
+        category = request.form.get('category') #category'yi alıyoruz
+        level = request.form.get('level') #level'yi alıyoruz
         
         # Gerekli alanları kontrol et
         if not title or not description:
-            current_app.logger.warning('Missing required fields in request')
-            return jsonify({'error': 'Missing required fields'}), 400
+            current_app.logger.warning('Missing required fields in request') #gerekli alanların olmadığını logluyoruz
+            return jsonify({'error': 'Missing required fields'}), 400 #gerekli alanların olmadığı durumda boş bir liste döndürüyoruz
         
         # Resim dosyasını kontrol et ve yükle
-        image_url = None
-        if 'image' in request.files:
-            file = request.files['image']
-            if file and file.filename:
+        image_url = None #image_url'yi alıyoruz
+        if 'image' in request.files: #image'in request.files'ta olup olmadığını kontrol ediyoruz
+            file = request.files['image'] #file'yi alıyoruz
+            if file and file.filename: #file'in filename'inin boş olup olmadığını kontrol ediyoruz
                 try:
-                    # upload_file_to_gcs now returns only the URL string
+                    # upload_file_to_gcs fonksiyonunu kullanarak file'ı yüklüyoruzupload_file_to_gcs fonksiyonunu kullanarak file'ı yüklüyoruz
                     image_url = upload_file_to_gcs(file) 
-                    if image_url is None: # Check if upload failed
-                         raise ValueError("File upload failed.")
-                except Exception as e:
-                    current_app.logger.error(f'Error uploading image: {str(e)}')
+                    if image_url is None: #image_url'in boş olup olmadığını kontrol ediyoruz
+                         raise ValueError("File upload failed.") #file upload failed durumunda hata fırlatıyoruz
+                except Exception as e: #hata durumunda
+                    current_app.logger.error(f'Error uploading image: {str(e)}') #hata durumunda logluyoruz
                     return jsonify({'error': f'Error uploading image: {str(e)}'}), 500
         
         # Yeni kurs oluştur
         course = Course(
-            title=title,
-            description=sanitize_html(description),
-            instructor_id=user_id,
-            price=float(price),
-            category=category,
-            level=level,
-            image_url=image_url # Now this should be a string or None
+            title=title, #title'yi alıyoruz
+            description=sanitize_html(description), #description'yi alıyoruz
+            instructor_id=user_id, #user_id'yi alıyoruz
+            price=float(price), #price'yi alıyoruz
+            category=category, #category'yi alıyoruz
+            level=level, #level'yi alıyoruz
+            image_url=image_url #image_url'yi alıyoruz
         )
         
-        current_app.logger.info(f'Created course object: {course.title}')
+        current_app.logger.info(f'Created course object: {course.title}') #course.title'yi logluyoruz
         
         try:
-            db.session.add(course)
-            current_app.logger.info('Added course to session')
-            db.session.commit()
-            current_app.logger.info(f'Successfully committed course to database with ID: {course.id}')
+            db.session.add(course) #course'ı veritabanına ekle
+            current_app.logger.info('Added course to session') #course'ı veritabanına ekleme işlemi başarılı olduğunu logluyoruz
+            db.session.commit() #commit işlemi yap
+            current_app.logger.info(f'Successfully committed course to database with ID: {course.id}') #course.id'yi logluyoruz
             
             # Veritabanından kursu tekrar kontrol et
-            saved_course = Course.query.get(course.id)
-            if saved_course:
-                current_app.logger.info(f'Verified course in database: {saved_course.title}')
-            else:
-                current_app.logger.error('Course not found in database after commit!')
+            saved_course = Course.query.get(course.id) #course.id'yi alıyoruz
+            if saved_course: #saved_course'in boş olup olmadığını kontrol ediyoruz
+                current_app.logger.info(f'Verified course in database: {saved_course.title}') #saved_course.title'yi logluyoruz
+            else: #saved_course'in boş olması durumunda
+                current_app.logger.error('Course not found in database after commit!') #course not found in database after commit! durumunda hata fırlatıyoruz
             
             return jsonify({
-                'message': 'Course created successfully',
-                'course': course.to_dict()
+                'message': 'Course created successfully', #course created successfully durumunda boş bir liste döndürüyoruz
+                'course': course.to_dict() #course.to_dict()'yi alıyoruz
             }), 201
             
         except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f'Database error while creating course: {str(e)}')
-            return jsonify({'error': f'Database error: {str(e)}'}), 500
+            db.session.rollback() #rollback işlemi yap
+            current_app.logger.error(f'Database error while creating course: {str(e)}') #hata durumunda logluyoruz
+            return jsonify({'error': f'Database error: {str(e)}'}), 500 #hata durumunda boş bir liste döndürüyoruz
             
     except Exception as e:
-        current_app.logger.error(f'Error in create_course: {str(e)}')
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+        current_app.logger.error(f'Error in create_course: {str(e)}') #hata durumunda logluyoruz
+        return jsonify({'error': f'Server error: {str(e)}'}), 500 #hata durumunda boş bir liste döndürüyoruz
 
 @courses.route('/<int:course_id>', methods=['PUT'])
-@jwt_required()
-def update_course(course_id):
+@jwt_required() #jwt_required decoratorını kullanıyoruz
+def update_course(course_id): #update_course fonksiyonunu tanımlıyoruz
     try:
         # Eğitmen kontrolü
-        current_user_id = get_jwt_identity()
-        course = Course.query.get_or_404(course_id)
+        current_user_id = get_jwt_identity() #current_user_id'yi alıyoruz
+        course = Course.query.get_or_404(course_id) #course.id'yi alıyoruz
         
-        if str(course.instructor_id) != current_user_id:
-            return jsonify({'message': 'Bu kursu güncelleme yetkiniz yok'}), 403
+        if str(course.instructor_id) != current_user_id: #course.instructor_id'nin current_user_id'ye eşit olup olmadığını kontrol ediyoruz
+            return jsonify({'message': 'Bu kursu güncelleme yetkiniz yok'}), 403 #bu kursu güncelleme yetkiniz yok durumunda boş bir liste döndürüyoruz
         
-        # Support both JSON and multipart/form-data for updates
+        # JSON ve multipart/form-data için destek
         if request.mimetype and request.mimetype.startswith('multipart/form-data'):
-            data = request.form.to_dict()
+            data = request.form.to_dict() #request.form.to_dict()'yi alıyoruz
         else:
-            data = request.get_json() or {}
-        if not data and 'image' not in request.files:
-            return jsonify({'message': 'Güncelleme için veri gerekli'}), 400
+            data = request.get_json() or {} #request.get_json()'yi alıyoruz
+        if not data and 'image' not in request.files: #data'nın boş olup olmadığını kontrol ediyoruz ve image'in request.files'ta olup olmadığını kontrol ediyoruz
+            return jsonify({'message': 'Güncelleme için veri gerekli'}), 400 #güncelleme için veri gerekli durumunda boş bir liste döndürüyoruz
         
         # Değişiklikleri kaydet
-        changes = []
-        if 'title' in data and data['title'] != course.title:
-            old_title = course.title
-            course.title = data['title']
-            changes.append(f'Kurs başlığı "{old_title}" -> "{data["title"]}"')
+        changes = [] #changes'i alıyoruz
+        if 'title' in data and data['title'] != course.title: #title'in data'da olup olmadığını kontrol ediyoruz ve title'in course.title'ye eşit olup olmadığını kontrol ediyoruz
+            old_title = course.title #old_title'yi alıyoruz
+            course.title = data['title'] #course.title'yi alıyoruz
+            changes.append(f'Kurs başlığı "{old_title}" -> "{data["title"]}"') #Kurs başlığı "{old_title}" -> "{data["title"]}" durumunda changes'e ekle
             
-        if 'description' in data and data['description'] != course.description:
-            course.description = data['description']
-            changes.append('Kurs açıklaması güncellendi')
+        if 'description' in data and data['description'] != course.description: #description'in data'da olup olmadığını kontrol ediyoruz ve description'in course.description'ye eşit olup olmadığını kontrol ediyoruz
+            course.description = data['description'] #course.description'yi alıyoruz
+            changes.append('Kurs açıklaması güncellendi') #Kurs açıklaması güncellendi durumunda changes'e ekle
             
-        if 'price' in data and float(data['price']) != course.price:
-            old_price = course.price
-            course.price = float(data['price'])
-            changes.append(f'Kurs fiyatı {old_price}₺ -> {data["price"]}₺')
+        if 'price' in data and float(data['price']) != course.price: #price'in data'da olup olmadığını kontrol ediyoruz ve price'in course.price'ye eşit olup olmadığını kontrol ediyoruz
+            old_price = course.price #old_price'yi alıyoruz
+            course.price = float(data['price']) #course.price'yi alıyoruz
+            changes.append(f'Kurs fiyatı {old_price}₺ -> {data["price"]}₺') #Kurs fiyatı {old_price}₺ -> {data["price"]}₺ durumunda changes'e ekle
             
-        if 'category' in data and data['category'] != course.category:
-            old_category = course.category
-            course.category = data['category']
-            changes.append(f'Kurs kategorisi "{old_category}" -> "{data["category"]}"')
+        if 'category' in data and data['category'] != course.category: #category'in data'da olup olmadığını kontrol ediyoruz ve category'in course.category'ye eşit olup olmadığını kontrol ediyoruz
+            old_category = course.category #old_category'yi alıyoruz
+            course.category = data['category'] #course.category'yi alıyoruz
+            changes.append(f'Kurs kategorisi "{old_category}" -> "{data["category"]}"') #Kurs kategorisi "{old_category}" -> "{data["category"]}" durumunda changes'e ekle
             
-        if 'level' in data and data['level'] != course.level:
-            old_level = course.level
-            course.level = data['level']
-            changes.append(f'Kurs seviyesi "{old_level}" -> "{data["level"]}"')
+        if 'level' in data and data['level'] != course.level: #level'in data'da olup olmadığını kontrol ediyoruz ve level'in course.level'ye eşit olup olmadığını kontrol ediyoruz
+            old_level = course.level #old_level'yi alıyoruz
+            course.level = data['level'] #course.level'yi alıyoruz
+            changes.append(f'Kurs seviyesi "{old_level}" -> "{data["level"]}"') #Kurs seviyesi "{old_level}" -> "{data["level"]}" durumunda changes'e ekle
         
-        # Handle optional image update
-        if 'image' in request.files:
-            file = request.files['image']
-            if file and file.filename:
+        # İsteğe bağlı resim güncellemesi
+        if 'image' in request.files: #image'in request.files'ta olup olmadığını kontrol ediyoruz
+            file = request.files['image'] #file'yi alıyoruz
+            if file and file.filename: #file'in filename'inin boş olup olmadığını kontrol ediyoruz
                 try:
-                    new_url = upload_file_to_gcs(file)
-                    course.image_url = new_url
-                    changes.append('Kurs görseli güncellendi')
-                except Exception as e:
-                    current_app.logger.error(f'Error uploading new image: {str(e)}')
+                    new_url = upload_file_to_gcs(file) #upload_file_to_gcs fonksiyonunu kullanarak file'ı yüklüyoruz
+                    course.image_url = new_url #course.image_url'yi alıyoruz
+                    changes.append('Kurs görseli güncellendi') #Kurs görseli güncellendi durumunda changes'e ekle
+                except Exception as e: #hata durumunda
+                    current_app.logger.error(f'Error uploading new image: {str(e)}') #hata durumunda logluyoruz
         
-        # If there are any changes, send notifications
-        if changes:
-            course.updated_at = datetime.now(TURKEY_TZ)
+        # Eğer değişiklikler varsa, bildirim gönder
+        if changes: #changes'in boş olup olmadığını kontrol ediyoruz
+            course.updated_at = datetime.now(TURKEY_TZ) #course.updated_at'yi alıyoruz
             
             # Kursa kayıtlı öğrencilere bildirim gönder
-            enrolled_students = Enrollment.query.filter_by(course_id=course_id).all()
+            enrolled_students = Enrollment.query.filter_by(course_id=course_id).all() #Enrollment.query.filter_by(course_id=course_id).all()'yi alıyoruz
             
-            for enrollment in enrolled_students:
+            for enrollment in enrolled_students: #enrolled_students'in boş olup olmadığını kontrol ediyoruz
                 notification = Notification(
-                    user_id=enrollment.student_id,
-                    course_id=course_id,
-                    type='course_update',
-                    title=f'Kurs Güncellendi: {course.title}',
+                    user_id=enrollment.student_id, #enrollment.student_id'yi alıyoruz
+                    course_id=course_id, #course_id'yi alıyoruz
+                    type='course_update', #type'yi alıyoruz
+                    title=f'Kurs Güncellendi: {course.title}', #Kurs Güncellendi: {course.title} durumunda title'e ekle
                     message=f'{course.title} kursunda yapılan değişiklikler:\n' + '\n'.join(f'• {change}' for change in changes),
                     is_read=False,
                     created_at=datetime.now(TURKEY_TZ)
                 )
-                db.session.add(notification)
+                db.session.add(notification) #notification'ı veritabanına ekle
         
         try:
-            db.session.commit()
+            db.session.commit() #commit işlemi yap
             return jsonify({
-                'message': 'Kurs başarıyla güncellendi',
-                'course': course.to_dict(),
-                'changes': changes,
-                'notifications_sent': len(enrolled_students) if changes else 0
+                'message': 'Kurs başarıyla güncellendi', #Kurs başarıyla güncellendi durumunda boş bir liste döndürüyoruz
+                'course': course.to_dict(), #course.to_dict()'yi alıyoruz
+                'changes': changes, #changes'i alıyoruz
+                'notifications_sent': len(enrolled_students) if changes else 0 #notifications_sent'i alıyoruz
             })
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'message': f'Kurs güncellenirken bir hata oluştu: {str(e)}'}), 500
+        except Exception as e: #hata durumunda
+            db.session.rollback() #rollback işlemi yap
+            return jsonify({'message': f'Kurs güncellenirken bir hata oluştu: {str(e)}'}), 500 #Kurs güncellenirken bir hata oluştu: {str(e)} durumunda boş bir liste döndürüyoruz
             
     except Exception as e:
-        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
+        return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500 #Bir hata oluştu: {str(e)} durumunda boş bir liste döndürüyoruz
 
 @courses.route('/<int:course_id>', methods=['DELETE'])
-@jwt_required()
+@jwt_required() #jwt_required decoratorını kullanıyoruz
 def delete_course(course_id):
     # Kursu bul
     course = Course.query.get_or_404(course_id)
@@ -235,18 +233,18 @@ def delete_course(course_id):
     
     return jsonify({'message': 'Course deleted successfully'})
 
-@courses.route('/<int:course_id>/lessons', methods=['POST'])
-@jwt_required()
-def add_lesson(course_id):
+@courses.route('/<int:course_id>/lessons', methods=['POST']) 
+@jwt_required() #jwt_required decoratorını kullanıyoruz
+def add_lesson(course_id): #add_lesson fonksiyonunu tanımlıyoruz
     # Kursu bul
-    course = Course.query.get_or_404(course_id)
+    course = Course.query.get_or_404(course_id) #course.id'yi alıyoruz
     
     # Kullanıcının kursun sahibi olup olmadığını kontrol et
-    user_id = get_jwt_identity()
-    if str(course.instructor_id) != str(user_id):
-        return jsonify({'error': 'You can only add lessons to your own courses'}), 403
+    user_id = get_jwt_identity() #user_id'yi alıyoruz
+    if str(course.instructor_id) != str(user_id): #course.instructor_id'nin user_id'ye eşit olup olmadığını kontrol ediyoruz
+        return jsonify({'error': 'You can only add lessons to your own courses'}), 403 #You can only add lessons to your own courses durumunda boş bir liste döndürüyoruz
     
-    data = request.get_json()
+    data = request.get_json() #request.get_json()'yi alıyoruz
     
     # Gerekli alanları kontrol et
     if not all(k in data for k in ['title', 'content', 'order']):
@@ -260,10 +258,10 @@ def add_lesson(course_id):
         course_id=course_id
     )
     
-    db.session.add(lesson)
+    db.session.add(lesson) #lesson'ı veritabanına ekle
     
     # Kursa kayıtlı tüm öğrencilere bildirim gönder
-    enrollments = Enrollment.query.filter_by(course_id=course_id).all()
+    enrollments = Enrollment.query.filter_by(course_id=course_id).all() #Enrollment.query.filter_by(course_id=course_id).all()'yi alıyoruz
     for enrollment in enrollments:
         notification = Notification(
             user_id=enrollment.student_id,
@@ -272,28 +270,28 @@ def add_lesson(course_id):
             message=f"{course.title} kursuna yeni bir ders eklendi: {lesson.title}",
             type="new_lesson"
         )
-        db.session.add(notification)
+        db.session.add(notification) #notification'ı veritabanına ekle
     
-    db.session.commit()
+    db.session.commit() #commit işlemi yap
     
     return jsonify({
-        'message': 'Lesson added successfully',
+        'message': 'Lesson added successfully', #Lesson added successfully durumunda boş bir liste döndürüyoruz
         'lesson': {
-            'id': lesson.id,
-            'title': lesson.title,
-            'order': lesson.order
+            'id': lesson.id, #lesson.id'yi alıyoruz
+            'title': lesson.title, #lesson.title'yi alıyoruz
+            'order': lesson.order #lesson.order'yi alıyoruz
         }
     }), 201
 
-@courses.route('/<int:course_id>/lessons', methods=['GET'])
-def get_course_lessons(course_id):
+@courses.route('/<int:course_id>/lessons', methods=['GET']) #courses.route('/<int:course_id>/lessons', methods=['GET']) fonksiyonunu tanımlıyoruz
+def get_course_lessons(course_id): #get_course_lessons fonksiyonunu tanımlıyoruz
     """Bir kursa ait tüm dersleri getirir."""
     try:
         # Kursun var olup olmadığını kontrol et
-        course = Course.query.get_or_404(course_id)
+        course = Course.query.get_or_404(course_id) #course.id'yi alıyoruz
         
         # Kursa ait dersleri getir ve sırala
-        lessons = Lesson.query.filter_by(course_id=course_id).order_by(Lesson.order.asc()).all()
+        lessons = Lesson.query.filter_by(course_id=course_id).order_by(Lesson.order.asc()).all() #Lesson.query.filter_by(course_id=course_id).order_by(Lesson.order.asc()).all()'yi alıyoruz
         
         # Dersleri dictionary formatına çevir
         lesson_list = [lesson.to_dict() for lesson in lessons]
@@ -304,21 +302,21 @@ def get_course_lessons(course_id):
         current_app.logger.error(f"Error fetching lessons for course {course_id}: {str(e)}")
         return jsonify({'error': 'Dersler getirilirken bir hata oluştu'}), 500
 
-@courses.route('/search', methods=['GET'])
-@jwt_required()
-def search_courses():
+@courses.route('/search', methods=['GET']) #courses.route('/search', methods=['GET']) fonksiyonunu tanımlıyoruz
+@jwt_required() #jwt_required decoratorını kullanıyoruz
+def search_courses(): #search_courses fonksiyonunu tanımlıyoruz
     try:
         # Arama parametrelerini al
-        query = request.args.get('q', '').strip()
-        category = request.args.get('category')
-        level = request.args.get('level')
-        min_price = request.args.get('min_price', type=float)
-        max_price = request.args.get('max_price', type=float)
-        instructor_id = request.args.get('instructor_id', type=int)
+        query = request.args.get('q', '').strip() #query'yi alıyoruz
+        category = request.args.get('category') #category'yi alıyoruz
+        level = request.args.get('level') #level'yi alıyoruz
+        min_price = request.args.get('min_price', type=float) #min_price'yi alıyoruz
+        max_price = request.args.get('max_price', type=float) #max_price'yi alıyoruz
+        instructor_id = request.args.get('instructor_id', type=int) #instructor_id'yi alıyoruz
         sort_by = request.args.get('sort_by', 'created_at')  # created_at, title, price, popularity
         order = request.args.get('order', 'desc')  # asc, desc
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
+        page = request.args.get('page', 1, type=int) #page'yi alıyoruz
+        per_page = request.args.get('per_page', 10, type=int) #per_page'yi alıyoruz
 
         # Sayfalama parametrelerini doğrula
         if page < 1:
@@ -338,33 +336,33 @@ def search_courses():
             )
             query_obj = query_obj.filter(search_filter)
 
-        if category:
-            query_obj = query_obj.filter(Course.category == category)
+        if category: #category'nin boş olup olmadığını kontrol ediyoruz
+            query_obj = query_obj.filter(Course.category == category) #Course.category == category durumunda query_obj'e ekle
 
-        if level:
-            query_obj = query_obj.filter(Course.level == level)
+        if level: #level'in boş olup olmadığını kontrol ediyoruz
+            query_obj = query_obj.filter(Course.level == level) #Course.level == level durumunda query_obj'e ekle
 
-        if min_price is not None:
-            query_obj = query_obj.filter(Course.price >= min_price)
+        if min_price is not None: #min_price'in boş olup olmadığını kontrol ediyoruz
+            query_obj = query_obj.filter(Course.price >= min_price) #Course.price >= min_price durumunda query_obj'e ekle
 
-        if max_price is not None:
-            query_obj = query_obj.filter(Course.price <= max_price)
+        if max_price is not None: #max_price'in boş olup olmadığını kontrol ediyoruz
+            query_obj = query_obj.filter(Course.price <= max_price) #Course.price <= max_price durumunda query_obj'e ekle
 
-        if instructor_id:
-            query_obj = query_obj.filter(Course.instructor_id == instructor_id)
+        if instructor_id: #instructor_id'in boş olup olmadığını kontrol ediyoruz
+            query_obj = query_obj.filter(Course.instructor_id == instructor_id) #Course.instructor_id == instructor_id durumunda query_obj'e ekle
 
         # Sıralama
-        if sort_by == 'title':
-            query_obj = query_obj.order_by(Course.title.desc() if order == 'desc' else Course.title.asc())
-        elif sort_by == 'price':
+        if sort_by == 'title': #sort_by'in title olup olmadığını kontrol ediyoruz
+            query_obj = query_obj.order_by(Course.title.desc() if order == 'desc' else Course.title.asc()) #Course.title.desc() if order == 'desc' else Course.title.asc() durumunda query_obj'e ekle
+        elif sort_by == 'price': #sort_by'in price olup olmadığını kontrol ediyoruz
             query_obj = query_obj.order_by(Course.price.desc() if order == 'desc' else Course.price.asc())
-        elif sort_by == 'popularity':
+        elif sort_by == 'popularity': #sort_by'in popularity olup olmadığını kontrol ediyoruz
             # Popülerlik için kayıt sayısına göre sıralama
-            query_obj = query_obj.outerjoin(Enrollment).group_by(Course.id, User.id)
-            if order == 'desc':
-                query_obj = query_obj.order_by(db.func.count(Enrollment.id).desc())
-            else:
-                query_obj = query_obj.order_by(db.func.count(Enrollment.id).asc())
+            query_obj = query_obj.outerjoin(Enrollment).group_by(Course.id, User.id) #Enrollment.outerjoin(Course.id, User.id) durumunda query_obj'e ekle
+            if order == 'desc': #order'in desc olup olmadığını kontrol ediyoruz
+                query_obj = query_obj.order_by(db.func.count(Enrollment.id).desc()) #db.func.count(Enrollment.id).desc() durumunda query_obj'e ekle
+            else: #order'in desc olması durumunda
+                query_obj = query_obj.order_by(db.func.count(Enrollment.id).asc()) #db.func.count(Enrollment.id).asc() durumunda query_obj'e ekle
         else:  # default: created_at
             query_obj = query_obj.order_by(Course.created_at.desc() if order == 'desc' else Course.created_at.asc())
 
@@ -375,84 +373,84 @@ def search_courses():
         courses = query_obj.offset((page - 1) * per_page).limit(per_page).all()
 
         # Sonuçları formatla
-        results = []
-        for course in courses:
+        results = [] #results'i alıyoruz
+        for course in courses: #courses'in boş olup olmadığını kontrol ediyoruz
             course_dict = {
-                'id': course.id,
-                'title': course.title,
-                'description': course.description,
-                'category': course.category,
-                'level': course.level,
-                'price': course.price,
-                'image_url': course.image_url,
-                'created_at': course.created_at.isoformat() if course.created_at else None,
-                'instructor_id': course.instructor.id,
-                'instructor_name': course.instructor.username,
+                'id': course.id, #course.id'yi alıyoruz
+                'title': course.title, #course.title'yi alıyoruz
+                'description': course.description, #course.description'yi alıyoruz
+                'category': course.category, #course.category'yi alıyoruz
+                'level': course.level, #course.level'yi alıyoruz
+                'price': course.price, #course.price'yi alıyoruz
+                'image_url': course.image_url, #course.image_url'yi alıyoruz
+                'created_at': course.created_at.isoformat() if course.created_at else None, #course.created_at.isoformat() if course.created_at else None'yi alıyoruz
+                'instructor_id': course.instructor.id, #course.instructor.id'yi alıyoruz
+                'instructor_name': course.instructor.username, #course.instructor.username'yi alıyoruz
                 'instructor': {
-                    'id': course.instructor.id,
-                    'username': course.instructor.username
+                    'id': course.instructor.id, #course.instructor.id'yi alıyoruz
+                    'username': course.instructor.username #course.instructor.username'yi alıyoruz
                 },
-                'enrollment_count': len(course.enrollments)
+                'enrollment_count': len(course.enrollments) #course.enrollments'in uzunluğunu alıyoruz
             }
-            results.append(course_dict)
+            results.append(course_dict) #course_dict'i results'e ekle
 
         return jsonify({
-            'courses': results,
-            'total': total,
-            'page': page,
-            'per_page': per_page,
-            'total_pages': (total + per_page - 1) // per_page
+            'courses': results, #results'i alıyoruz
+            'total': total, #total'i alıyoruz
+            'page': page, #page'yi alıyoruz
+            'per_page': per_page, #per_page'yi alıyoruz
+            'total_pages': (total + per_page - 1) // per_page #(total + per_page - 1) // per_page'yi alıyoruz
         })
 
-    except Exception as e:
-        current_app.logger.error(f"Error in search_courses: {str(e)}")
-        return jsonify({'message': 'Kurslar aranırken bir hata oluştu', 'error': str(e)}), 500
+    except Exception as e: #hata durumunda
+        current_app.logger.error(f"Error in search_courses: {str(e)}") #hata durumunda logluyoruz
+        return jsonify({'message': 'Kurslar aranırken bir hata oluştu', 'error': str(e)}), 500 #Kurslar aranırken bir hata oluştu: {str(e)} durumunda boş bir liste döndürüyoruz
 
 @courses.route('/categories', methods=['GET'])
-def get_categories():
+def get_categories(): #get_categories fonksiyonunu tanımlıyoruz
     # Tüm kategorileri getir
-    categories = db.session.query(Course.category).distinct().all()
-    return jsonify([category[0] for category in categories])
+    categories = db.session.query(Course.category).distinct().all() #Course.category.distinct().all()'yi alıyoruz
+    return jsonify([category[0] for category in categories]) #category[0] for category in categories'yi alıyoruz
 
-@courses.route('/instructors', methods=['GET'])
-def get_instructors():
+@courses.route('/instructors', methods=['GET']) #courses.route('/instructors', methods=['GET']) fonksiyonunu tanımlıyoruz
+def get_instructors(): #get_instructors fonksiyonunu tanımlıyoruz
     # Tüm eğitmenleri getir
-    instructors = User.query.filter_by(role='instructor').all()
+    instructors = User.query.filter_by(role='instructor').all() #User.query.filter_by(role='instructor').all()'yi alıyoruz
     return jsonify([{
-        'id': instructor.id,
-        'username': instructor.username,
-        'email': instructor.email
-    } for instructor in instructors])
+        'id': instructor.id, #instructor.id'yi alıyoruz
+        'username': instructor.username, #instructor.username'yi alıyoruz
+        'email': instructor.email #instructor.email'yi alıyoruz
+    } for instructor in instructors]) #instructor[0] for instructor in instructors'yi alıyoruz
 
-@courses.route('/<int:course_id>/reviews', methods=['GET'])
-def get_course_reviews(course_id):
+@courses.route('/<int:course_id>/reviews', methods=['GET']) #courses.route('/<int:course_id>/reviews', methods=['GET']) fonksiyonunu tanımlıyoruz
+def get_course_reviews(course_id): #get_course_reviews fonksiyonunu tanımlıyoruz
     """Kurs değerlendirmelerini getir"""
-    course = Course.query.get_or_404(course_id)
-    reviews = Review.query.filter_by(course_id=course_id).order_by(Review.created_at.desc()).all()
+    course = Course.query.get_or_404(course_id) #course.id'yi alıyoruz
+    reviews = Review.query.filter_by(course_id=course_id).order_by(Review.created_at.desc()).all() #Review.query.filter_by(course_id=course_id).order_by(Review.created_at.desc()).all()'yi alıyoruz
     
     # Ortalama puanı hesapla
-    avg_rating = db.session.query(db.func.avg(Review.rating)).filter_by(course_id=course_id).scalar() or 0
+    avg_rating = db.session.query(db.func.avg(Review.rating)).filter_by(course_id=course_id).scalar() or 0 #db.session.query(db.func.avg(Review.rating)).filter_by(course_id=course_id).scalar() or 0'yi alıyoruz
     
     return jsonify({
-        'course_id': course_id,
-        'average_rating': float(avg_rating),
-        'total_reviews': len(reviews),
-        'reviews': [review.to_dict() for review in reviews]
+        'course_id': course_id, #course_id'yi alıyoruz
+        'average_rating': float(avg_rating), #float(avg_rating)'yi alıyoruz
+        'total_reviews': len(reviews), #len(reviews)'yi alıyoruz
+        'reviews': [review.to_dict() for review in reviews] #review.to_dict() for review in reviews'yi alıyoruz
     })
 
-@courses.route('/<int:course_id>/reviews', methods=['POST'])
+@courses.route('/<int:course_id>/reviews', methods=['POST']) #courses.route('/<int:course_id>/reviews', methods=['POST']) fonksiyonunu tanımlıyoruz#courses.route('/<int:course_id>/reviews', methods=['POST']) fonksiyonunu tanımlıyoruz
 @jwt_required()
 def create_course_review(course_id):
     """Kurs değerlendirmesi oluştur"""
-    current_user_id = get_jwt_identity()
+    current_user_id = get_jwt_identity() #current_user_id'yi alıyoruz
     
     # Kullanıcının kursa kayıtlı olup olmadığını kontrol et
-    enrollment = Enrollment.query.filter_by(
-        student_id=current_user_id,
-        course_id=course_id
-    ).first()
+    enrollment = Enrollment.query.filter_by( #Enrollment.query.filter_by()'yi alıyoruz
+        student_id=current_user_id, #current_user_id'yi alıyoruz
+        course_id=course_id #course_id'yi alıyoruz
+    ).first() #.first()'yi alıyoruz
     
-    if not enrollment:
+    if not enrollment: #enrollment'in boş olup olmadığını kontrol ediyoruz
         return jsonify({'error': 'Bu kursa değerlendirme yapabilmek için kursa kayıtlı olmalısınız.'}), 403
     
     # Kullanıcının daha önce değerlendirme yapıp yapmadığını kontrol et
@@ -461,61 +459,59 @@ def create_course_review(course_id):
         course_id=course_id
     ).first()
     
-    if existing_review:
+    if existing_review: #existing_review'in boş olup olmadığını kontrol ediyoruz
         return jsonify({'error': 'Bu kurs için zaten bir değerlendirme yapmışsınız.'}), 400
     
-    data = request.get_json()
+    data = request.get_json() #request.get_json()'yi alıyoruz
     
-    if not data or 'rating' not in data or 'comment' not in data:
-        return jsonify({'error': 'Puan ve yorum alanları zorunludur.'}), 400
+    if not data or 'rating' not in data or 'comment' not in data: #data'nin boş olup olmadığını kontrol ediyoruz ve rating'in data'da olup olmadığını kontrol ediyoruz ve comment'in data'da olup olmadığını kontrol ediyoruz
+        return jsonify({'error': 'Puan ve yorum alanları zorunludur.'}), 400 #Puan ve yorum alanları zorunludur. durumunda boş bir liste döndürüyoruz
     
-    rating = data['rating']
-    comment = data['comment']
+    rating = data['rating'] #rating'i alıyoruz
+    comment = data['comment'] #comment'i alıyoruz
     
-    if not isinstance(rating, int) or rating < 1 or rating > 5:
-        return jsonify({'error': 'Puan 1 ile 5 arasında olmalıdır.'}), 400
+    if not isinstance(rating, int) or rating < 1 or rating > 5: #rating'in int olup olmadığını kontrol ediyoruz ve rating'in 1'den küçük olup olmadığını kontrol ediyoruz ve rating'in 5'ten büyük olup olmadığını kontrol ediyoruz
+        return jsonify({'error': 'Puan 1 ile 5 arasında olmalıdır.'}), 400 #Puan 1 ile 5 arasında olmalıdır. durumunda boş bir liste döndürüyoruz
     
-    review = Review(
-        rating=rating,
-        comment=comment,
-        course_id=course_id,
-        user_id=current_user_id
-    )
+    review = Review( #Review()'yi alıyoruz
+        rating=rating, #rating'i alıyoruz
+        comment=comment, #comment'i alıyoruz
+        course_id=course_id, #course_id'yi alıyoruz
+        user_id=current_user_id #current_user_id'yi alıyoruz
+    ) #Review()'yi alıyoruz
     
-    db.session.add(review)
-    db.session.commit()
+    db.session.add(review) #review'ı veritabanına ekle
+    db.session.commit() #commit işlemi yap
     
-    return jsonify(review.to_dict()), 201
+    return jsonify(review.to_dict()), 201 #review.to_dict()'yi alıyoruz
 
-@courses.route('/<int:course_id>/reviews/<int:review_id>', methods=['PUT'])
-@jwt_required()
-def update_course_review(course_id, review_id):
+@courses.route('/<int:course_id>/reviews/<int:review_id>', methods=['PUT']) #courses.route('/<int:course_id>/reviews/<int:review_id>', methods=['PUT']) fonksiyonunu tanımlıyoruz
+@jwt_required() #jwt_required decoratorını kullanıyoruz
+def update_course_review(course_id, review_id): #update_course_review fonksiyonunu tanımlıyoruz
     """Kurs değerlendirmesini güncelle"""
     current_user_id = int(get_jwt_identity())  # String'i integer'a çevir
     review = Review.query.get_or_404(review_id)
     
-    print(f"Debug - current_user_id: {current_user_id}, review.user_id: {review.user_id}")  # Debug log
+    if review.user_id != current_user_id: #review.user_id'nin current_user_id'ye eşit olup olmadığını kontrol ediyoruz
+        return jsonify({'error': 'Bu değerlendirmeyi güncelleyemezsiniz.'}), 403 #Bu değerlendirmeyi güncelleyemezsiniz. durumunda boş bir liste döndürüyoruz
     
-    if review.user_id != current_user_id:
-        return jsonify({'error': 'Bu değerlendirmeyi güncelleyemezsiniz.'}), 403
+    data = request.get_json() #request.get_json()'yi alıyoruz
     
-    data = request.get_json()
+    if not data: #data'nin boş olup olmadığını kontrol ediyoruz
+        return jsonify({'error': 'Güncellenecek veri bulunamadı.'}), 400 #Güncellenecek veri bulunamadı. durumunda boş bir liste döndürüyoruz
     
-    if not data:
-        return jsonify({'error': 'Güncellenecek veri bulunamadı.'}), 400
+    if 'rating' in data: #rating'in data'da olup olmadığını kontrol ediyoruz
+        rating = data['rating'] #rating'i alıyoruz
+        if not isinstance(rating, int) or rating < 1 or rating > 5: #rating'in int olup olmadığını kontrol ediyoruz ve rating'in 1'den küçük olup olmadığını kontrol ediyoruz ve rating'in 5'ten büyük olup olmadığını kontrol ediyoruz
+            return jsonify({'error': 'Puan 1 ile 5 arasında olmalıdır.'}), 400 #Puan 1 ile 5 arasında olmalıdır. durumunda boş bir liste döndürüyoruz
+        review.rating = rating #review.rating'i rating'e ekle
     
-    if 'rating' in data:
-        rating = data['rating']
-        if not isinstance(rating, int) or rating < 1 or rating > 5:
-            return jsonify({'error': 'Puan 1 ile 5 arasında olmalıdır.'}), 400
-        review.rating = rating
+    if 'comment' in data: #comment'in data'da olup olmadığını kontrol ediyoruz
+        review.comment = data['comment'] #review.comment'i comment'e ekle
     
-    if 'comment' in data:
-        review.comment = data['comment']
+    db.session.commit() #commit işlemi yap
     
-    db.session.commit()
-    
-    return jsonify(review.to_dict())
+    return jsonify(review.to_dict()) #review.to_dict()'yi alıyoruz
 
 @courses.route('/<int:course_id>/reviews/<int:review_id>', methods=['DELETE'])
 @jwt_required()

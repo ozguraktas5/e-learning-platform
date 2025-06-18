@@ -5,22 +5,22 @@ from datetime import UTC # Zaman dilimi için kullanılır.
 load_dotenv() # .env dosyasındaki değişkenleri yüklemek için kullanılır.
 
 # Google Cloud Storage ayarları
-GOOGLE_CLOUD_PROJECT = os.getenv('GOOGLE_CLOUD_PROJECT')
-GOOGLE_CLOUD_BUCKET = os.getenv('GOOGLE_CLOUD_BUCKET')
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+GOOGLE_CLOUD_PROJECT = os.getenv('GOOGLE_CLOUD_PROJECT') # Google Cloud Project ID'yi alıyoruz.
+GOOGLE_CLOUD_BUCKET = os.getenv('GOOGLE_CLOUD_BUCKET') # Google Cloud Bucket adını alıyoruz.
+GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS') # Google Cloud Application Credentials'ı alıyoruz.
 
 # Dosya yükleme ayarları
-ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'webm', 'mkv'}
-ALLOWED_FILE_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'}
+ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'webm', 'mkv'} # Video dosya uzantılarını alıyoruz.
+ALLOWED_FILE_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'} # Dosya uzantılarını alıyoruz.
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///instance/elearning.db'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-key'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev' # SECRET_KEY'yi alıyoruz.
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///instance/elearning.db' # SQLALCHEMY_DATABASE_URI'yi alıyoruz.
+    SQLALCHEMY_TRACK_MODIFICATIONS = False # SQLALCHEMY_TRACK_MODIFICATIONS'yi alıyoruz.
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-key' # JWT_SECRET_KEY'yi alıyoruz.
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'connect_args': {'check_same_thread': False},
-        'timezone': UTC
+        'connect_args': {'check_same_thread': False}, # connect_args'ı alıyoruz.
+        'timezone': UTC # timezone'ı alıyoruz.
     }
     
 class DevelopmentConfig(Config): # DevelopmentConfig sınıfını oluşturuyoruz ve Config sınıfını miras alıyoruz.
@@ -34,8 +34,8 @@ class TestingConfig(Config): # TestingConfig sınıfını oluşturuyoruz ve Conf
     SQLALCHEMY_DATABASE_URI = 'sqlite:///test.db' # SQLALCHEMY_DATABASE_URI değişkenini oluşturuyoruz ve test.db dosyasını yüklüyoruz.
 
 config = {
-    'development': DevelopmentConfig,
-    'production': ProductionConfig,
-    'testing': TestingConfig,
-    'default': DevelopmentConfig
+    'development': DevelopmentConfig, # DevelopmentConfig'ı alıyoruz.
+    'production': ProductionConfig, # ProductionConfig'ı alıyoruz.
+    'testing': TestingConfig, # TestingConfig'ı alıyoruz.
+    'default': DevelopmentConfig # DevelopmentConfig'ı alıyoruz.
 } 
