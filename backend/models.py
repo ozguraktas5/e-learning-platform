@@ -1,11 +1,11 @@
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, UTC
+from flask_sqlalchemy import SQLAlchemy # Flask-SQLAlchemy'yi import ediyoruz.
+from datetime import datetime, UTC # datetime modülünü import ediyoruz.
 from werkzeug.security import generate_password_hash, check_password_hash # werkzeug.security: Şifre hashleme işlemlerini yapmak için kullanılır.
 
 # SQLAlchemy'yi başlat
 db = SQLAlchemy()
 
-class User(db.Model):
+class User(db.Model): 
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True) # Kullanıcının benzersiz kimliği.
     username = db.Column(db.String(80), unique=True, nullable=False) # Kullanıcı adı.
@@ -14,14 +14,14 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False, default='student')  # Kullanıcının rolü.
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow) # Kullanıcının oluşturulma tarihi.
     
-    # Instructor profile fields
+    # Eğitmen profil alanları
     bio = db.Column(db.Text, nullable=True)
     expertise = db.Column(db.String(255), nullable=True)
     website = db.Column(db.String(255), nullable=True)
     linkedin = db.Column(db.String(255), nullable=True)
     twitter = db.Column(db.String(255), nullable=True)
     
-    # Student profile fields
+    # Öğrenci profil alanları
     interests = db.Column(db.String(500), nullable=True)
     education_level = db.Column(db.String(50), nullable=True)
     
@@ -35,7 +35,7 @@ class User(db.Model):
     def check_password(self, password): # Şifrenin doğru olup olmadığını kontrol eder.
         return check_password_hash(self.password_hash, password)
 
-    def to_dict(self):
+    def to_dict(self): 
         user_data = {
             'id': self.id,
             'username': self.username,
@@ -44,7 +44,7 @@ class User(db.Model):
             'created_at': self.created_at.isoformat()
         }
         
-        # Add instructor profile fields if role is instructor
+        # Eğitmen profil alanlarını ekle
         if self.role == 'instructor':
             user_data.update({
                 'bio': self.bio,
@@ -56,7 +56,7 @@ class User(db.Model):
                 }
             })
         
-        # Add student profile fields if role is student
+        # Öğrenci profil alanlarını ekle
         if self.role == 'student':
             user_data.update({
                 'interests': self.interests,
@@ -76,7 +76,7 @@ class Course(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     price = db.Column(db.Float, nullable=False, default=0.0)
     category = db.Column(db.String(50))
-    level = db.Column(db.String(20))  # 'Beginner', 'Intermediate', 'Advanced'
+    level = db.Column(db.String(20))  # 'Başlangıç', 'Orta', 'İleri'
     image_url = db.Column(db.String(500), nullable=True)  # Kurs resmi için URL
     
     # İlişkiler
@@ -110,8 +110,8 @@ class Lesson(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     
     # Medya desteği
-    video_url = db.Column(db.String(500), nullable=True)
-    file_url = db.Column(db.String(500), nullable=True)
+    video_url = db.Column(db.String(500), nullable=True) # Video URL
+    file_url = db.Column(db.String(500), nullable=True) # Dosya URL
     file_type = db.Column(db.String(50), nullable=True)  # pdf, ppt, doc vb.
     
     # İlişkiler
@@ -140,7 +140,7 @@ class Lesson(db.Model):
             'assignment_count': assign_count
         }
 
-class LessonDocument(db.Model):
+class LessonDocument(db.Model): # Ders belgesi
     id = db.Column(db.Integer, primary_key=True)
     lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
     file_url = db.Column(db.String(500), nullable=False)
@@ -155,7 +155,7 @@ class LessonDocument(db.Model):
             'created_at': self.created_at.isoformat()
         }
 
-class Enrollment(db.Model):
+class Enrollment(db.Model): # Kayıt
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('courses.id'), nullable=False)
@@ -169,7 +169,7 @@ class Enrollment(db.Model):
             'enrolled_at': self.enrolled_at.isoformat()
         }
 
-class Progress(db.Model):
+class Progress(db.Model): # İlerleme
     id = db.Column(db.Integer, primary_key=True)
     enrollment_id = db.Column(db.Integer, db.ForeignKey('enrollment.id'), nullable=False)
     lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id'), nullable=False)
@@ -181,7 +181,7 @@ class Progress(db.Model):
     # İlişkiler
     enrollment = db.relationship('Enrollment', backref='progress_records', lazy=True)
 
-class Review(db.Model):
+class Review(db.Model): # İnceleme
     id = db.Column(db.Integer, primary_key=True)
     rating = db.Column(db.Integer, nullable=False)  # 1-5 arası puan
     comment = db.Column(db.Text, nullable=False)
@@ -211,7 +211,7 @@ class Review(db.Model):
             'instructor_reply_date': self.instructor_reply_date.isoformat() if self.instructor_reply_date else None
         }
 
-class Quiz(db.Model):
+class Quiz(db.Model): # Quiz
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
@@ -236,7 +236,7 @@ class Quiz(db.Model):
             'question_count': len(self.questions) if self.questions else 0
         }
 
-class QuizQuestion(db.Model):
+class QuizQuestion(db.Model): # Quiz sorusu
     id = db.Column(db.Integer, primary_key=True)
     quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
     question_text = db.Column(db.Text, nullable=False)
@@ -257,7 +257,7 @@ class QuizQuestion(db.Model):
             'options': [option.to_dict() for option in self.options] if self.options else []
         }
 
-class QuizOption(db.Model):
+class QuizOption(db.Model): # Quiz seçeneği
     id = db.Column(db.Integer, primary_key=True)
     question_id = db.Column(db.Integer, db.ForeignKey('quiz_question.id'), nullable=False)
     option_text = db.Column(db.String(200), nullable=False)
@@ -271,7 +271,7 @@ class QuizOption(db.Model):
             'is_correct': self.is_correct
         }
 
-class QuizAttempt(db.Model):
+class QuizAttempt(db.Model): # Quiz deneme
     id = db.Column(db.Integer, primary_key=True)
     quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -293,7 +293,7 @@ class QuizAttempt(db.Model):
             'completed_at': self.completed_at.isoformat() if self.completed_at else None
         }
 
-class QuizAnswer(db.Model):
+class QuizAnswer(db.Model): # Quiz cevabı
     id = db.Column(db.Integer, primary_key=True)
     attempt_id = db.Column(db.Integer, db.ForeignKey('quiz_attempt.id'), nullable=False)
     question_id = db.Column(db.Integer, db.ForeignKey('quiz_question.id'), nullable=False)
@@ -316,7 +316,7 @@ class QuizAnswer(db.Model):
             'points_earned': self.points_earned
         }
 
-class Assignment(db.Model):
+class Assignment(db.Model): # Ödev
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
@@ -352,7 +352,7 @@ class Assignment(db.Model):
             'is_published': self.is_published
         }
 
-class AssignmentSubmission(db.Model):
+class AssignmentSubmission(db.Model): # Ödev gönderimi  
     id = db.Column(db.Integer, primary_key=True)
     assignment_id = db.Column(db.Integer, db.ForeignKey('assignment.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -379,7 +379,7 @@ class AssignmentSubmission(db.Model):
             'graded_at': self.graded_at.isoformat() if self.graded_at else None
         }
 
-class Notification(db.Model):
+class Notification(db.Model): # Bildirim
     __tablename__ = 'notifications'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -412,7 +412,7 @@ class Notification(db.Model):
             'reference_id': self.reference_id
         }
 
-class NotificationSetting(db.Model):
+class NotificationSetting(db.Model): # Bildirim ayarları        
     __tablename__ = 'notification_settings'
     
     id = db.Column(db.Integer, primary_key=True)

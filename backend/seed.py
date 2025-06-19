@@ -1,22 +1,21 @@
-from app import create_app
+from app import create_app # app.py dosyasındaki create_app fonksiyonunu import ediyoruz.
 from models import (
     db, User, Course, Lesson, Quiz, QuizQuestion, QuizOption, 
     Assignment, LessonDocument, Enrollment, Notification
 )
-from werkzeug.security import generate_password_hash
-from datetime import datetime, timedelta, UTC
+from werkzeug.security import generate_password_hash # werkzeug.security modülünün generate_password_hash fonksiyonunu import ediyoruz.
+from datetime import datetime, timedelta, UTC # datetime modülünü import ediyoruz.
 
-def seed_database():
-    app = create_app()
+def seed_database(): # Veritabanını doldur
+    app = create_app() # Flask uygulamasını oluştur
     with app.app_context():
         # Veritabanını temizle
-        db.drop_all()
+        db.drop_all() # Veritabanını temizle
         # Tabloları oluştur
-        db.create_all()
+        db.create_all() # Tabloları oluştur
         
-        print('1. Kullanıcılar oluşturuluyor...')
         # Örnek kullanıcılar oluştur
-        instructor = User(
+        instructor = User( # Örnek kullanıcılar oluştur
             username='instructor',
             email='instructor@test.com',
             password_hash=generate_password_hash('password123'),
@@ -24,7 +23,7 @@ def seed_database():
             created_at=datetime.now(UTC)
         )
         
-        student = User(
+        student = User( # Örnek kullanıcılar oluştur
             username='student',
             email='student@test.com',
             password_hash=generate_password_hash('password123'),
@@ -32,12 +31,11 @@ def seed_database():
             created_at=datetime.now(UTC)
         )
         
-        db.session.add_all([instructor, student])
-        db.session.commit()
-        
-        print('2. Kurslar oluşturuluyor...')
+        db.session.add_all([instructor, student]) # Kullanıcıları veritabanına ekle
+        db.session.commit() # Değişiklikleri kaydediyoruz.
+    
         # Örnek kurslar oluştur
-        python_course = Course(
+        python_course = Course( # Örnek kurslar oluştur
             title='Python Programlama',
             description='Python programlama dilini temellerinden öğrenin',
             instructor_id=instructor.id,
@@ -47,7 +45,7 @@ def seed_database():
             level='Başlangıç'
         )
         
-        web_course = Course(
+        web_course = Course( # Örnek kurslar oluştur
             title='Web Geliştirme',
             description='HTML, CSS ve JavaScript ile web geliştirme',
             instructor_id=instructor.id,
@@ -57,20 +55,19 @@ def seed_database():
             level='Orta Seviye'
         )
         
-        db.session.add_all([python_course, web_course])
-        db.session.commit()
+        db.session.add_all([python_course, web_course]) # Kursları veritabanına ekle
+        db.session.commit() # Değişiklikleri kaydediyoruz.
         
-        print('3. Dersler oluşturuluyor...')
         # Python kursu için dersler
         python_lessons = [
-            Lesson(
+            Lesson( # Örnek dersler oluştur
                 title='Python\'a Giriş',
                 content='Python programlama diline giriş ve kurulum',
                 order=1,
                 course_id=python_course.id,
                 created_at=datetime.now(UTC)
             ),
-            Lesson(
+            Lesson( # Örnek dersler oluştur
                 title='Veri Tipleri ve Değişkenler',
                 content='Python\'da temel veri tipleri ve değişken kavramı',
                 order=2,
@@ -81,14 +78,14 @@ def seed_database():
         
         # Web kursu için dersler
         web_lessons = [
-            Lesson(
+            Lesson( # Örnek dersler oluştur
                 title='HTML Temelleri',
                 content='HTML etiketleri ve sayfa yapısı',
                 order=1,
                 course_id=web_course.id,
                 created_at=datetime.now(UTC)
             ),
-            Lesson(
+            Lesson( # Örnek dersler oluştur
                 title='CSS ile Stillendirme',
                 content='CSS seçiciler ve özellikler',
                 order=2,
@@ -97,12 +94,11 @@ def seed_database():
             )
         ]
         
-        db.session.add_all(python_lessons + web_lessons)
-        db.session.commit()
+        db.session.add_all(python_lessons + web_lessons) # Dersleri veritabanına ekle
+        db.session.commit() # Değişiklikleri kaydediyoruz.
         
-        print('4. Quizler oluşturuluyor...')
         # Python dersi için quiz
-        python_quiz = Quiz(
+        python_quiz = Quiz( # Örnek quiz oluştur
             title='Python Temel Kavramlar Quiz',
             description='Python\'da veri tipleri hakkında quiz',
             lesson_id=python_lessons[1].id,
@@ -110,46 +106,44 @@ def seed_database():
             passing_score=70.0,
             created_at=datetime.now(UTC)
         )
-        db.session.add(python_quiz)
-        db.session.commit()
+        db.session.add(python_quiz) # Quizi veritabanına ekle
         
         # Quiz soruları
         python_questions = [
-            QuizQuestion(
+            QuizQuestion( # Örnek quiz soruları oluştur
                 quiz_id=python_quiz.id,
                 question_text='Python\'da liste oluşturmak için hangi parantezler kullanılır?',
                 question_type='multiple_choice',
                 points=10
             ),
-            QuizQuestion(
+            QuizQuestion( # Örnek quiz soruları oluştur
                 quiz_id=python_quiz.id,
                 question_text='Python\'da string birleştirme operatörü hangisidir?',
                 question_type='multiple_choice',
                 points=10
             )
         ]
-        db.session.add_all(python_questions)
-        db.session.commit()
+        db.session.add_all(python_questions) # Quiz sorularını veritabanına ekle
+        db.session.commit() # Değişiklikleri kaydediyoruz.
         
         # Soru seçenekleri
-        question1_options = [
+        question1_options = [ # Örnek quiz soru seçenekleri oluştur
             QuizOption(question_id=python_questions[0].id, option_text='()', is_correct=False),
             QuizOption(question_id=python_questions[0].id, option_text='[]', is_correct=True),
             QuizOption(question_id=python_questions[0].id, option_text='{}', is_correct=False)
         ]
         
-        question2_options = [
+        question2_options = [ # Örnek quiz soru seçenekleri oluştur
             QuizOption(question_id=python_questions[1].id, option_text='+', is_correct=True),
             QuizOption(question_id=python_questions[1].id, option_text='&', is_correct=False),
             QuizOption(question_id=python_questions[1].id, option_text='*', is_correct=False)
         ]
         
-        db.session.add_all(question1_options + question2_options)
-        db.session.commit()
+        db.session.add_all(question1_options + question2_options) # Quiz soru seçeneklerini veritabanına ekle
+        db.session.commit() # Değişiklikleri kaydediyoruz.
         
-        print('5. Ödevler oluşturuluyor...')
         # Ödevler
-        python_assignment = Assignment(
+        python_assignment = Assignment( # Örnek ödev oluştur
             id=1,
             title='Python Liste İşlemleri',
             description='Listeler üzerinde temel işlemler yapan bir program yazın',
@@ -159,7 +153,7 @@ def seed_database():
             created_at=datetime.now(UTC)
         )
         
-        web_assignment = Assignment(
+        web_assignment = Assignment( # Örnek ödev oluştur
             id=2,
             title='Kişisel Web Sayfası',
             description='HTML ve CSS kullanarak kişisel web sayfası oluşturun',
@@ -180,49 +174,46 @@ def seed_database():
             created_at=datetime.now(UTC)
         )
         
-        db.session.add_all([python_assignment, web_assignment, urgent_assignment])
-        db.session.commit()
+        db.session.add_all([python_assignment, web_assignment, urgent_assignment]) # Ödevleri veritabanına ekle
+        db.session.commit() # Değişiklikleri kaydediyoruz.
         
-        print('6. Ders dökümanları oluşturuluyor...')
         # Ders dökümanları
-        python_doc = LessonDocument(
+        python_doc = LessonDocument( # Örnek ders dökümanı oluştur
             lesson_id=python_lessons[0].id,
             file_url='https://example.com/python_intro.pdf',
             file_name='python_giris.pdf',
             created_at=datetime.now(UTC)
         )
         
-        web_doc = LessonDocument(
+        web_doc = LessonDocument( # Örnek ders dökümanı oluştur
             lesson_id=web_lessons[0].id,
             file_url='https://example.com/html_basics.pdf',
             file_name='html_temelleri.pdf',
             created_at=datetime.now(UTC)
         )
         
-        db.session.add_all([python_doc, web_doc])
-        db.session.commit()
+        db.session.add_all([python_doc, web_doc]) # Ders dökümanlarını veritabanına ekle
+        db.session.commit() # Değişiklikleri kaydediyoruz.
         
-        print('7. Kurs kayıtları oluşturuluyor...')
         # Öğrenciyi kurslara kaydet
-        python_enrollment = Enrollment(
+        python_enrollment = Enrollment( # Öğrenciyi kurslara kaydet
             student_id=student.id,
             course_id=python_course.id,
             enrolled_at=datetime.now(UTC)
         )
         
-        web_enrollment = Enrollment(
+        web_enrollment = Enrollment( # Öğrenciyi kurslara kaydet
             student_id=student.id,
             course_id=web_course.id,
             enrolled_at=datetime.now(UTC)
         )
         
-        db.session.add_all([python_enrollment, web_enrollment])
-        db.session.commit()
+        db.session.add_all([python_enrollment, web_enrollment]) # Kurs kayıtlarını veritabanına ekle
+        db.session.commit() # Değişiklikleri kaydediyoruz.
         
-        print('8. Bildirimler oluşturuluyor...')
         # Örnek bildirimler
         notifications = [
-            Notification(
+            Notification( # Örnek bildirim oluştur
                 user_id=student.id,
                 course_id=python_course.id,
                 type='course_update',
@@ -231,7 +222,7 @@ def seed_database():
                 is_read=False,
                 created_at=datetime.now(UTC)
             ),
-            Notification(
+            Notification( # Örnek bildirim oluştur
                 user_id=student.id,
                 course_id=web_course.id,
                 type='new_assignment',
@@ -242,10 +233,8 @@ def seed_database():
             )
         ]
         
-        db.session.add_all(notifications)
-        db.session.commit()
-        
-        print('Veritabanı başarıyla dolduruldu!')
+        db.session.add_all(notifications) # Bildirimleri veritabanına ekle
+        db.session.commit() # Değişiklikleri kaydediyoruz.
 
 if __name__ == '__main__':
     seed_database()

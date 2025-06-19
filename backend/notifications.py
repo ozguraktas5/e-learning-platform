@@ -1,19 +1,19 @@
-from flask import Blueprint, jsonify, request, current_app
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime, UTC
-from models import db, Notification, User, NotificationSetting
-import logging
-import traceback
+from flask import Blueprint, jsonify, request, current_app # Flask'ın Blueprint, jsonify, request ve current_app fonksiyonlarını import ediyoruz.
+from flask_jwt_extended import jwt_required, get_jwt_identity # Flask-JWT-Extended'ın jwt_required ve get_jwt_identity fonksiyonlarını import ediyoruz.
+from datetime import datetime, UTC # datetime modülünü import ediyoruz.
+from models import db, Notification, User, NotificationSetting # models.py dosyasındaki db, Notification, User ve NotificationSetting modellerini import ediyoruz.
+import logging # logging modülünü import ediyoruz.
+import traceback # traceback modülünü import ediyoruz.
 
 # Blueprint oluşturma
-notifications_bp = Blueprint('notifications', __name__)
+notifications_bp = Blueprint('notifications', __name__) # notifications blueprint'ini oluşturuyoruz.
 
 # Tüm bildirimleri getir
-@notifications_bp.route('/notifications', methods=['GET'])
-@jwt_required()
-def get_notifications():
+@notifications_bp.route('/notifications', methods=['GET']) # Tüm bildirimleri getir
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def get_notifications(): # Tüm bildirimleri getir
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
         
         # Kullanıcının tüm bildirimlerini al
         notifications = Notification.query.filter_by(user_id=current_user_id).order_by(Notification.created_at.desc()).all()
@@ -25,11 +25,11 @@ def get_notifications():
         return jsonify({"error": "İstek işlenirken bir hata oluştu."}), 500
 
 # Okunmamış bildirim sayısını getir
-@notifications_bp.route('/notifications/unread-count', methods=['GET'])
-@jwt_required()
-def get_unread_count():
+@notifications_bp.route('/notifications/unread-count', methods=['GET']) # Okunmamış bildirim sayısını getir
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def get_unread_count(): # Okunmamış bildirim sayısını getir
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
         
         # Kullanıcının okunmamış bildirimlerini say
         unread_count = Notification.query.filter_by(user_id=current_user_id, is_read=False).count()
@@ -40,11 +40,11 @@ def get_unread_count():
         return jsonify({"error": "İstek işlenirken bir hata oluştu."}), 500
 
 # Bildirimi okundu olarak işaretle
-@notifications_bp.route('/notifications/<int:notification_id>/read', methods=['PUT'])
-@jwt_required()
-def mark_as_read(notification_id):
+@notifications_bp.route('/notifications/<int:notification_id>/read', methods=['PUT']) # Bildirimi okundu olarak işaretle
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def mark_as_read(notification_id): # Bildirimi okundu olarak işaretle
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
         
         # Bildirimi bul
         notification = Notification.query.filter_by(id=notification_id, user_id=current_user_id).first()
@@ -64,11 +64,11 @@ def mark_as_read(notification_id):
         return jsonify({"error": "İstek işlenirken bir hata oluştu."}), 500
 
 # Tüm bildirimleri okundu olarak işaretle
-@notifications_bp.route('/notifications/read-all', methods=['PUT'])
-@jwt_required()
-def mark_all_as_read():
+@notifications_bp.route('/notifications/read-all', methods=['PUT']) # Tüm bildirimleri okundu olarak işaretle
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def mark_all_as_read(): # Tüm bildirimleri okundu olarak işaretle
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
         now = datetime.now(UTC)
         
         # Kullanıcının tüm okunmamış bildirimlerini bul
@@ -88,11 +88,11 @@ def mark_all_as_read():
         return jsonify({"error": "İstek işlenirken bir hata oluştu."}), 500
 
 # Bildirimi sil
-@notifications_bp.route('/notifications/<int:notification_id>', methods=['DELETE'])
-@jwt_required()
-def delete_notification(notification_id):
+@notifications_bp.route('/notifications/<int:notification_id>', methods=['DELETE']) # Bildirimi sil
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def delete_notification(notification_id): # Bildirimi sil
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
         
         # Bildirimi bul
         notification = Notification.query.filter_by(id=notification_id, user_id=current_user_id).first()
@@ -111,11 +111,11 @@ def delete_notification(notification_id):
         return jsonify({"error": "İstek işlenirken bir hata oluştu."}), 500
 
 # Bildirim ayarlarını getir
-@notifications_bp.route('/notifications/settings', methods=['GET'])
-@jwt_required()
-def get_notification_settings():
+@notifications_bp.route('/notifications/settings', methods=['GET']) # Bildirim ayarlarını getir
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def get_notification_settings(): # Bildirim ayarlarını getir
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
         
         # Kullanıcının bildirim ayarlarını al
         settings = NotificationSetting.query.filter_by(user_id=current_user_id).all()
@@ -177,11 +177,11 @@ def get_notification_settings():
         return jsonify({"error": "İstek işlenirken bir hata oluştu."}), 500
 
 # Bildirim ayarlarını güncelle
-@notifications_bp.route('/notifications/settings', methods=['PUT'])
-@jwt_required()
-def update_notification_settings():
+@notifications_bp.route('/notifications/settings', methods=['PUT']) # Bildirim ayarlarını güncelle
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def update_notification_settings(): # Bildirim ayarlarını güncelle
     try:
-        current_user_id = get_jwt_identity()
+        current_user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
         
         # İstek verilerini al
         settings_data = request.get_json()
@@ -214,7 +214,7 @@ def update_notification_settings():
         return jsonify({"error": "İstek işlenirken bir hata oluştu."}), 500
 
 # Yeni bildirim oluştur (iç işlemlerde kullanılabilir)
-def create_notification(user_id, course_id, notification_type, title, message, reference_id=None):
+def create_notification(user_id, course_id, notification_type, title, message, reference_id=None): # Yeni bildirim oluştur (iç işlemlerde kullanılabilir)
     try:
         # Kullanıcının bu tür bildirimlerle ilgili ayarlarını kontrol et
         if notification_type == 'course_update':

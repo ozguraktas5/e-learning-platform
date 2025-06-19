@@ -1,11 +1,11 @@
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from flask_cors import CORS
+from flask import Blueprint, jsonify, request # Flask'ın Blueprint ve jsonify fonksiyonlarını import ediyoruz.
+from flask_jwt_extended import jwt_required, get_jwt_identity 
+from flask_cors import CORS # Flask-CORS'u import ediyoruz.
 from models import db, Course, Enrollment, Progress, Lesson, User, Assignment, AssignmentSubmission
-from datetime import datetime, UTC, timedelta
+from datetime import datetime, UTC, timedelta # datetime modülünü import ediyoruz.
 
 enrollments = Blueprint('enrollments', __name__) # Enrollments blueprint'ini oluşturuyoruz.
-CORS(enrollments, resources={
+CORS(enrollments, resources={ # CORS'u ayarlıyoruz.
     r"/*": {
         "origins": ["http://localhost:3000"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -16,18 +16,17 @@ CORS(enrollments, resources={
 })
 
 def is_student(user_id): # Kullanıcının öğrenci olup olmadığını kontrol et
-    user = User.query.get(user_id)
+    user = User.query.get(user_id) # Kullanıcıyı buluyoruz.
     return user and user.role == 'student'
 
 def is_instructor(user_id): # Kullanıcının eğitmen olup olmadığını kontrol et
-    user = User.query.get(user_id)
+    user = User.query.get(user_id) # Kullanıcıyı buluyoruz.
     return user and user.role == 'instructor'
 
-@enrollments.route('/courses/<int:course_id>/enroll', methods=['POST'])
-@jwt_required()
+@enrollments.route('/courses/<int:course_id>/enroll', methods=['POST']) # Kursa kayıt ol
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
 def enroll_course(course_id): # Kursa kayıt ol
-    # Kullanıcının öğrenci olup olmadığını kontrol et
-    user_id = get_jwt_identity()
+    user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
     if not is_student(user_id):
         return jsonify({'error': 'Only students can enroll in courses'}), 403
     
@@ -71,9 +70,9 @@ def enroll_course(course_id): # Kursa kayıt ol
         }
     }), 201
 
-@enrollments.route('/my-courses', methods=['GET'])
+@enrollments.route('/my-courses', methods=['GET']) # Öğrencinin kayıtlı olduğu kursları al
 @jwt_required()
-def get_my_courses():
+def get_my_courses(): # Öğrencinin kayıtlı olduğu kursları al
     user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
     
     enrollments = Enrollment.query.filter_by(student_id=user_id).all() # Kullanıcının kayıtlı olduğu kursları al
@@ -92,9 +91,9 @@ def get_my_courses():
         }
     } for enrollment in enrollments])
 
-@enrollments.route('/courses/<int:course_id>/progress', methods=['GET'])
-@jwt_required()
-def get_course_progress(course_id):
+@enrollments.route('/courses/<int:course_id>/progress', methods=['GET']) # Kursun ilerleme durumunu al
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def get_course_progress(course_id): # Kursun ilerleme durumunu al
     user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
     
     # Kayıt kontrolü
@@ -119,9 +118,9 @@ def get_course_progress(course_id):
         } for lesson in lessons]
     })
 
-@enrollments.route('/lessons/<int:lesson_id>/complete', methods=['POST'])
-@jwt_required()
-def complete_lesson(lesson_id):
+@enrollments.route('/lessons/<int:lesson_id>/complete', methods=['POST']) # Dersi tamamla
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def complete_lesson(lesson_id): # Dersi tamamla
     user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
     
     # Dersi bul
@@ -160,10 +159,10 @@ def complete_lesson(lesson_id):
         }
     })
 
-@enrollments.route('/courses', methods=['GET'])
-@jwt_required()
-def get_enrolled_courses():
-    user_id = get_jwt_identity()
+@enrollments.route('/courses', methods=['GET']) # Öğrencinin kayıtlı olduğu kursları al
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def get_enrolled_courses(): # Öğrencinin kayıtlı olduğu kursları al
+    user_id = get_jwt_identity() # JWT token'ının içindeki bilgileri almak için kullanılır.
     
     # Kullanıcının öğrenci olup olmadığını kontrol et
     if not is_student(user_id):
@@ -209,9 +208,9 @@ def get_enrolled_courses():
     
     return jsonify(courses)
 
-@enrollments.route('/history', methods=['GET'])
-@jwt_required()
-def get_enrollment_history():
+@enrollments.route('/history', methods=['GET']) # Öğrencinin tüm kayıt geçmişini döndürür
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def get_enrollment_history(): # Öğrencinin tüm kayıt geçmişini döndürür
     """Öğrencinin tüm kayıt geçmişini döndürür"""
     user_id = get_jwt_identity()
     
@@ -271,9 +270,9 @@ def get_enrollment_history():
     
     return jsonify(history)
 
-@enrollments.route('/instructor/students', methods=['GET'])
-@jwt_required()
-def get_instructor_students():
+@enrollments.route('/instructor/students', methods=['GET']) # Eğitmenin öğrencilerini döndürür
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def get_instructor_students(): # Eğitmenin öğrencilerini döndürür
     """Eğitmenin öğrencilerini döndürür"""
     user_id = get_jwt_identity()
     
@@ -345,9 +344,9 @@ def get_instructor_students():
     
     return jsonify(students_data)
 
-@enrollments.route('/instructor/student-stats', methods=['GET'])
-@jwt_required()
-def get_instructor_student_stats():
+@enrollments.route('/instructor/student-stats', methods=['GET']) # Eğitmenin öğrenci istatistiklerini döndürür
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def get_instructor_student_stats(): # Eğitmenin öğrenci istatistiklerini döndürür
     """Eğitmenin öğrenci istatistiklerini döndürür"""
     user_id = get_jwt_identity()
     
@@ -439,9 +438,9 @@ def get_instructor_student_stats():
         'average_course_completion': average_completion
     })
 
-@enrollments.route('/instructor/students/<int:student_id>/progress', methods=['GET'])
-@jwt_required()
-def get_student_progress(student_id):
+@enrollments.route('/instructor/students/<int:student_id>/progress', methods=['GET']) # Belirli bir öğrencinin tüm kurslarındaki ilerleme detaylarını döndürür
+@jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
+def get_student_progress(student_id): # Belirli bir öğrencinin tüm kurslarındaki ilerleme detaylarını döndürür
     """Belirli bir öğrencinin tüm kurslarındaki ilerleme detaylarını döndürür"""
     user_id = get_jwt_identity()
     

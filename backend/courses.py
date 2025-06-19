@@ -536,8 +536,6 @@ def reply_to_review(course_id, review_id):
     review = Review.query.get_or_404(review_id)
     course = Course.query.get_or_404(course_id)
     
-    print(f"Debug - current_user_id: {current_user_id}, course.instructor_id: {course.instructor_id}")  # Debug log
-    
     # Kullanıcının kursun eğitmeni olup olmadığını kontrol et
     if int(course.instructor_id) != current_user_id:  # Her iki değeri de integer olarak karşılaştır
         return jsonify({'error': 'Bu değerlendirmeye yanıt veremezsiniz.'}), 403
@@ -1217,16 +1215,9 @@ def get_unread_notifications():
             else:
                 return jsonify({'message': 'Geçersiz tarih filtresi. Geçerli değerler: 24h, 7d, 30d'}), 400
             
-            # Debug için yazdır
-            print(f"Now: {now}")
-            print(f"Since date: {since_date}")
-            
             # Tarih aralığı kontrolü - tam gün karşılaştırması için
             since_date = since_date.replace(hour=0, minute=0, second=0, microsecond=0)
             base_query = base_query.filter(Notification.created_at >= since_date)
-            
-            # Debug için sorguyu yazdır
-            print(f"Query: {base_query}")
         
         # Toplam kayıt sayısını al
         count_query = db.select(db.func.count()).select_from(Notification)
@@ -1234,18 +1225,12 @@ def get_unread_notifications():
             count_query = count_query.where(criterion)
         total_count = db.session.scalar(count_query)
         
-        print(f"Total count: {total_count}")  # Debug için
-        
         # Sayfalandırılmış ve sıralanmış sonuçları al
         notifications = db.session.scalars(
             base_query.order_by(Notification.created_at.desc())
             .offset((page - 1) * per_page)
             .limit(per_page)
         ).all()
-        
-        print(f"Retrieved notifications: {len(notifications)}")  # Debug için
-        for notif in notifications:
-            print(f"Notification date: {notif.created_at}")  # Debug için
         
         # Bildirimleri temizle ve dönüştür
         notification_list = []
@@ -1267,11 +1252,10 @@ def get_unread_notifications():
         })
         
     except Exception as e:
-        print(f"Error in get_unread_notifications: {str(e)}")  # Debug için
         return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
-@courses.route('/notifications/mark-selected-read', methods=['POST'])
-@jwt_required()
+@courses.route('/notifications/mark-selected-read', methods=['POST']) 
+@jwt_required() 
 def mark_selected_notifications_read():
     try:
         current_user_id = get_jwt_identity()
@@ -1310,7 +1294,7 @@ def mark_notification_read(notification_id):
     try:
         current_user_id = get_jwt_identity()
         
-        # Get notification with row-level locking
+        
         stmt = db.select(Notification).where(
             Notification.id == notification_id
         ).with_for_update(nowait=True)
@@ -1324,15 +1308,15 @@ def mark_notification_read(notification_id):
                 return jsonify({'message': 'Notification is being processed by another request'}), 409
             raise
             
-        # Check if the user owns this notification
+        
         if str(notification.user_id) != str(current_user_id):
             return jsonify({'message': 'You do not have permission to read this notification'}), 403
             
-        # Check if notification is already read
+        
         if notification.is_read:
             return jsonify({'message': 'Notification is already marked as read'}), 409
             
-        # Mark as read
+    
         notification.is_read = True
         notification.read_at = datetime.now(TURKEY_TZ)
         db.session.commit()
@@ -1460,13 +1444,8 @@ def check_assignment_due_dates():
                     Assignment.due_date <= three_days_later
                 )
             ).all()
-            
-            print(f"Bulunan ödev sayısı: {len(upcoming_assignments)}")  # Debug için
-            for assignment in upcoming_assignments:
-                print(f"Ödev: {assignment.title}, Due Date: {assignment.due_date}, Now: {now}")  # Debug için
                 
         except Exception as e:
-            print(f"Hata: Ödevler yüklenirken hata oluştu: {str(e)}")
             return jsonify({'message': f'Ödevler yüklenirken hata oluştu: {str(e)}'}), 500
         
         # Teslim edilmemiş ödevler için bildirim oluştur
@@ -1515,12 +1494,12 @@ def check_assignment_due_dates():
                             db.session.add(notification)
                             notifications_created += 1
                             created_notifications.append(assignment.title)  # Ödev başlığını listeye ekle
-                            print(f"Bildirim oluşturuldu: {notification.title}")  # Debug için
+                            
                         except Exception as e:
-                            print(f"Hata: Bildirim oluşturulurken hata oluştu: {str(e)}")
+                            
                             continue
             except Exception as e:
-                print(f"Hata: Ödev kontrolü sırasında hata oluştu: {str(e)}")
+                
                 continue
         
         if notifications_created > 0:
@@ -1535,7 +1514,7 @@ def check_assignment_due_dates():
                 })
             except Exception as e:
                 db.session.rollback()
-                print(f"Hata: Bildirimler kaydedilirken hata oluştu: {str(e)}")
+                
                 return jsonify({'message': f'Bildirimler kaydedilirken bir hata oluştu: {str(e)}'}), 500
         else:
             return jsonify({
@@ -1545,7 +1524,7 @@ def check_assignment_due_dates():
             })
             
     except Exception as e:
-        print(f"Hata: Genel bir hata oluştu: {str(e)}")
+        
         return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
 @courses.route('/notifications/performance-test', methods=['POST'])
@@ -1598,7 +1577,7 @@ def create_test_notifications():
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error in create_test_notifications: {str(e)}")
+        
         return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
 @courses.route('/notifications/create-mixed', methods=['POST'])
@@ -1697,7 +1676,7 @@ def create_mixed_content_notification():
 
     except Exception as e:
         db.session.rollback()
-        print(f"Error in create_mixed_content_notification: {str(e)}")
+        
         return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
 
 @courses.route('/notifications/cleanup', methods=['POST'])
@@ -2397,8 +2376,6 @@ def get_user_assignment_submission(course_id, lesson_id, assignment_id):
         
     except Exception as e:
         import traceback
-        print(f"Error in get_user_assignment_submission: {str(e)}")
-        print(traceback.format_exc())
         return jsonify({'error': f'Ödev gönderimi yüklenirken bir hata oluştu: {str(e)}'}), 500
 
 @courses.route('/<int:course_id>/enrollment-status', methods=['GET'])
@@ -2406,12 +2383,10 @@ def get_user_assignment_submission(course_id, lesson_id, assignment_id):
 def check_enrollment_status(course_id):
     """Öğrencinin kursa kayıt durumunu kontrol et"""
     current_user_id = get_jwt_identity()
-    print(f"Checking enrollment status for user {current_user_id} in course {course_id}")
     
     # Kullanıcının öğrenci olup olmadığını kontrol et
     user = User.query.get(current_user_id)
     if not user or user.role != 'student':
-        print(f"User {current_user_id} is not a student or doesn't exist")
         return jsonify({'is_enrolled': False}), 200
     
     # Öğrencinin kursa kayıtlı olup olmadığını kontrol et
@@ -2421,7 +2396,6 @@ def check_enrollment_status(course_id):
     ).first()
     
     is_enrolled = enrollment is not None
-    print(f"User {current_user_id} enrollment status for course {course_id}: {is_enrolled}")
     
     return jsonify({'is_enrolled': is_enrolled}), 200
 
@@ -2461,24 +2435,19 @@ def course_assignments(course_id):
             return jsonify(assignments_data)
         
         elif request.method == 'POST':
-            # Debug log ekle
-            print("Received data:", request.get_json())
             
             # Eğitmen kontrolü
             current_user_id = get_jwt_identity()
             if str(course.instructor_id) != current_user_id:
-                print("Permission error - instructor_id:", course.instructor_id, "current_user_id:", current_user_id)
                 return jsonify({'message': 'Bu kursa ödev ekleme yetkiniz yok'}), 403
             
             data = request.get_json()
             if not data or 'title' not in data or 'description' not in data or 'due_date' not in data or 'lesson_id' not in data:
-                print("Missing required fields in data:", data)
                 return jsonify({'message': 'Ödev başlığı, açıklaması, dersi ve son tarihi zorunludur'}), 400
             
             # Dersi kontrol et
             lesson = Lesson.query.get(data['lesson_id'])
             if not lesson or lesson.course_id != course_id:
-                print(f"Invalid lesson_id: {data.get('lesson_id')} for course_id: {course_id}")
                 return jsonify({'message': 'Geçersiz ders seçimi'}), 400
             
             try:
@@ -2522,12 +2491,8 @@ def course_assignments(course_id):
                 }), 201
                 
             except Exception as e:
-                print("Error creating assignment:", str(e))
                 db.session.rollback()
                 return jsonify({'message': f'Ödev oluşturulurken bir hata oluştu: {str(e)}'}), 500
             
     except Exception as e:
-        print("Unexpected error:", str(e))
         return jsonify({'message': f'Bir hata oluştu: {str(e)}'}), 500
-
-# Ending the file properly
