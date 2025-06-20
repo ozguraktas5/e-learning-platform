@@ -1,18 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { authApi } from '@/lib/api/auth';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { User, Mail, Lock, AlertCircle, UserCheck } from 'lucide-react';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useState } from 'react';  // React'ten useState hook'unu içe aktarır.
+import { useRouter } from 'next/navigation';  // Next.js'nin navigation API'sini içe aktarır.
+import Link from 'next/link';  // Next.js'nin Link bileşenini içe aktarır.
+import { useForm } from 'react-hook-form';  // React Hook Form kütüphanesini içe aktarır.
+import { zodResolver } from '@hookform/resolvers/zod';  // Zod resolver'ı içe aktarır.
+import { z } from 'zod';  // Zod kütüphanesini içe aktarır.
+import { authApi } from '@/lib/api/auth';  // authApi kütüphanesini içe aktarır.
+import { toast } from 'react-toastify';  // react-toastify kütüphanesini içe aktarır.
+import 'react-toastify/dist/ReactToastify.css';  // react-toastify kütüphanesinin CSS'sini içe aktarır.
+import { User, Mail, Lock, AlertCircle, UserCheck } from 'lucide-react';  // Lucide React kütüphanesinden User, Mail, Lock, AlertCircle ve UserCheck simgelerini içe aktarır.
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // LoadingSpinner bileşenini içe aktarır.
 
-const registerSchema = z.object({
+const registerSchema = z.object({  // Zod kütüphanesi ile registerSchema oluşturulur.
   username: z.string().min(3, 'Kullanıcı adı en az 3 karakter olmalıdır'),
   email: z.string().email('Geçerli bir email adresi giriniz'),
   password: z.string().min(6, 'Şifre en az 6 karakter olmalıdır'),
@@ -21,30 +21,30 @@ const registerSchema = z.object({
   }),
 });
 
-type RegisterForm = z.infer<typeof registerSchema>;
+type RegisterForm = z.infer<typeof registerSchema>;  // RegisterForm tipi registerSchema'dan türetir.
 
-export default function RegisterPage() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+export default function RegisterPage() {  // RegisterPage bileşenini dışa aktarır.
+  const router = useRouter();  // useRouter hook'u ile router'ı alır.
+  const [error, setError] = useState<string | null>(null);  // error değişkeni oluşturulur ve başlangıç değeri null olarak ayarlanır.
+  const [isLoading, setIsLoading] = useState(false);  // isLoading değişkeni oluşturulur ve başlangıç değeri false olarak ayarlanır.
 
-  const {
+  const {  // useForm hook'u ile register, handleSubmit ve errors değişkenlerini alır.
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(registerSchema),  // zodResolver ile registerSchema'ya bağlanır.
     defaultValues: {
-      role: 'student'
+      role: 'student'  // role değişkeni student olarak ayarlanır.
     }
   });
 
-  const onSubmit = async (data: RegisterForm) => {
-    try {
-      setError('');
-      setIsLoading(true);
+  const onSubmit = async (data: RegisterForm) => {  // onSubmit fonksiyonu ile form verileri alınır.
+    try {  // try ile hata yakalanır.
+      setError('');  // setError fonksiyonu ile error değişkenine '' atanır.
+      setIsLoading(true);  // setIsLoading fonksiyonu ile isLoading değişkenine true atanır.
       
-      await authApi.register(data);
+      await authApi.register(data);  // authApi.register ile data gönderilir.
       toast.success('Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...', {
         position: "top-right",
         autoClose: 3000,
@@ -54,20 +54,20 @@ export default function RegisterPage() {
         draggable: true,
       });
       
-      setTimeout(() => {
-        router.push('/login?registered=true');
-      }, 2000);
+      setTimeout(() => {  // setTimeout ile 2 saniye sonra router.push ile login sayfasına yönlendirilir.
+        router.push('/login?registered=true');  // router.push ile login sayfasına yönlendirilir.
+      }, 2000);  // 2000ms sonra setTimeout fonksiyonu çalışır.
       
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      const errorMessage = error?.response?.data?.message || 'Kayıt başarısız. Lütfen tekrar deneyiniz.';
-      setError(errorMessage);
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 5000,
+    } catch (err: unknown) {  // catch ile hata yakalanır.
+      const error = err as { response?: { data?: { message?: string } } };  // error değişkeni err'ın response ve data değerlerini alır.
+      const errorMessage = error?.response?.data?.message || 'Kayıt başarısız. Lütfen tekrar deneyiniz.';  // errorMessage değişkeni error'ın response ve data değerlerini alır.
+      setError(errorMessage);  // setError fonksiyonu ile errorMessage değişkeni atanır.
+      toast.error(errorMessage, {  // toast.error ile errorMessage gösterilir.
+        position: "top-right",  // position: "top-right" ile toast mesajı sağ üst köşeye gösterilir.
+        autoClose: 5000,  // autoClose: 5000 ile toast mesajı 5 saniye sonra kapatılır.
       });
-    } finally {
-      setIsLoading(false);
+    } finally {  // finally ile setIsLoading fonksiyonu ile isLoading değişkenine false atanır.
+      setIsLoading(false);  // setIsLoading fonksiyonu ile isLoading değişkenine false atanır.
     }
   };
 

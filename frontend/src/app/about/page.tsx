@@ -1,12 +1,12 @@
 'use client';
 
-import React from 'react';
-import { BookOpen, Users, Award, Heart } from 'lucide-react';
+import React from 'react';  // React'ten React'i içe aktarır.
+import { BookOpen, Users, Award, Heart } from 'lucide-react';  // Lucide React kütüphanesinden BookOpen, Users, Award ve Heart simgelerini içe aktarır.
 
-export default function AboutPage() {
+export default function AboutPage() {  // AboutPage bileşenini dışa aktarır.
   return (
     <div className="min-h-screen bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
-      {/* Hero Section */}
+      {/* Hakkımızda */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -24,7 +24,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Mission & Vision Section */}
+      {/* Misyonumuz ve Vizyonumuz */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -48,7 +48,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* İstatistiklerimiz */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -87,7 +87,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Team Section */}
+      {/* Ekibimiz */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
