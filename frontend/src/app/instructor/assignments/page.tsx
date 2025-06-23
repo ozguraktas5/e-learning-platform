@@ -1,128 +1,128 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { assignmentsApi, Assignment, AssignmentStats } from '@/lib/api/assignments';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import { format, isAfter } from 'date-fns';
+import { useState, useEffect } from 'react';  // React'ten useState ve useEffect'i içe aktarır.
+import { assignmentsApi, Assignment, AssignmentStats } from '@/lib/api/assignments';  // assignmentsApi, Assignment ve AssignmentStats'u içe aktarır.
+import { toast } from 'react-hot-toast';  // react-hot-toast'tan toast'u içe aktarır.
+import Link from 'next/link';  // Next.js'ten Link'i içe aktarır.
+import { format, isAfter } from 'date-fns';  // date-fns'ten format ve isAfter'ı içe aktarır.
 
-export default function InstructorAssignmentsPage() {
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([]);
-  const [stats, setStats] = useState<AssignmentStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<keyof Assignment>('due_date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+export default function InstructorAssignmentsPage() {  // InstructorAssignmentsPage bileşenini dışa aktarır.
+  const [assignments, setAssignments] = useState<Assignment[]>([]);  // assignments değişkenini oluşturur ve Assignment tipinde bir dizi ile başlatır.
+  const [filteredAssignments, setFilteredAssignments] = useState<Assignment[]>([]);  // filteredAssignments değişkenini oluşturur ve Assignment tipinde bir dizi ile başlatır.
+  const [stats, setStats] = useState<AssignmentStats | null>(null);  // stats değişkenini oluşturur ve AssignmentStats tipinde bir değişken ile başlatır.
+  const [loading, setLoading] = useState(true);  // loading değişkenini oluşturur ve true ile başlatır.
+  const [error, setError] = useState<string | null>(null);  // error değişkenini oluşturur ve string tipinde bir değişken ile başlatır.
+  const [searchQuery, setSearchQuery] = useState<string>('');  // searchQuery değişkenini oluşturur ve string tipinde bir değişken ile başlatır.
+  const [statusFilter, setStatusFilter] = useState<string>('all');  // statusFilter değişkenini oluşturur ve string tipinde bir değişken ile başlatır.
+  const [sortBy, setSortBy] = useState<keyof Assignment>('due_date');  // sortBy değişkenini oluşturur ve Assignment tipinde bir değişken ile başlatır.
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');  // sortOrder değişkenini oluşturur ve 'asc' veya 'desc' tipinde bir değişken ile başlatır.
 
-  useEffect(() => {
-    async function fetchAssignments() {
-      try {
-        setLoading(true);
-        const [fetchedAssignments, fetchedStats] = await Promise.all([
-          assignmentsApi.getInstructorAssignments(),
-          assignmentsApi.getAssignmentStats()
+  useEffect(() => {  // useEffect fonksiyonunu oluşturur.
+    async function fetchAssignments() {  // fetchAssignments fonksiyonunu oluşturur.
+      try {  // try bloğunu oluşturur.
+        setLoading(true);  // setLoading fonksiyonunu çağırır ve true ile başlatır.
+        const [fetchedAssignments, fetchedStats] = await Promise.all([  // Promise.all fonksiyonunu çağırır ve assignmentsApi'den getInstructorAssignments ve getAssignmentStats fonksiyonlarını çağırır.
+          assignmentsApi.getInstructorAssignments(),  // assignmentsApi'den getInstructorAssignments fonksiyonunu çağırır.
+          assignmentsApi.getAssignmentStats()  // assignmentsApi'den getAssignmentStats fonksiyonunu çağırır.
         ]);
         
-        setAssignments(fetchedAssignments);
-        setFilteredAssignments(fetchedAssignments);
-        setStats(fetchedStats);
-      } catch (err) {
-        console.error('Error fetching assignments:', err);
-        setError('Ödevler yüklenirken bir hata oluştu.');
-        toast.error('Ödevler yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
+        setAssignments(fetchedAssignments);  // setAssignments fonksiyonunu çağırır ve fetchedAssignments değişkenini parametre olarak alır.
+        setFilteredAssignments(fetchedAssignments);  // setFilteredAssignments fonksiyonunu çağırır ve fetchedAssignments değişkenini parametre olarak alır.
+        setStats(fetchedStats);  // setStats fonksiyonunu çağırır ve fetchedStats değişkenini parametre olarak alır.
+      } catch (err) {  // catch bloğunu oluşturur.
+        console.error('Error fetching assignments:', err);  // console.error fonksiyonunu çağırır ve 'Error fetching assignments:' ile birlikte err'i yazdırır.
+        setError('Ödevler yüklenirken bir hata oluştu.');  // setError fonksiyonunu çağırır ve 'Ödevler yüklenirken bir hata oluştu.' ile başlatır.
+        toast.error('Ödevler yüklenirken bir hata oluştu.');  // toast.error fonksiyonunu çağırır ve 'Ödevler yüklenirken bir hata oluştu.' ile başlatır.
+      } finally {  // finally bloğunu oluşturur.
+        setLoading(false);  // setLoading fonksiyonunu çağırır ve false ile başlatır.
       }
     }
     
-    fetchAssignments();
-  }, []);
+    fetchAssignments();  // fetchAssignments fonksiyonunu çağırır.
+  }, []);  // useEffect fonksiyonunu çağırır.
   
-  // Filter assignments whenever search or status filter changes
+  // Ödevleri filtreleme
   useEffect(() => {
-    const filtered = assignments.filter(assignment => {
-      // Filter by search query
+    const filtered = assignments.filter(assignment => { 
+      // Arama sorgusuna göre filtreleme
       const matchesSearch = 
-        assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        assignment.course_title.toLowerCase().includes(searchQuery.toLowerCase());
+        assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||  // assignment.title değişkeni searchQuery değişkeninin küçük harfe çevrilmiş hali ile içeriyorsa
+        assignment.course_title.toLowerCase().includes(searchQuery.toLowerCase());  // assignment.course_title değişkeni searchQuery değişkeninin küçük harfe çevrilmiş hali ile içeriyorsa
       
-      // Filter by status
-      let matchesStatus = true;
-      if (statusFilter !== 'all') {
-        if (statusFilter === 'active') {
-          matchesStatus = assignment.status === 'active';
-        } else if (statusFilter === 'expired') {
-          matchesStatus = assignment.status === 'expired';
-        } else if (statusFilter === 'draft') {
-          matchesStatus = assignment.status === 'draft';
-        } else if (statusFilter === 'needs_review') {
+      // Duruma göre filtreleme
+      let matchesStatus = true;  // matchesStatus değişkenini oluşturur ve true ile başlatır.
+      if (statusFilter !== 'all') {  // statusFilter değişkeni 'all' değilse
+        if (statusFilter === 'active') {  // statusFilter değişkeni 'active' ise
+          matchesStatus = assignment.status === 'active';  // assignment.status değişkeni 'active' ise
+        } else if (statusFilter === 'expired') {  // statusFilter değişkeni 'expired' ise
+          matchesStatus = assignment.status === 'expired';  // assignment.status değişkeni 'expired' ise
+        } else if (statusFilter === 'draft') {  // statusFilter değişkeni 'draft' ise
+          matchesStatus = assignment.status === 'draft';  // assignment.status değişkeni 'draft' ise
+        } else if (statusFilter === 'needs_review') {  // statusFilter değişkeni 'needs_review' ise
           matchesStatus = 
-            assignment.submissions_count > assignment.graded_count &&
-            assignment.status !== 'draft';
+            assignment.submissions_count > assignment.graded_count &&  // assignment.submissions_count değişkeni assignment.graded_count değişkeninden büyükse
+            assignment.status !== 'draft';  // assignment.status değişkeni 'draft' değilse
         }
       }
       
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus;  // matchesSearch ve matchesStatus değişkenleri true ise
     });
     
-    // Apply sorting
+    // Sıralama uygulama
     const sortedAssignments = [...filtered].sort((a, b) => {
-      if (sortBy === 'due_date') {
-        return sortOrder === 'asc'
-          ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
-          : new Date(b.due_date).getTime() - new Date(a.due_date).getTime();
-      } else if (sortBy === 'created_at') {
-        return sortOrder === 'asc'
-          ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          : new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      } else if (sortBy === 'title') {
-        return sortOrder === 'asc'
-          ? a.title.localeCompare(b.title)
-          : b.title.localeCompare(a.title);
-      } else if (sortBy === 'course_title') {
-        return sortOrder === 'asc'
-          ? a.course_title.localeCompare(b.course_title)
-          : b.course_title.localeCompare(a.course_title);
-      } else if (sortBy === 'submissions_count') {
-        return sortOrder === 'asc'
-          ? a.submissions_count - b.submissions_count
-          : b.submissions_count - a.submissions_count;
+      if (sortBy === 'due_date') {  // sortBy değişkeni 'due_date' ise
+        return sortOrder === 'asc'  // sortOrder değişkeni 'asc' ise
+          ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime()  // new Date(a.due_date).getTime() - new Date(b.due_date).getTime() ile a.due_date ve b.due_date arasındaki farkı hesaplar.
+          : new Date(b.due_date).getTime() - new Date(a.due_date).getTime();  // new Date(b.due_date).getTime() - new Date(a.due_date).getTime() ile b.due_date ve a.due_date arasındaki farkı hesaplar.
+      } else if (sortBy === 'created_at') {  // sortBy değişkeni 'created_at' ise
+        return sortOrder === 'asc'  // sortOrder değişkeni 'asc' ise
+          ? new Date(a.created_at).getTime() - new Date(b.created_at).getTime()  // new Date(a.created_at).getTime() - new Date(b.created_at).getTime() ile a.created_at ve b.created_at arasındaki farkı hesaplar.
+          : new Date(b.created_at).getTime() - new Date(a.created_at).getTime();  // new Date(b.created_at).getTime() - new Date(a.created_at).getTime() ile b.created_at ve a.created_at arasındaki farkı hesaplar.
+      } else if (sortBy === 'title') {  // sortBy değişkeni 'title' ise
+        return sortOrder === 'asc'  // sortOrder değişkeni 'asc' ise
+          ? a.title.localeCompare(b.title)  // a.title.localeCompare(b.title) ile a.title ve b.title arasındaki farkı hesaplar.
+          : b.title.localeCompare(a.title);  // b.title.localeCompare(a.title) ile b.title ve a.title arasındaki farkı hesaplar.
+      } else if (sortBy === 'course_title') {  // sortBy değişkeni 'course_title' ise
+        return sortOrder === 'asc'  // sortOrder değişkeni 'asc' ise
+          ? a.course_title.localeCompare(b.course_title)  // a.course_title.localeCompare(b.course_title) ile a.course_title ve b.course_title arasındaki farkı hesaplar.
+          : b.course_title.localeCompare(a.course_title);  // b.course_title.localeCompare(a.course_title) ile b.course_title ve a.course_title arasındaki farkı hesaplar.
+      } else if (sortBy === 'submissions_count') {  // sortBy değişkeni 'submissions_count' ise
+        return sortOrder === 'asc'  // sortOrder değişkeni 'asc' ise
+          ? a.submissions_count - b.submissions_count  // a.submissions_count - b.submissions_count ile a.submissions_count ve b.submissions_count arasındaki farkı hesaplar.
+          : b.submissions_count - a.submissions_count;  // b.submissions_count - a.submissions_count ile b.submissions_count ve a.submissions_count arasındaki farkı hesaplar.
       }
       
-      // Default
-      return 0;
+      // Varsayılan
+      return 0;  // 0 döner.
     });
     
-    setFilteredAssignments(sortedAssignments);
-  }, [assignments, searchQuery, statusFilter, sortBy, sortOrder]);
+    setFilteredAssignments(sortedAssignments);  // setFilteredAssignments fonksiyonunu çağırır ve sortedAssignments değişkenini parametre olarak alır.
+  }, [assignments, searchQuery, statusFilter, sortBy, sortOrder]);  // useEffect fonksiyonunu çağırır.
   
-  // Format date for display
+  // Tarihi formatlama
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, 'dd MMM yyyy');
+    const date = new Date(dateString);  // date değişkenini oluşturur ve dateString'i new Date ile tarihleştirir.
+    return format(date, 'dd MMM yyyy');  // format fonksiyonunu çağırır ve date değişkenini 'dd MMM yyyy' formatına çevirir.
   };
   
-  // Check if due date is in the past
-  const isPastDue = (dateString: string) => {
-    const dueDate = new Date(dateString);
-    return !isAfter(dueDate, new Date());
+  // Son tarihi kontrol etme
+  const isPastDue = (dateString: string) => {  // isPastDue fonksiyonunu oluşturur ve dateString değişkenini alır.
+    const dueDate = new Date(dateString);  // dueDate değişkenini oluşturur ve dateString'i new Date ile tarihleştirir.
+    return !isAfter(dueDate, new Date());  // isAfter fonksiyonunu çağırır ve dueDate değişkeni new Date'den büyükse true döner.
   };
   
-  // Column header with sort button
-  const renderSortableHeader = (label: string, key: keyof Assignment) => {
-    const isActive = sortBy === key;
+  // Sütun başlığı ile sıralama düğmesi
+  const renderSortableHeader = (label: string, key: keyof Assignment) => {  // renderSortableHeader fonksiyonunu oluşturur ve label ve key değişkenlerini alır.
+    const isActive = sortBy === key;  // isActive değişkenini oluşturur ve sortBy değişkeni key değişkenine eşitse true döner.
     
     return (
       <button 
         onClick={() => {
-          if (isActive) {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-          } else {
-            setSortBy(key);
-            setSortOrder('asc');
+          if (isActive) {  // isActive değişkeni true ise
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');  // setSortOrder fonksiyonunu çağırır ve sortOrder değişkeni 'asc' ise 'desc' yapılır, değilse 'asc' yapılır.
+          } else {  // isActive değişkeni false ise
+            setSortBy(key);  // setSortBy fonksiyonunu çağırır ve key değişkenini parametre olarak alır.
+            setSortOrder('asc');  // setSortOrder fonksiyonunu çağırır ve 'asc' değişkenini parametre olarak alır.
           }
         }}
         className={`flex items-center space-x-1 font-medium ${isActive ? 'text-blue-600' : ''}`}
@@ -135,7 +135,7 @@ export default function InstructorAssignmentsPage() {
     );
   };
   
-  if (loading) {
+  if (loading) {  // loading değişkeni true ise
     return (
       <div className="container mx-auto p-6 flex justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>

@@ -1,146 +1,146 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { assignmentsApi, CreateAssignmentData, CourseWithLessons } from '@/lib/api/assignments';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import { format } from 'date-fns';
+import { useState, useEffect } from 'react';  // React'ten useState ve useEffect'i içe aktarır.
+import { useRouter } from 'next/navigation';  // Next.js'ten useRouter'u içe aktarır.
+import { assignmentsApi, CreateAssignmentData, CourseWithLessons } from '@/lib/api/assignments';  // assignmentsApi, CreateAssignmentData ve CourseWithLessons'u içe aktarır.
+import { toast } from 'react-hot-toast';  // react-hot-toast'tan toast'u içe aktarır.
+import Link from 'next/link';  // Next.js'ten Link'i içe aktarır.
+import { format } from 'date-fns';  // date-fns'ten format'u içe aktarır.
 
-export default function CreateAssignmentPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [courses, setCourses] = useState<CourseWithLessons[]>([]);
-  const [selectedCourseId, setSelectedCourseId] = useState<number | ''>('');
-  const [lessonOptions, setLessonOptions] = useState<{ id: number; title: string }[]>([]);
-  const [formData, setFormData] = useState<CreateAssignmentData>({
-    title: '',
-    description: '',
-    lesson_id: 0,
-    due_date: format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm"),
-    max_points: 100,
-    is_published: true
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+export default function CreateAssignmentPage() {  // CreateAssignmentPage bileşenini dışa aktarır.
+  const router = useRouter();  // router değişkenini oluşturur ve useRouter'ı kullanarak Next.js router'ını alır.
+  const [loading, setLoading] = useState(false);  // loading değişkenini oluşturur ve false ile başlatır.
+  const [courses, setCourses] = useState<CourseWithLessons[]>([]);  // courses değişkenini oluşturur ve CourseWithLessons tipinde bir dizi ile başlatır.
+  const [selectedCourseId, setSelectedCourseId] = useState<number | ''>('');  // selectedCourseId değişkenini oluşturur ve number veya '' tipinde başlatır.
+  const [lessonOptions, setLessonOptions] = useState<{ id: number; title: string }[]>([]);  // lessonOptions değişkenini oluşturur ve { id: number; title: string } tipinde bir dizi ile başlatır.
+  const [formData, setFormData] = useState<CreateAssignmentData>({  // formData değişkenini oluşturur ve CreateAssignmentData tipinde bir nesne ile başlatır.
+    title: '',  // title değişkenini '' ile başlatır.
+    description: '',  // description değişkenini '' ile başlatır.
+    lesson_id: 0,  // lesson_id değişkenini 0 ile başlatır.
+    due_date: format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm"),  // due_date değişkenini format fonksiyonu ile tarihleştirir.
+    max_points: 100,  // max_points değişkenini 100 ile başlatır.
+    is_published: true  // is_published değişkenini true ile başlatır.
+  });  // formData değişkeni döner.
+  const [errors, setErrors] = useState<Record<string, string>>({});  // errors değişkenini oluşturur ve Record<string, string> tipinde bir nesne ile başlatır.
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        const data = await assignmentsApi.getCreateAssignmentData();
-        setCourses(data.courses);
-      } catch (error) {
-        console.error('Error fetching course data:', error);
-        toast.error('Kurs bilgileri yüklenirken bir hata oluştu');
-      } finally {
-        setLoading(false);
+  useEffect(() => {  // useEffect fonksiyonunu oluşturur.
+    async function fetchData() {  // fetchData fonksiyonunu oluşturur.
+      try {  // try bloğunu oluşturur.
+        setLoading(true);  // setLoading fonksiyonunu çağırır ve true ile başlatır.
+        const data = await assignmentsApi.getCreateAssignmentData();  // assignmentsApi'den getCreateAssignmentData fonksiyonunu çağırır.
+        setCourses(data.courses);  // setCourses fonksiyonunu çağırır ve data.courses'ı parametre olarak alır.
+      } catch (error) {  // catch bloğunu oluşturur.
+        console.error('Error fetching course data:', error);  // console.error fonksiyonunu çağırır ve 'Error fetching course data:' ile birlikte error'i yazdırır.
+        toast.error('Kurs bilgileri yüklenirken bir hata oluştu');  // toast.error fonksiyonunu çağırır ve 'Kurs bilgileri yüklenirken bir hata oluştu' ile başlatır.
+      } finally {  // finally bloğunu oluşturur.
+        setLoading(false);  // setLoading fonksiyonunu çağırır ve false ile başlatır.
       }
     }
 
-    fetchData();
-  }, []);
+    fetchData();  // fetchData fonksiyonunu çağırır.
+  }, []);  // useEffect fonksiyonunu çağırır.
 
   // Kurs seçildiğinde ders listesini güncelle
-  useEffect(() => {
-    if (selectedCourseId !== '') {
-      const selectedCourse = courses.find(course => course.id === selectedCourseId);
-      if (selectedCourse) {
-        setLessonOptions(selectedCourse.lessons);
+  useEffect(() => {  // useEffect fonksiyonunu oluşturur.
+    if (selectedCourseId !== '') {  // selectedCourseId değişkeni '' değilse
+      const selectedCourse = courses.find(course => course.id === selectedCourseId);  // courses değişkeninden course.id değişkeni selectedCourseId değişkenine eşitse selectedCourse değişkenine atar.
+      if (selectedCourse) {  // selectedCourse değişkeni varsa
+        setLessonOptions(selectedCourse.lessons);  // setLessonOptions fonksiyonunu çağırır ve selectedCourse.lessons'ı parametre olarak alır.
         // Eğer daha önce seçilen bir ders varsa, o kursa ait değilse sıfırla
-        if (formData.lesson_id !== 0) {
-          const lessonExists = selectedCourse.lessons.some(lesson => lesson.id === formData.lesson_id);
-          if (!lessonExists) {
-            setFormData(prev => ({ ...prev, lesson_id: 0 }));
+        if (formData.lesson_id !== 0) {  // formData.lesson_id değişkeni 0 değilse
+          const lessonExists = selectedCourse.lessons.some(lesson => lesson.id === formData.lesson_id);  // selectedCourse.lessons değişkeninden lesson.id değişkeni formData.lesson_id değişkenine eşitse lessonExists değişkenine atar.
+          if (!lessonExists) {  // lessonExists değişkeni false ise
+            setFormData(prev => ({ ...prev, lesson_id: 0 }));  // setFormData fonksiyonunu çağırır ve prev değişkenini parametre olarak alır.
           }
         }
-      } else {
-        setLessonOptions([]);
+      } else {  // selectedCourse değişkeni yoksa
+        setLessonOptions([]);  // setLessonOptions fonksiyonunu çağırır ve [] ile başlatır.
       }
-    } else {
-      setLessonOptions([]);
+    } else {  // selectedCourseId değişkeni '' ise
+      setLessonOptions([]);  // setLessonOptions fonksiyonunu çağırır ve [] ile başlatır.
     }
-  }, [selectedCourseId, courses, formData.lesson_id]);
+  }, [selectedCourseId, courses, formData.lesson_id]);  // useEffect fonksiyonunu çağırır.
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {  // handleInputChange fonksiyonunu oluşturur ve e değişkenini alır.
+    const { name, value } = e.target;  // name ve value değişkenlerini oluşturur ve e.target'den alır.
     
     // Ders seçimi yapıldığında ders ID'sini integer'a çevir
-    if (name === 'lesson_id') {
-      setFormData({
-        ...formData,
-        [name]: parseInt(value) || 0
+    if (name === 'lesson_id') {  // name değişkeni 'lesson_id' ise
+      setFormData({  // setFormData fonksiyonunu çağırır.
+        ...formData,  // formData değişkenini parametre olarak alır.
+        [name]: parseInt(value) || 0  // name değişkeni parseInt fonksiyonu ile integer'a çevrilir.
       });
-    } else if (name === 'course_id') {
-      setSelectedCourseId(value === '' ? '' : parseInt(value));
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
+    } else if (name === 'course_id') {  // name değişkeni 'course_id' ise
+      setSelectedCourseId(value === '' ? '' : parseInt(value));  // setSelectedCourseId fonksiyonunu çağırır ve value değişkeni parseInt fonksiyonu ile integer'a çevrilir.
+    } else {  // name değişkeni 'lesson_id' ve 'course_id' değilse
+      setFormData({  // setFormData fonksiyonunu çağırır.
+        ...formData,  // formData değişkenini parametre olarak alır.
+        [name]: value  // name değişkeni value'ya eşitlenir.
       });
     }
     
     // Input değiştiğinde ilgili hata mesajını temizle
-    if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: ''
+    if (errors[name]) {  // errors değişkeninden name değişkeni varsa
+      setErrors({  // setErrors fonksiyonunu çağırır.
+        ...errors,  // errors değişkenini parametre olarak alır.
+        [name]: ''  // name değişkeni '' ile başlatır.
       });
     }
   };
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: checked
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {  // handleCheckboxChange fonksiyonunu oluşturur ve e değişkenini alır.
+    const { name, checked } = e.target;  // name ve checked değişkenlerini oluşturur ve e.target'den alır.
+    setFormData({  // setFormData fonksiyonunu çağırır.
+      ...formData,  // formData değişkenini parametre olarak alır.
+      [name]: checked  // name değişkeni checked'a eşitlenir.
     });
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+  const validateForm = (): boolean => {  // validateForm fonksiyonunu oluşturur ve boolean döner.
+    const newErrors: Record<string, string> = {};  // newErrors değişkenini oluşturur ve Record<string, string> tipinde bir nesne ile başlatır.
     
-    if (!formData.title.trim()) {
-      newErrors.title = 'Ödev başlığı gereklidir';
+    if (!formData.title.trim()) {  // formData.title değişkeni trim fonksiyonu ile boşlukları kaldırılır.
+      newErrors.title = 'Ödev başlığı gereklidir';  // newErrors.title değişkeni 'Ödev başlığı gereklidir' ile başlatır.
     }
     
-    if (!formData.description.trim()) {
+    if (!formData.description.trim()) {  // formData.description değişkeni trim fonksiyonu ile boşlukları kaldırılır.
       newErrors.description = 'Açıklama gereklidir';
     }
     
-    if (!formData.lesson_id) {
-      newErrors.lesson_id = 'Lütfen bir ders seçin';
+    if (!formData.lesson_id) {  // formData.lesson_id değişkeni yoksa
+      newErrors.lesson_id = 'Lütfen bir ders seçin';  // newErrors.lesson_id değişkeni 'Lütfen bir ders seçin' ile başlatır.
     }
     
-    if (!formData.due_date) {
-      newErrors.due_date = 'Son teslim tarihi gereklidir';
+    if (!formData.due_date) {  // formData.due_date değişkeni yoksa
+      newErrors.due_date = 'Son teslim tarihi gereklidir';  // newErrors.due_date değişkeni 'Son teslim tarihi gereklidir' ile başlatır.
     }
     
-    if (!formData.max_points || formData.max_points <= 0) {
-      newErrors.max_points = 'Geçerli bir maksimum puan girin';
+    if (!formData.max_points || formData.max_points <= 0) {  // formData.max_points değişkeni 0'dan küçükse
+      newErrors.max_points = 'Geçerli bir maksimum puan girin';  // newErrors.max_points değişkeni 'Geçerli bir maksimum puan girin' ile başlatır.
     }
     
-    setErrors(newErrors);
+    setErrors(newErrors);  // setErrors fonksiyonunu çağırır ve newErrors değişkenini parametre olarak alır.
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {  // handleSubmit fonksiyonunu oluşturur ve e değişkenini alır.
+    e.preventDefault();  // e.preventDefault() fonksiyonunu çağırır.
     
-    if (!validateForm()) {
-      toast.error('Lütfen gerekli alanları kontrol edin');
+    if (!validateForm()) {  // validateForm fonksiyonu false dönerse
+      toast.error('Lütfen gerekli alanları kontrol edin');  // toast.error fonksiyonunu çağırır ve 'Lütfen gerekli alanları kontrol edin' ile başlatır.
       return;
     }
     
-    try {
-      setLoading(true);
-      await assignmentsApi.createAssignment(formData);
-      toast.success('Ödev başarıyla oluşturuldu!');
-      router.push('/instructor/assignments');
-    } catch (error) {
-      console.error('Error creating assignment:', error);
-      toast.error('Ödev oluşturulurken bir hata oluştu');
-    } finally {
-      setLoading(false);
+    try {  // try bloğunu oluşturur.
+      setLoading(true);  // setLoading fonksiyonunu çağırır ve true ile başlatır.
+      await assignmentsApi.createAssignment(formData);  // assignmentsApi'den createAssignment fonksiyonunu çağırır ve formData değişkenini parametre olarak alır.
+      toast.success('Ödev başarıyla oluşturuldu!');  // toast.success fonksiyonunu çağırır ve 'Ödev başarıyla oluşturuldu!' ile başlatır.
+      router.push('/instructor/assignments');  // router.push fonksiyonunu çağırır ve '/instructor/assignments' ile yönlendirir.
+    } catch (error) {  // catch bloğunu oluşturur.
+      console.error('Error creating assignment:', error);  // console.error fonksiyonunu çağırır ve 'Error creating assignment:' ile birlikte error'i yazdırır.
+      toast.error('Ödev oluşturulurken bir hata oluştu');  // toast.error fonksiyonunu çağırır ve 'Ödev oluşturulurken bir hata oluştu' ile başlatır.
+    } finally {  // finally bloğunu oluşturur.
+      setLoading(false);  // setLoading fonksiyonunu çağırır ve false ile başlatır.
     }
   };
 

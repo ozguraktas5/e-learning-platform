@@ -1,55 +1,55 @@
-'use client';
+'use client'; 
 
-import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import React, { useState } from 'react';  // React'ten React'i içe aktarır.
+import { Mail, Phone, MapPin, Send } from 'lucide-react';  // Lucide React kütüphanesinden Mail, Phone, MapPin ve Send simgelerini içe aktarır.
 
-export default function ContactPage() {
-  const [formData, setFormData] = useState({
+export default function ContactPage() {  // ContactPage bileşenini dışa aktarır.
+  const [formData, setFormData] = useState({  // formData değişkenini oluşturur ve başlangıç değerlerini atar.
     name: '',
     email: '',
     subject: '',
     message: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<{
+  const [isSubmitting, setIsSubmitting] = useState(false);  // isSubmitting değişkenini oluşturur ve başlangıç değerini atar.
+  const [submitStatus, setSubmitStatus] = useState<{  // submitStatus değişkenini oluşturur ve başlangıç değerini atar.
     type: 'success' | 'error' | null;
     message: string;
   }>({ type: null, message: '' });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {  // handleChange fonksiyonunu oluşturur ve e değişkenini alır.
+    const { name, value } = e.target;  // name ve value değişkenlerini oluşturur ve e.target'den alır.
+    setFormData(prev => ({  // setFormData fonksiyonunu oluşturur ve prev değişkenini alır.
       ...prev,
       [name]: value
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStatus({ type: null, message: '' });
+  const handleSubmit = async (e: React.FormEvent) => {  // handleSubmit fonksiyonunu oluşturur ve e değişkenini alır.
+    e.preventDefault();  // e.preventDefault() fonksiyonunu çağırır.
+    setIsSubmitting(true);  // setIsSubmitting fonksiyonunu çağırır.
+    setSubmitStatus({ type: null, message: '' });  // setSubmitStatus fonksiyonunu çağırır.
 
-    try {
+    try {  // try bloğunu oluşturur.
       // API entegrasyonu yapılacak
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simüle edilmiş API çağrısı
-      setSubmitStatus({
+      setSubmitStatus({  // setSubmitStatus fonksiyonunu çağırır.
         type: 'success',
         message: 'Mesajınız başarıyla gönderildi. En kısa sürede size dönüş yapacağız.'
       });
-      setFormData({ name: '', email: '', subject: '', message: '' });
-    } catch (error) {
-      setSubmitStatus({
+      setFormData({ name: '', email: '', subject: '', message: '' });  // setFormData fonksiyonunu çağırır.
+    } catch (error) {  // catch bloğunu oluşturur.
+      setSubmitStatus({  // setSubmitStatus fonksiyonunu çağırır.
         type: 'error',
         message: 'Mesajınız gönderilirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.'
       });
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false);  // setIsSubmitting fonksiyonunu çağırır.
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
-      {/* Hero Section */}
+      {/* İletişim */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -66,11 +66,11 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Contact Section */}
+      {/* İletişim Bilgileri */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            {/* Contact Form */}
+            {/* İletişim Formu */}
             <div className="bg-white rounded-2xl p-8 shadow-sm">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Bize Ulaşın</h2>
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -165,7 +165,7 @@ export default function ContactPage() {
               </form>
             </div>
 
-            {/* Contact Information */}
+            {/* İletişim Bilgileri */}
             <div className="space-y-8">
               <div className="bg-white rounded-2xl p-8 shadow-sm">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">İletişim Bilgileri</h2>
@@ -205,7 +205,7 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              {/* Map */}
+              {/* Harita */}
               <div className="bg-white rounded-2xl p-8 shadow-sm">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Konum</h2>
                 <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">

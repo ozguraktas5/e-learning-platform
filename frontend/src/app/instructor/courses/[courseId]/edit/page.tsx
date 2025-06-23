@@ -1,31 +1,31 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'react-toastify';
-import { coursesApi } from '@/lib/api/courses';
-import { useAuth } from '@/hooks/useAuth';
-import axios from 'axios';
-import Image from 'next/image';
-import { useDropzone } from 'react-dropzone';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import TextStyle from '@tiptap/extension-text-style';
-import Color from '@tiptap/extension-color';
-import LinkExtension from '@tiptap/extension-link';
-import type { Editor } from '@tiptap/react';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { API_URL } from '@/config';
+import { useState, useEffect, useCallback } from 'react';  // React'ten useState, useEffect ve useCallback'i içe aktarır.
+import { useRouter, useParams } from 'next/navigation';  // Next.js'ten useRouter ve useParams'ı içe aktarır.
+import { useForm, Controller } from 'react-hook-form';  // react-hook-form'tan useForm ve Controller'ı içe aktarır.
+import { zodResolver } from '@hookform/resolvers/zod';  // @hookform/resolvers/zod'tan zodResolver'ı içe aktarır.
+import { z } from 'zod';  // zod'tan z'yi içe aktarır.
+import { toast } from 'react-toastify';  // react-toastify'tan toast'ı içe aktarır.
+import { coursesApi } from '@/lib/api/courses';  // @/lib/api/courses'tan coursesApi'ı içe aktarır.
+import { useAuth } from '@/hooks/useAuth';  // @/hooks/useAuth'tan useAuth'ı içe aktarır.
+import axios from 'axios';  // axios'ı içe aktarır.
+import Image from 'next/image';  // next/image'tan Image'ı içe aktarır.
+import { useDropzone } from 'react-dropzone';  // react-dropzone'tan useDropzone'ı içe aktarır.
+import { useEditor, EditorContent } from '@tiptap/react';  // @tiptap/react'tan useEditor ve EditorContent'ı içe aktarır.
+import StarterKit from '@tiptap/starter-kit';  // @tiptap/starter-kit'tan StarterKit'ı içe aktarır.
+import Underline from '@tiptap/extension-underline';  // @tiptap/extension-underline'tan Underline'ı içe aktarır.
+import TextStyle from '@tiptap/extension-text-style';  // @tiptap/extension-text-style'tan TextStyle'ı içe aktarır.
+import Color from '@tiptap/extension-color';  // @tiptap/extension-color'tan Color'ı içe aktarır.
+import LinkExtension from '@tiptap/extension-link';  // @tiptap/extension-link'tan LinkExtension'ı içe aktarır.
+import type { Editor } from '@tiptap/react';  // @tiptap/react'tan Editor'ı içe aktarır.
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // @/components/ui/LoadingSpinner'tan LoadingSpinner'ı içe aktarır.
+import { API_URL } from '@/config';  // @/config'tan API_URL'ı içe aktarır.
 
-// Constants for image upload
+// Resim yükleme için sabitler
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];  // resim türleri
 
-// Form schema
+// Form şeması
 const courseSchema = z.object({
   title: z.string().min(1, 'Kurs başlığı gerekli'),
   description: z.string().min(1, 'Açıklama gerekli'),
@@ -35,16 +35,16 @@ const courseSchema = z.object({
   image: z.custom<FileList>().optional(),
 });
 
-type CourseFormData = z.infer<typeof courseSchema>;
+type CourseFormData = z.infer<typeof courseSchema>;  // CourseFormData tipini oluşturur.
 
-const categories = [
-  'Programlama', 'Tasarım', 'İşletme', 'Pazarlama', 'Kişisel Gelişim', 'Müzik', 'Fotoğrafçılık', 'Diğer'
+const categories = [  // categories dizisini oluşturur.
+  'Programlama', 'Tasarım', 'İşletme', 'Pazarlama', 'Kişisel Gelişim', 'Müzik', 'Fotoğrafçılık', 'Diğer'  // kategoriler
 ];
-const levels = ['Başlangıç', 'Orta', 'İleri'];
+const levels = ['Başlangıç', 'Orta', 'İleri'];  // seviyeler
 
-const MenuBar = ({ editor }: { editor: Editor | null }) => {
-  if (!editor) return null;
-  return (
+const MenuBar = ({ editor }: { editor: Editor | null }) => {  // MenuBar bileşenini oluşturur ve editor değişkenini alır.
+  if (!editor) return null;  // editor değişkeni null ise null döndürür.
+  return (  // return fonksiyonunu çağırır.
     <div className="border-b border-gray-200 p-4 space-x-2 flex flex-wrap gap-2">
       <button
         type="button"
@@ -130,113 +130,113 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   );
 };
 
-export default function EditCoursePage() {
-  const router = useRouter();
-  const { courseId } = useParams();
-  const { user, loading } = useAuth();
-  const [loadingData, setLoadingData] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
+export default function EditCoursePage() {  // EditCoursePage bileşenini dışa aktarır.
+  const router = useRouter();  // useRouter fonksiyonunu çağırır ve router değişkenini alır.
+  const { courseId } = useParams();  // useParams fonksiyonunu çağırır ve courseId değişkenini alır.
+  const { user, loading } = useAuth();  // useAuth fonksiyonunu çağırır ve user ve loading değişkenlerini alır.
+  const [loadingData, setLoadingData] = useState(true);  // loadingData değişkenini oluşturur ve true ile başlatır.
+  const [isSubmitting, setIsSubmitting] = useState(false);  // isSubmitting değişkenini oluşturur ve false ile başlatır.
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);  // previewUrl değişkenini oluşturur ve null ile başlatır.
+  const [isPreviewMode, setIsPreviewMode] = useState(false);  // isPreviewMode değişkenini oluşturur ve false ile başlatır.
 
-  const editor = useEditor({
-    extensions: [StarterKit, Underline, TextStyle, Color, LinkExtension],
-    content: '',
-    onUpdate: ({ editor }) => {
-      setValue('description', editor.getHTML());
+  const editor = useEditor({  // useEditor fonksiyonunu çağırır ve editor değişkenini alır.
+    extensions: [StarterKit, Underline, TextStyle, Color, LinkExtension],  // extensions değişkenini oluşturur ve StarterKit, Underline, TextStyle, Color, LinkExtension'ı içe aktarır.
+    content: '',  // content değişkenini oluşturur ve '' ile başlatır.
+    onUpdate: ({ editor }) => {  // onUpdate fonksiyonunu çağırır ve editor değişkenini alır.
+      setValue('description', editor.getHTML());  // setValue fonksiyonunu çağırır ve description değişkenini editor.getHTML() ile günceller.
     },
-  });
+  });  // useEditor fonksiyonunu çağırır ve editor değişkenini alır.
 
-  const { register, handleSubmit, setValue, control, watch, reset, formState: { errors, isDirty } } = useForm<CourseFormData>({
-    resolver: zodResolver(courseSchema),
-    defaultValues: { title: '', description: '', category: '', level: '', price: 0 },
-  });
-  const watchedFields = watch();
+  const { register, handleSubmit, setValue, control, watch, reset, formState: { errors, isDirty } } = useForm<CourseFormData>({  // useForm fonksiyonunu çağırır ve CourseFormData tipini alır.
+    resolver: zodResolver(courseSchema),  // zodResolver fonksiyonunu çağırır ve courseSchema'yı alır.
+    defaultValues: { title: '', description: '', category: '', level: '', price: 0 },  // defaultValues değişkenini oluşturur ve title, description, category, level, price değişkenlerini '' ile başlatır.
+  });  // useForm fonksiyonunu çağırır ve CourseFormData tipini alır.
+  const watchedFields = watch();  // watch fonksiyonunu çağırır ve watchedFields değişkenini alır.
 
-  // Fetch existing course data
-  useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      router.push('/login');
-      return;
+  // Mevcut kurs verilerini al
+  useEffect(() => {  // useEffect fonksiyonunu çağırır.
+    if (loading) return;  // loading değişkeni true ise return fonksiyonunu çağırır.
+    if (!user) {  // user değişkeni null ise
+      router.push('/login');  // router.push fonksiyonunu çağırır ve '/login' ile yönlendirir.
+      return;  // return fonksiyonunu çağırır.
     }
-    const fetchCourse = async () => {
+    const fetchCourse = async () => {  // fetchCourse fonksiyonunu oluşturur.
       try {
-        const data = await coursesApi.getCourse(Number(courseId));
-        reset({
-          title: data.title,
-          description: data.description,
-          category: data.category,
-          level: data.level,
-          price: data.price,
+        const data = await coursesApi.getCourse(Number(courseId));  // coursesApi'den getCourse fonksiyonunu çağırır ve courseId değişkenini parametre olarak alır.
+        reset({  // reset fonksiyonunu çağırır ve CourseFormData tipini alır.
+          title: data.title,  // title değişkenini data.title ile günceller.
+          description: data.description,  // description değişkenini data.description ile günceller.
+          category: data.category,  // category değişkenini data.category ile günceller.
+          level: data.level,  // level değişkenini data.level ile günceller.
+          price: data.price,  // price değişkenini data.price ile günceller.
         });
-        if (data.image_url) {
-          setPreviewUrl(`${API_URL}${data.image_url}`);
+        if (data.image_url) {  // data.image_url değişkeni null değilse
+          setPreviewUrl(`${API_URL}${data.image_url}`);  // setPreviewUrl fonksiyonunu çağırır ve data.image_url değişkenini parametre olarak alır.
         }
-        editor?.commands.setContent(data.description);
+        editor?.commands.setContent(data.description);  // editor?.commands.setContent fonksiyonunu çağırır ve data.description değişkenini parametre olarak alır.
       } catch {
-        toast.error('Kurs yüklenirken hata oluştu');
-        router.push('/courses');
+        toast.error('Kurs yüklenirken hata oluştu');  // toast.error fonksiyonunu çağırır ve 'Kurs yüklenirken hata oluştu' ile başlatır.
+        router.push('/courses');  // router.push fonksiyonunu çağırır ve '/courses' ile yönlendirir.
       } finally {
-        setLoadingData(false);
+        setLoadingData(false);  // setLoadingData fonksiyonunu çağırır ve false ile başlatır.
       }
-    };
-    fetchCourse();
-  }, [loading, user, courseId, reset, router, editor]);
+    };  // fetchCourse fonksiyonunu oluşturur.
+    fetchCourse();  // fetchCourse fonksiyonunu çağırır.
+  }, [loading, user, courseId, reset, router, editor]);  // useEffect fonksiyonunu çağırır.
 
-  // Image drop
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      setValue('image', [file] as unknown as FileList);
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
+  // Resim sürükleme
+  const onDrop = useCallback((acceptedFiles: File[]) => {  // onDrop fonksiyonunu oluşturur ve acceptedFiles değişkenini alır.
+    if (acceptedFiles.length > 0) {  // acceptedFiles değişkeni 0'dan büyükse
+      const file = acceptedFiles[0];  // file değişkenini acceptedFiles[0] ile günceller.
+      setValue('image', [file] as unknown as FileList);  // setValue fonksiyonunu çağırır ve file değişkenini parametre olarak alır.
+      const objectUrl = URL.createObjectURL(file);  // objectUrl değişkenini URL.createObjectURL fonksiyonunu çağırır ve file değişkenini parametre olarak alır.
+      setPreviewUrl(objectUrl);  // setPreviewUrl fonksiyonunu çağırır ve objectUrl değişkenini parametre olarak alır.
     }
-  }, [setValue]);
+  }, [setValue]);  // onDrop fonksiyonunu çağırır.
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { 'image/*': ACCEPTED_IMAGE_TYPES },
-    maxSize: MAX_FILE_SIZE,
-    multiple: false,
-  });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({  // useDropzone fonksiyonunu çağırır.
+    onDrop,  // onDrop fonksiyonunu çağırır.
+    accept: { 'image/*': ACCEPTED_IMAGE_TYPES },  // accept değişkenini oluşturur ve 'image/*' ile başlatır.
+    maxSize: MAX_FILE_SIZE,  // maxSize değişkenini oluşturur ve MAX_FILE_SIZE ile başlatır.
+    multiple: false,  // multiple değişkenini oluşturur ve false ile başlatır.
+  });  // useDropzone fonksiyonunu çağırır.
 
-  const onSubmit = async (data: CourseFormData) => {
-    if (!user?.id) {
-      toast.error('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');
-      router.push('/login');
-      return;
+  const onSubmit = async (data: CourseFormData) => {  // onSubmit fonksiyonunu oluşturur ve data değişkenini alır.
+    if (!user?.id) {  // user.id değişkeni null ise
+      toast.error('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');  // toast.error fonksiyonunu çağırır ve 'Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.' ile başlatır.
+      router.push('/login');  // router.push fonksiyonunu çağırır ve '/login' ile yönlendirir.
+      return;  // return fonksiyonunu çağırır.
     }
-    const formData = new FormData();
-    formData.append('title', data.title);
-    formData.append('description', data.description);
-    formData.append('category', data.category);
-    formData.append('level', data.level);
-    formData.append('price', data.price.toString());
-    formData.append('instructor_id', user.id.toString());
-    if (data.image?.[0]) {
-      formData.append('image', data.image[0]);
+    const formData = new FormData();  // FormData fonksiyonunu çağırır ve formData değişkenini oluşturur.
+    formData.append('title', data.title);  // formData.append fonksiyonunu çağırır ve title değişkenini parametre olarak alır.
+    formData.append('description', data.description);  // formData.append fonksiyonunu çağırır ve description değişkenini parametre olarak alır.
+    formData.append('category', data.category);  // formData.append fonksiyonunu çağırır ve category değişkenini parametre olarak alır.
+    formData.append('level', data.level);  // formData.append fonksiyonunu çağırır ve level değişkenini parametre olarak alır.
+    formData.append('price', data.price.toString());  // formData.append fonksiyonunu çağırır ve price değişkenini parametre olarak alır.
+    formData.append('instructor_id', user.id.toString());  // formData.append fonksiyonunu çağırır ve instructor_id değişkenini parametre olarak alır.
+    if (data.image?.[0]) {  // data.image?.[0] değişkeni null değilse
+      formData.append('image', data.image[0]);  // formData.append fonksiyonunu çağırır ve image değişkenini parametre olarak alır.
     }
 
-    try {
-      setIsSubmitting(true);
-      await coursesApi.updateCourse(courseId?.toString() || '', formData);
-      toast.success('Kurs başarıyla güncellendi!');
-      router.push(`/instructor/courses/${courseId}`);
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        toast.error('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');
-        router.push('/login');
-        return;
+    try {  // try bloğunu oluşturur.
+      setIsSubmitting(true);  // setIsSubmitting fonksiyonunu çağırır ve true ile başlatır.
+      await coursesApi.updateCourse(courseId?.toString() || '', formData);  // coursesApi'den updateCourse fonksiyonunu çağırır ve courseId değişkenini ve formData değişkenini parametre olarak alır.
+      toast.success('Kurs başarıyla güncellendi!');  // toast.success fonksiyonunu çağırır ve 'Kurs başarıyla güncellendi!' ile başlatır.
+      router.push(`/instructor/courses/${courseId}`);  // router.push fonksiyonunu çağırır ve '/instructor/courses/${courseId}' ile yönlendirir.
+    } catch (error) {  // catch bloğunu oluşturur.
+      if (axios.isAxiosError(error) && error.response?.status === 401) {  // axios.isAxiosError fonksiyonunu çağırır ve error.response?.status değişkeni 401 ise
+        toast.error('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');  // toast.error fonksiyonunu çağırır ve 'Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.' ile başlatır.
+        router.push('/login');  // router.push fonksiyonunu çağırır ve '/login' ile yönlendirir.
+        return;  // return fonksiyonunu çağırır.
       }
-      toast.error(error instanceof Error ? error.message : 'Güncelleme sırasında hata oluştu');
-    } finally {
-      setIsSubmitting(false);
+      toast.error(error instanceof Error ? error.message : 'Güncelleme sırasında hata oluştu');  // toast.error fonksiyonunu çağırır ve error değişkeni Error tipinde ise error.message değişkenini, değilse 'Güncelleme sırasında hata oluştu' ile başlatır.
+    } finally {  // finally bloğunu oluşturur.
+      setIsSubmitting(false);  // setIsSubmitting fonksiyonunu çağırır ve false ile başlatır.
     }
-  };
+  };  // onSubmit fonksiyonunu oluşturur.
 
-  if (loadingData) {
-    return <LoadingSpinner size="medium" fullScreen />;
+  if (loadingData) {  // loadingData değişkeni true ise
+    return <LoadingSpinner size="medium" fullScreen />;  // LoadingSpinner bileşenini döndürür.
   }
 
   return (

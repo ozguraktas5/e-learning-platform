@@ -1,176 +1,175 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { assignmentsApi, AssignmentSubmission } from '@/lib/api/assignments';
-import { toast } from 'react-hot-toast';
+import { useState, useEffect } from 'react';  // React'ten useState ve useEffect'i içe aktarır.
+import { useParams, useRouter } from 'next/navigation';  // Next.js'ten useParams ve useRouter'u içe aktarır.
+import { assignmentsApi, AssignmentSubmission } from '@/lib/api/assignments';  // assignmentsApi ve AssignmentSubmission'u içe aktarır.
+import { toast } from 'react-hot-toast';  // react-hot-toast'tan toast'u içe aktarır.
 
-interface GradeFormData {
-  grade: number;
-  feedback: string;
+interface GradeFormData {  // GradeFormData interface'ini oluşturur.
+  grade: number;  // grade değişkenini oluşturur ve number tipinde tanımlar.
+  feedback: string;  // feedback değişkenini oluşturur ve string tipinde tanımlar.
 }
 
-export default function AssignmentSubmissionsPage() {
-  const params = useParams();
-  const router = useRouter();
-  const assignmentId = typeof params.id === 'string' ? parseInt(params.id, 10) : 0;
+export default function AssignmentSubmissionsPage() {  // AssignmentSubmissionsPage bileşenini dışa aktarır.
+  const params = useParams();  // params değişkenini oluşturur ve useParams'ı kullanarak URL parametrelerini alır.
+  const router = useRouter();  // router değişkenini oluşturur ve useRouter'ı kullanarak Next.js router'ını alır.
+  const assignmentId = typeof params.id === 'string' ? parseInt(params.id, 10) : 0;  // assignmentId değişkenini oluşturur ve params.id'yi parseInt ile integer'a çevirir.
   
-  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedSubmission, setSelectedSubmission] = useState<AssignmentSubmission | null>(null);
-  const [showGradeModal, setShowGradeModal] = useState(false);
-  const [gradeForm, setGradeForm] = useState<GradeFormData>({ grade: 0, feedback: '' });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [submitting, setSubmitting] = useState(false);
+  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);  // submissions değişkenini oluşturur ve AssignmentSubmission tipinde bir dizi ile başlatır.
+  const [loading, setLoading] = useState(true);  // loading değişkenini oluşturur ve true ile başlatır.
+  const [error, setError] = useState<string | null>(null);  // error değişkenini oluşturur ve string tipinde null ile başlatır.
+  const [showGradeModal, setShowGradeModal] = useState(false);  // showGradeModal değişkenini oluşturur ve false ile başlatır.
+  const [gradeForm, setGradeForm] = useState<GradeFormData>({ grade: 0, feedback: '' });  // gradeForm değişkenini oluşturur ve GradeFormData tipinde bir nesne ile başlatır.
+  const [searchQuery, setSearchQuery] = useState('');  // searchQuery değişkenini oluşturur ve string tipinde '' ile başlatır.
+  const [statusFilter, setStatusFilter] = useState('all');  // statusFilter değişkenini oluşturur ve 'all' ile başlatır.
+  const [submitting, setSubmitting] = useState(false);  // submitting değişkenini oluşturur ve false ile başlatır.
   
-  useEffect(() => {
-    if (assignmentId === null) {
-      setError('Geçersiz ödev kimliği');
-      setLoading(false);
-      return;
+  useEffect(() => {  // useEffect fonksiyonunu oluşturur ve assignmentId değişkenini kullanır.
+    if (assignmentId === null) {  // assignmentId değişkeni null ise
+      setError('Geçersiz ödev kimliği');  // setError fonksiyonunu çağırır ve 'Geçersiz ödev kimliği' ile başlatır.
+      setLoading(false);  // setLoading fonksiyonunu çağırır ve false ile başlatır.
+      return;  // return ile fonksiyonu sonlandırır.
     }
     
-    async function fetchSubmissions() {
-      try {
-        setLoading(true);
-        const data = await assignmentsApi.getAssignmentSubmissions(assignmentId);
-        setSubmissions(data);
-      } catch (err) {
-        console.error('Error fetching submissions:', err);
-        setError('Ödev teslimleri yüklenirken bir hata oluştu.');
-        toast.error('Ödev teslimleri yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
+    async function fetchSubmissions() {  // fetchSubmissions fonksiyonunu oluşturur.
+      try {  // try bloğunu oluşturur.
+        setLoading(true);  // setLoading fonksiyonunu çağırır ve true ile başlatır.
+        const data = await assignmentsApi.getAssignmentSubmissions(assignmentId);  // assignmentsApi'den getAssignmentSubmissions fonksiyonunu çağırır ve assignmentId'yi parametre olarak alır.
+        setSubmissions(data);  // setSubmissions fonksiyonunu çağırır ve data'yı parametre olarak alır.
+      } catch (err) {  // catch bloğunu oluşturur.
+        console.error('Error fetching submissions:', err);  // console.error fonksiyonunu çağırır ve 'Error fetching submissions:' ile birlikte err'i yazdırır.
+        setError('Ödev teslimleri yüklenirken bir hata oluştu.');  // setError fonksiyonunu çağırır ve 'Ödev teslimleri yüklenirken bir hata oluştu.' ile başlatır.
+        toast.error('Ödev teslimleri yüklenirken bir hata oluştu.');  // toast.error fonksiyonunu çağırır ve 'Ödev teslimleri yüklenirken bir hata oluştu.' ile başlatır.
+      } finally {  // finally bloğunu oluşturur.
+        setLoading(false);  // setLoading fonksiyonunu çağırır ve false ile başlatır.
       }
     }
     
-    fetchSubmissions();
+    fetchSubmissions();  // fetchSubmissions fonksiyonunu çağırır.
   }, [assignmentId]);
   
   // Teslimleri filtrele
   const filteredSubmissions = submissions.filter(submission => {
     // İsim veya email ile ara
-    const matchesSearch = 
-      submission.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      submission.student.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =  // matchesSearch değişkenini oluşturur ve submission.student.name ve submission.student.email'i kullanarak arama yapar.
+      submission.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||  // submission.student.name'in küçük harfe çevrilmiş hali searchQuery'in küçük harfe çevrilmiş hali içeriyorsa true döner.
+      submission.student.email.toLowerCase().includes(searchQuery.toLowerCase());  // submission.student.email'in küçük harfe çevrilmiş hali searchQuery'in küçük harfe çevrilmiş hali içeriyorsa true döner.
     
     // Duruma göre filtrele
-    let matchesStatus = true;
-    if (statusFilter !== 'all') {
-      matchesStatus = submission.status === statusFilter;
+    let matchesStatus = true;  // matchesStatus değişkenini oluşturur ve true ile başlatır.
+    if (statusFilter !== 'all') {  // statusFilter değişkeni 'all' değilse
+      matchesStatus = submission.status === statusFilter;  // submission.status değişkeni statusFilter değişkenine eşitse true döner.
     }
     
     return matchesSearch && matchesStatus;
   });
   
-  const openGradeModal = (submission: AssignmentSubmission) => {
-    setSelectedSubmission(submission);
-    setGradeForm({
-      grade: submission.grade || 0,
-      feedback: submission.feedback || ''
+  const openGradeModal = (submission: AssignmentSubmission) => {  // openGradeModal fonksiyonunu oluşturur ve submission değişkenini alır.
+    setSelectedSubmission(submission);  // setSelectedSubmission fonksiyonunu çağırır ve submission'ı parametre olarak alır.
+    setGradeForm({  // setGradeForm fonksiyonunu çağırır ve gradeForm değişkenini parametre olarak alır.
+      grade: submission.grade || 0,  // submission.grade değişkeni 0 ise 0 döner.
+      feedback: submission.feedback || ''  // submission.feedback değişkeni '' ise '' döner.
     });
-    setShowGradeModal(true);
+    setShowGradeModal(true);  // setShowGradeModal fonksiyonunu çağırır ve true ile başlatır.
   };
   
-  const closeGradeModal = () => {
-    setShowGradeModal(false);
-    setSelectedSubmission(null);
+  const closeGradeModal = () => {  // closeGradeModal fonksiyonunu oluşturur.
+    setShowGradeModal(false);  // setShowGradeModal fonksiyonunu çağırır ve false ile başlatır.
+    setSelectedSubmission(null);  // setSelectedSubmission fonksiyonunu çağırır ve null ile başlatır.
   };
   
-  const handleGradeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGradeSubmit = async (e: React.FormEvent) => {  // handleGradeSubmit fonksiyonunu oluşturur ve e değişkenini alır.
+    e.preventDefault();  // e.preventDefault() fonksiyonunu çağırır.
     
-    if (!selectedSubmission) return;
+    if (!selectedSubmission) return;  // selectedSubmission değişkeni null ise return ile fonksiyonu sonlandırır.
     
     try {
-      setSubmitting(true);
+      setSubmitting(true);  // setSubmitting fonksiyonunu çağırır ve true ile başlatır.
       
-      const result = await assignmentsApi.gradeSubmission(
+      const result = await assignmentsApi.gradeSubmission(  // assignmentsApi'den gradeSubmission fonksiyonunu çağırır ve selectedSubmission.id'yi ve gradeForm.grade ve gradeForm.feedback'i parametre olarak alır.
         selectedSubmission.id,
         gradeForm.grade,
         gradeForm.feedback
       );
       
-      if (result.success) {
+      if (result.success) {  // result.success değişkeni true ise
         // Başarılı olursa state'i güncelle
-        setSubmissions(prevSubmissions => 
+        setSubmissions(prevSubmissions =>  // setSubmissions fonksiyonunu çağırır ve prevSubmissions değişkenini parametre olarak alır.
           prevSubmissions.map(sub => 
-            sub.id === selectedSubmission.id 
-              ? {
-                  ...sub,
-                  grade: gradeForm.grade,
-                  feedback: gradeForm.feedback,
-                  status: 'graded',
-                  graded_at: new Date().toISOString()
+            sub.id === selectedSubmission.id  // sub.id değişkeni selectedSubmission.id değişkenine eşitse
+              ? {  // {
+                  ...sub,  // ...sub,
+                  grade: gradeForm.grade,  // gradeForm.grade değişkeni grade değişkenine eşitlenir.
+                  feedback: gradeForm.feedback,  // gradeForm.feedback değişkeni feedback değişkenine eşitlenir.
+                  status: 'graded',  // status değişkeni 'graded' değişkenine eşitlenir.
+                  graded_at: new Date().toISOString()  // new Date().toISOString() değişkeni graded_at değişkenine eşitlenir.
                 }
-              : sub
+              : sub  // sub değişkeni döner.
           )
         );
         
-        toast.success('Değerlendirme başarıyla kaydedildi.');
-        closeGradeModal();
+        toast.success('Değerlendirme başarıyla kaydedildi.');  // toast.success fonksiyonunu çağırır ve 'Değerlendirme başarıyla kaydedildi.' ile başlatır.
+        closeGradeModal();  // closeGradeModal fonksiyonunu çağırır.
       }
-    } catch (err) {
-      console.error('Error grading submission:', err);
-      toast.error('Değerlendirme kaydedilirken bir hata oluştu.');
-    } finally {
-      setSubmitting(false);
+    } catch (err) {  // catch bloğunu oluşturur.
+      console.error('Error grading submission:', err);  // console.error fonksiyonunu çağırır ve 'Error grading submission:' ile birlikte err'i yazdırır.
+      toast.error('Değerlendirme kaydedilirken bir hata oluştu.');  // toast.error fonksiyonunu çağırır ve 'Değerlendirme kaydedilirken bir hata oluştu.' ile başlatır.
+    } finally {  // finally bloğunu oluşturur.
+      setSubmitting(false);  // setSubmitting fonksiyonunu çağırır ve false ile başlatır.
     }
   };
   
   // Tarihi formatlama
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', {
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const formatDate = (dateString: string) => {  // formatDate fonksiyonunu oluşturur ve dateString değişkenini alır.
+    const date = new Date(dateString);  // date değişkenini oluşturur ve dateString'i new Date ile tarihleştirir.
+    return date.toLocaleDateString('tr-TR', {  // date.toLocaleDateString fonksiyonunu çağırır ve 'tr-TR' ile tarih formatını ayarlar.
+      day: 'numeric',  // day: 'numeric', 
+      month: 'long',  // month: 'long', 
+      year: 'numeric',  // year: 'numeric', 
+      hour: '2-digit',  // hour: '2-digit', 
+      minute: '2-digit'  // minute: '2-digit'
+    });  // date.toLocaleDateString fonksiyonunun dönüş değeri döner.
   };
   
   // Zaman farkını formatlama (... önce şeklinde)
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const formatTimeAgo = (dateString: string) => {  // formatTimeAgo fonksiyonunu oluşturur ve dateString değişkenini alır.
+    const date = new Date(dateString);  // date değişkenini oluşturur ve dateString'i new Date ile tarihleştirir.
+    const now = new Date();  // now değişkenini oluşturur ve new Date ile tarihleştirir.
+    const diffTime = Math.abs(now.getTime() - date.getTime());  // diffTime değişkenini oluşturur ve now.getTime() - date.getTime() ile zaman farkını hesaplar.
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));  // diffDays değişkenini oluşturur ve diffTime'ı 1000 * 60 * 60 * 24'e böler.
     
-    if (diffDays === 0) {
-      const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-      if (diffHours === 0) {
-        const diffMinutes = Math.floor(diffTime / (1000 * 60));
-        return `${diffMinutes} dakika önce`;
+    if (diffDays === 0) {  // diffDays değişkeni 0 ise
+      const diffHours = Math.floor(diffTime / (1000 * 60 * 60));  // diffHours değişkenini oluşturur ve diffTime'ı 1000 * 60 * 60'a böler.
+      if (diffHours === 0) {  // diffHours değişkeni 0 ise
+        const diffMinutes = Math.floor(diffTime / (1000 * 60));  // diffMinutes değişkenini oluşturur ve diffTime'ı 1000 * 60'a böler.
+        return `${diffMinutes} dakika önce`;  // diffMinutes değişkeni döner.
       }
-      return `${diffHours} saat önce`;
+      return `${diffHours} saat önce`;  // diffHours değişkeni döner.
     } else if (diffDays === 1) {
-      return 'Dün';
-    } else if (diffDays < 7) {
-      return `${diffDays} gün önce`;
-    } else if (diffDays < 30) {
-      const weeks = Math.floor(diffDays / 7);
-      return `${weeks} hafta önce`;
-    } else if (diffDays < 365) {
-      const months = Math.floor(diffDays / 30);
-      return `${months} ay önce`;
-    } else {
-      const years = Math.floor(diffDays / 365);
-      return `${years} yıl önce`;
+      return 'Dün';  // 'Dün' döner.
+    } else if (diffDays < 7) {  // diffDays değişkeni 7'den küçükse
+      return `${diffDays} gün önce`;  // diffDays değişkeni döner.
+    } else if (diffDays < 30) {  // diffDays değişkeni 30'dan küçükse
+      const weeks = Math.floor(diffDays / 7);  // weeks değişkenini oluşturur ve diffDays'ı 7'ye böler.
+      return `${weeks} hafta önce`;  // weeks değişkeni döner.
+    } else if (diffDays < 365) {  // diffDays değişkeni 365'den küçükse
+      const months = Math.floor(diffDays / 30);  // months değişkenini oluşturur ve diffDays'ı 30'a böler.
+      return `${months} ay önce`;  // months değişkeni döner.
+    } else {  // else bloğunu oluşturur.
+      const years = Math.floor(diffDays / 365);  // years değişkenini oluşturur ve diffDays'ı 365'e böler.
+      return `${years} yıl önce`;  // years değişkeni döner.
     }
   };
   
-  if (loading) {
+  if (loading) {  // loading değişkeni true ise
     return (
-      <div className="container mx-auto p-6 flex justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="container mx-auto p-6 flex justify-center">  // container mx-auto p-6 flex justify-center değişkenini oluşturur.
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>  // animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 değişkenini oluşturur.
       </div>
-    );
+    );  // return ile fonksiyonu sonlandırır.
   }
   
-  if (error) {
+  if (error) {  // error değ
     return (
       <div className="container mx-auto p-6">
         <div className="bg-red-50 p-4 rounded-md text-red-800">

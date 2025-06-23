@@ -1,78 +1,78 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { toast } from 'react-hot-toast';
-import { coursesApi } from '@/lib/api/courses';
-import { assignmentsApi } from '@/lib/api/assignments';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useState, useEffect } from 'react';  // React'ten useState ve useEffect'i içe aktarır.
+import { useParams, useRouter } from 'next/navigation';  // Next.js'ten useParams ve useRouter'u içe aktarır.
+import Link from 'next/link';  // Next.js'ten Link'i içe aktarır.
+import { toast } from 'react-hot-toast';  // react-hot-toast'tan toast'u içe aktarır.
+import { coursesApi } from '@/lib/api/courses';  // @/lib/api/courses'tan coursesApi'yi içe aktarır.
+import { assignmentsApi } from '@/lib/api/assignments';  // @/lib/api/assignments'tan assignmentsApi'yi içe aktarır.
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // @/components/ui/LoadingSpinner'tan LoadingSpinner'u içe aktarır.
 
-interface Assignment {
-  id: number;
-  title: string;
-  description: string;
-  due_date: string;
-  max_points: number;
-  created_at: string;
-  updated_at: string;
-  lesson_id: number;
+interface Assignment {  // Assignment interface'ini oluşturur.
+  id: number;  // id değişkenini oluşturur ve number tipinde bir değişken ile başlatır.
+  title: string;  // title değişkenini oluşturur ve string tipinde bir değişken ile başlatır.
+  description: string;  // description değişkenini oluşturur ve string tipinde bir değişken ile başlatır.
+  due_date: string;  // due_date değişkenini oluşturur ve string tipinde bir değişken ile başlatır.
+  max_points: number;  // max_points değişkenini oluşturur ve number tipinde bir değişken ile başlatır.
+  created_at: string;  // created_at değişkenini oluşturur ve string tipinde bir değişken ile başlatır.
+  updated_at: string;  // updated_at değişkenini oluşturur ve string tipinde bir değişken ile başlatır.
+  lesson_id: number;  // lesson_id değişkenini oluşturur ve number tipinde bir değişken ile başlatır.
 }
 
-export default function CourseAssignmentsPage() {
-  const { courseId } = useParams();
-  const router = useRouter();
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [courseTitle, setCourseTitle] = useState('');
+export default function CourseAssignmentsPage() {  // CourseAssignmentsPage bileşenini dışa aktarır.
+  const { courseId } = useParams();  // useParams fonksiyonunu çağırır ve courseId değişkenini alır.
+  const router = useRouter();  // useRouter fonksiyonunu çağırır ve router değişkenini alır.
+  const [assignments, setAssignments] = useState<Assignment[]>([]);  // assignments değişkenini oluşturur ve Assignment tipinde bir dizi ile başlatır.
+  const [loading, setLoading] = useState(true);  // loading değişkenini oluşturur ve true ile başlatır.
+  const [courseTitle, setCourseTitle] = useState('');  // courseTitle değişkenini oluşturur ve '' ile başlatır.
 
-  const numericCourseId = Number(courseId);
+  const numericCourseId = Number(courseId);  // numericCourseId değişkenini oluşturur ve courseId değişkenini Number fonksiyonu ile integer'a çevirir.
 
-  useEffect(() => {
-    if (isNaN(numericCourseId)) {
-      toast.error('Geçersiz Kurs ID');
-      router.push('/instructor/courses');
-      return;
+  useEffect(() => {  // useEffect fonksiyonunu çağırır.
+    if (isNaN(numericCourseId)) {  // numericCourseId değişkeni NaN değilse
+      toast.error('Geçersiz Kurs ID');  // toast.error fonksiyonunu çağırır ve 'Geçersiz Kurs ID' ile başlatır.
+      router.push('/instructor/courses');  // router.push fonksiyonunu çağırır ve '/instructor/courses' ile yönlendirir.
+      return;  // return fonksiyonunu çağırır.
     }
 
-    const fetchAssignmentsAndCourse = async () => {
+    const fetchAssignmentsAndCourse = async () => {  // fetchAssignmentsAndCourse fonksiyonunu oluşturur.
       setLoading(true);
       try {
-        // Fetch course details to get the title
+        // Kurs detaylarını almak için kurs API'sini kullanır.
         const courseDetails = await coursesApi.getCourse(numericCourseId);
         setCourseTitle(courseDetails.title);
         
-        // Fetch assignments for the course
+        // Kurs ödevlerini almak için ödev API'sini kullanır.
         const courseAssignments = await assignmentsApi.getCourseAssignments(numericCourseId);
         setAssignments(courseAssignments);
       } catch (error) {
-        console.error('Failed to fetch assignments or course:', error);
-        toast.error('Ödevler yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
+        console.error('Failed to fetch assignments or course:', error);  // console.error fonksiyonunu çağırır ve 'Failed to fetch assignments or course:' ile birlikte error'i yazdırır.
+        toast.error('Ödevler yüklenirken bir hata oluştu.');  // toast.error fonksiyonunu çağırır ve 'Ödevler yüklenirken bir hata oluştu.' ile başlatır.
+      } finally {  // finally bloğunu oluşturur.
+        setLoading(false);  // setLoading fonksiyonunu çağırır ve false ile başlatır.
       }
-    };
+    };  // fetchAssignmentsAndCourse fonksiyonunu oluşturur.
 
-    fetchAssignmentsAndCourse();
-  }, [numericCourseId, router]);
+    fetchAssignmentsAndCourse();  // fetchAssignmentsAndCourse fonksiyonunu çağırır.
+  }, [numericCourseId, router]);  // useEffect fonksiyonunu çağırır.
 
-  const handleDeleteAssignment = async (assignmentId: number, assignmentTitle: string) => {
-    if (!confirm(`"${assignmentTitle}" ödevini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
-      return;
+  const handleDeleteAssignment = async (assignmentId: number, assignmentTitle: string) => {  // handleDeleteAssignment fonksiyonunu oluşturur ve assignmentId ve assignmentTitle değişkenlerini alır.
+    if (!confirm(`"${assignmentTitle}" ödevini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {  // confirm fonksiyonunu çağırır ve '"' ile birlikte assignmentTitle'i ve ' ödevini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.' ile başlatır.
+      return;  // return fonksiyonunu çağırır.
     }
     
-    try {
-      await assignmentsApi.deleteAssignment(numericCourseId, assignmentId);
-      toast.success(`"${assignmentTitle}" ödevi başarıyla silindi.`);
-      setAssignments(assignments.filter(assignment => assignment.id !== assignmentId));
+    try {  // try bloğunu oluşturur.
+      await assignmentsApi.deleteAssignment(numericCourseId, assignmentId);  // assignmentsApi'den deleteAssignment fonksiyonunu çağırır ve numericCourseId ve assignmentId değişkenlerini parametre olarak alır.
+      toast.success(`"${assignmentTitle}" ödevi başarıyla silindi.`);  // toast.success fonksiyonunu çağırır ve '"' ile birlikte assignmentTitle'i ve ' ödevi başarıyla silindi.' ile başlatır.
+      setAssignments(assignments.filter(assignment => assignment.id !== assignmentId));  // setAssignments fonksiyonunu çağırır ve assignments dizisinden assignmentId'ye eşit olmayan öğeleri filtreler.
     } catch (error) {
-      console.error('Failed to delete assignment:', error);
-      toast.error('Ödev silinirken bir hata oluştu.');
+      console.error('Failed to delete assignment:', error);  // console.error fonksiyonunu çağırır ve 'Failed to delete assignment:' ile birlikte error'i yazdırır.
+      toast.error('Ödev silinirken bir hata oluştu.');  // toast.error fonksiyonunu çağırır ve 'Ödev silinirken bir hata oluştu.' ile başlatır.
     }
-  };
+  };  // handleDeleteAssignment fonksiyonunu oluşturur.
 
-  if (loading) {
-    return <LoadingSpinner size="medium" fullScreen />;
+  if (loading) {  // loading değişkeni true ise
+    return <LoadingSpinner size="medium" fullScreen />;  // LoadingSpinner bileşenini döndürür.
   }
 
   return (

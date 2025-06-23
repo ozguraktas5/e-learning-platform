@@ -1,97 +1,97 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { assignmentsApi, CreateAssignmentData } from '@/lib/api/assignments';
-import { coursesApi } from '@/lib/api/courses';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useState, useEffect } from 'react';  // React'ten useState ve useEffect'i içe aktarır.
+import { useParams, useRouter } from 'next/navigation';  // Next.js'ten useParams ve useRouter'u içe aktarır.
+import { useForm } from 'react-hook-form';  // react-hook-form'tan useForm'u içe aktarır.
+import { zodResolver } from '@hookform/resolvers/zod';  // @hookform/resolvers/zod'tan zodResolver'u içe aktarır.
+import { z } from 'zod';  // zod'tan z'yi içe aktarır.
+import { assignmentsApi, CreateAssignmentData } from '@/lib/api/assignments';  // @/lib/api/assignments'tan assignmentsApi ve CreateAssignmentData'yı içe aktarır.
+import { coursesApi } from '@/lib/api/courses';  // @/lib/api/courses'tan coursesApi'yi içe aktarır.
+import { toast } from 'react-hot-toast';  // react-hot-toast'tan toast'u içe aktarır.
+import Link from 'next/link';  // Next.js'ten Link'i içe aktarır.
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // @/components/ui/LoadingSpinner'tan LoadingSpinner'u içe aktarır.
 
-interface Lesson {
-  id: number;
-  title: string;
+interface Lesson {  // Lesson interface'ini oluşturur.
+  id: number;  // id değişkenini oluşturur ve number tipinde bir değişken ile başlatır.
+  title: string;  // title değişkenini oluşturur ve string tipinde bir değişken ile başlatır.
 }
 
-const assignmentSchema = z.object({
-  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
-  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),
-  due_date: z.string().min(1, 'Son teslim tarihi gerekli'),
-  max_points: z.number().min(1, 'Puan 1 veya daha büyük olmalıdır'),
-  lesson_id: z.number().min(1, 'Ders seçimi zorunludur')
+const assignmentSchema = z.object({  // assignmentSchema değişkenini oluşturur ve zod'tan z.object fonksiyonunu çağırır.
+  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),  // title değişkenini oluşturur ve zod'tan z.string fonksiyonunu çağırır.
+  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),  // description değişkenini oluşturur ve zod'tan z.string fonksiyonunu çağırır.
+  due_date: z.string().min(1, 'Son teslim tarihi gerekli'),  // due_date değişkenini oluşturur ve zod'tan z.string fonksiyonunu çağırır.
+  max_points: z.number().min(1, 'Puan 1 veya daha büyük olmalıdır'),  // max_points değişkenini oluşturur ve zod'tan z.number fonksiyonunu çağırır.
+  lesson_id: z.number().min(1, 'Ders seçimi zorunludur')  // lesson_id değişkenini oluşturur ve zod'tan z.number fonksiyonunu çağırır.
 });
 
-export default function CreateAssignmentPage() {
-  const { courseId } = useParams();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
+export default function CreateAssignmentPage() {  // CreateAssignmentPage bileşenini dışa aktarır.
+  const { courseId } = useParams();  // useParams fonksiyonunu çağırır ve courseId değişkenini alır.
+  const router = useRouter();  // useRouter fonksiyonunu çağırır ve router değişkenini alır.
+  const [loading, setLoading] = useState(false);  // loading değişkenini oluşturur ve false ile başlatır.
+  const [error, setError] = useState<string | null>(null);  // error değişkenini oluşturur ve string tipinde bir değişken ile başlatır.
+  const [lessons, setLessons] = useState<Lesson[]>([]);  // lessons değişkenini oluşturur ve Lesson tipinde bir dizi ile başlatır.
 
-  const { register, handleSubmit, formState: { errors, isDirty } } = useForm<CreateAssignmentData & { lesson_id: number }>({
-    resolver: zodResolver(assignmentSchema),
+  const { register, handleSubmit, formState: { errors, isDirty } } = useForm<CreateAssignmentData & { lesson_id: number }>({  // useForm fonksiyonunu çağırır ve CreateAssignmentData ve { lesson_id: number } tipinde bir değişken ile başlatır.
+    resolver: zodResolver(assignmentSchema),  // zodResolver fonksiyonunu çağırır ve assignmentSchema'yi parametre olarak alır.
     defaultValues: {
-      title: '',
-      description: '',
-      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
-      max_points: 100,
-      lesson_id: 0
+      title: '',  // title değişkenini oluşturur ve '' ile başlatır. 
+      description: '',  // description değişkenini oluşturur ve '' ile başlatır.
+      due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),  // due_date değişkenini oluşturur ve new Date fonksiyonunu çağırır.
+      max_points: 100,  // max_points değişkenini oluşturur ve 100 ile başlatır.
+      lesson_id: 0  // lesson_id değişkenini oluşturur ve 0 ile başlatır.
     }
   });
 
-  const numericCourseId = Number(courseId);
+  const numericCourseId = Number(courseId);  // numericCourseId değişkenini oluşturur ve courseId değişkenini Number fonksiyonu ile integer'a çevirir.
 
-  useEffect(() => {
-    const fetchLessons = async () => {
+  useEffect(() => {  // useEffect fonksiyonunu çağırır.
+    const fetchLessons = async () => {  // fetchLessons fonksiyonunu oluşturur.
       try {
-        const response = await coursesApi.getCourseLessons(numericCourseId);
-        setLessons(response);
-      } catch (err) {
-        console.error('Error fetching lessons:', err);
-        setError('Dersler yüklenirken bir hata oluştu');
+        const response = await coursesApi.getCourseLessons(numericCourseId);  // coursesApi'den getCourseLessons fonksiyonunu çağırır ve numericCourseId değişkenini parametre olarak alır.
+        setLessons(response);  // setLessons fonksiyonunu çağırır ve response değişkenini parametre olarak alır.
+      } catch (err) {  // catch bloğunu oluşturur.
+        console.error('Error fetching lessons:', err);  // console.error fonksiyonunu çağırır ve 'Error fetching lessons:' ile birlikte err'i yazdırır.
+        setError('Dersler yüklenirken bir hata oluştu');  // setError fonksiyonunu çağırır ve 'Dersler yüklenirken bir hata oluştu' ile başlatır.
       }
     };
 
-    if (!isNaN(numericCourseId)) {
-      fetchLessons();
+    if (!isNaN(numericCourseId)) {  // numericCourseId değişkeni NaN değilse
+      fetchLessons();  // fetchLessons fonksiyonunu çağırır.
     }
-  }, [numericCourseId]);
+  }, [numericCourseId]);  // useEffect fonksiyonunu çağırır.
 
-  const onSubmit = async (data: CreateAssignmentData & { lesson_id: number }) => {
-    if (isNaN(numericCourseId)) {
-      setError('Geçersiz Kurs ID');
-      return;
+  const onSubmit = async (data: CreateAssignmentData & { lesson_id: number }) => {  // onSubmit fonksiyonunu oluşturur ve data değişkenini alır.
+    if (isNaN(numericCourseId)) {  // numericCourseId değişkeni NaN değilse
+      setError('Geçersiz Kurs ID');  // setError fonksiyonunu çağırır ve 'Geçersiz Kurs ID' ile başlatır.
+      return;  // return fonksiyonunu çağırır.
     }
 
-    if (!data.lesson_id) {
-      setError('Lütfen bir ders seçin');
-      return;
+    if (!data.lesson_id) {  // data.lesson_id değişkeni yoksa 
+      setError('Lütfen bir ders seçin');  // setError fonksiyonunu çağırır ve 'Lütfen bir ders seçin' ile başlatır.
+      return;  // return fonksiyonunu çağırır.
     }
   
-    setLoading(true);
-    setError(null);
+    setLoading(true);  // setLoading fonksiyonunu çağırır ve true ile başlatır.
+    setError(null);  // setError fonksiyonunu çağırır ve null ile başlatır.
 
-    try {
-      const newAssignment = await assignmentsApi.createAssignment(numericCourseId, {
-        ...data,
-        lesson_id: Number(data.lesson_id)
+    try {  // try bloğunu oluşturur.
+      const newAssignment = await assignmentsApi.createAssignment(numericCourseId, {  // assignmentsApi'den createAssignment fonksiyonunu çağırır ve numericCourseId değişkenini ve data değişkenini parametre olarak alır.
+        ...data,  // data değişkenini spread operatörü ile eklemektedir.
+        lesson_id: Number(data.lesson_id)  // data.lesson_id değişkenini Number fonksiyonu ile integer'a çevirir.
       });
-      toast.success(`Ödev '${newAssignment.title}' oluşturuldu.`);
-      router.push(`/instructor/courses/${courseId}/assignments`);
-    } catch (err: unknown) {
-      console.error('Error during assignment creation:', err);
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(`Ödev oluşturulurken bir hata oluştu: ${errorMessage || 'Bilinmeyen hata'}`);
-    } finally {
-      setLoading(false);
+      toast.success(`Ödev '${newAssignment.title}' oluşturuldu.`);  // toast.success fonksiyonunu çağırır ve 'Ödev '${newAssignment.title}' oluşturuldu.' ile başlatır.
+      router.push(`/instructor/courses/${courseId}/assignments`);  // router.push fonksiyonunu çağırır ve '/instructor/courses/${courseId}/assignments' ile yönlendirir.
+    } catch (err: unknown) {  // catch bloğunu oluşturur.
+      console.error('Error during assignment creation:', err);  // console.error fonksiyonunu çağırır ve 'Error during assignment creation:' ile birlikte err'i yazdırır.
+      const errorMessage = err instanceof Error ? err.message : String(err);  // errorMessage değişkenini oluşturur ve err değişkeni Error tipinde ise err.message değişkenini, değilse err değişkenini String fonksiyonu ile string'e çevirir.
+      setError(`Ödev oluşturulurken bir hata oluştu: ${errorMessage || 'Bilinmeyen hata'}`);  // setError fonksiyonunu çağırır ve 'Ödev oluşturulurken bir hata oluştu: ${errorMessage || 'Bilinmeyen hata'}' ile başlatır.
+    } finally {  // finally bloğunu oluşturur.
+      setLoading(false);  // setLoading fonksiyonunu çağırır ve false ile başlatır.
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner size="medium" fullScreen />;
+  if (loading) {  // loading değişkeni true ise
+    return <LoadingSpinner size="medium" fullScreen />;  // LoadingSpinner bileşenini döndürür.
   }
 
   return (
