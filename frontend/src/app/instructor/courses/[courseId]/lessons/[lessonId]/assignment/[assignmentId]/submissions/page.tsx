@@ -1,63 +1,63 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { toast } from 'react-hot-toast';
-import { assignmentsApi, Assignment, AssignmentSubmission } from '@/lib/api/assignments';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import Link from 'next/link';  // Link componenti için
+import { toast } from 'react-hot-toast';  // Toast mesajları için
+import { assignmentsApi, Assignment, AssignmentSubmission } from '@/lib/api/assignments';  // Assignment API'sini içe aktar
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // Loading spinner için
 
-export default function AssignmentSubmissionsPage() {
-  const { courseId, lessonId, assignmentId } = useParams();
-  const router = useRouter();
-  const [assignment, setAssignment] = useState<Assignment | null>(null);
-  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function AssignmentSubmissionsPage() {  // AssignmentSubmissionsPage componenti
+  const { courseId, lessonId, assignmentId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router instance'ını al
+  const [assignment, setAssignment] = useState<Assignment | null>(null);  // Assignment state'ini tut
+  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);  // AssignmentSubmission state'ini tut
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
 
-  const numericCourseId = Number(courseId);
-  const numericLessonId = Number(lessonId);
-  const numericAssignmentId = Number(assignmentId);
+  const numericCourseId = Number(courseId);  // Course ID'yi al
+  const numericLessonId = Number(lessonId);  // Lesson ID'yi al
+  const numericAssignmentId = Number(assignmentId);  // Assignment ID'yi al
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    const fetchData = async () => {  // fetchData fonksiyonu
+      setLoading(true);  // Loading durumunu true yap
+      try {  // Try block
         // Ödev detaylarını al
-        const assignmentData = await assignmentsApi.getAssignment(
-          numericCourseId,
-          numericLessonId,
-          numericAssignmentId
+        const assignmentData = await assignmentsApi.getAssignment(  // Assignment API'sini çağır
+          numericCourseId,  // Course ID'yi al
+          numericLessonId,  // Lesson ID'yi al
+          numericAssignmentId  // Assignment ID'yi al
         );
-        setAssignment(assignmentData);
+        setAssignment(assignmentData);  // Assignment state'ini güncelle
 
         // Ödev gönderilerini al
-        const submissionsData = await assignmentsApi.getAssignmentSubmissions(
-          numericCourseId,
-          numericLessonId,
-          numericAssignmentId
+        const submissionsData = await assignmentsApi.getAssignmentSubmissions(  // AssignmentSubmission API'sini çağır
+          numericCourseId,  // Course ID'yi al
+          numericLessonId,  // Lesson ID'yi al
+          numericAssignmentId  // Assignment ID'yi al
         );
-        setSubmissions(submissionsData);
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-        toast.error('Veriler yüklenirken bir hata oluştu.');
+        setSubmissions(submissionsData);  // AssignmentSubmission state'ini güncelle
+      } catch (error) {  // Hata durumunda
+        console.error('Failed to fetch data:', error);  // Hata mesajını konsola yazdır
+        toast.error('Veriler yüklenirken bir hata oluştu.');  // Toast mesajı göster
       } finally {
-        setLoading(false);
+        setLoading(false);  // Loading durumunu false yap
       }
     };
 
-    if (!isNaN(numericCourseId) && !isNaN(numericLessonId) && !isNaN(numericAssignmentId)) {
-      fetchData();
-    } else {
-      toast.error('Geçersiz URL parametreleri');
-      router.push('/instructor/courses');
+    if (!isNaN(numericCourseId) && !isNaN(numericLessonId) && !isNaN(numericAssignmentId)) {  // Course ID, Lesson ID ve Assignment ID geçerliyse
+      fetchData();  // fetchData fonksiyonunu çağır
+    } else {  // Course ID, Lesson ID ve Assignment ID geçersizse
+      toast.error('Geçersiz URL parametreleri');  // Toast mesajı göster
+      router.push('/instructor/courses');  // Router'ı güncelle
     }
-  }, [numericCourseId, numericLessonId, numericAssignmentId, router]);
+  }, [numericCourseId, numericLessonId, numericAssignmentId, router]);  // Dependency array
 
-  if (loading) {
-    return <LoadingSpinner size="medium" fullScreen />;
+  if (loading) {  // Loading durumunda
+    return <LoadingSpinner size="medium" fullScreen />;  // Loading spinner göster
   }
 
-  if (!assignment) {
+  if (!assignment) {  // Assignment state'i boşsa
     return (
       <div className="container mx-auto p-6">
         <div className="max-w-4xl mx-auto text-center">

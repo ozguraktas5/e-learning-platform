@@ -1,65 +1,65 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { toast } from 'react-hot-toast';
-import { assignmentsApi, Assignment } from '@/lib/api/assignments';
-import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect, useCallback } from 'react';  // Client-side rendering için directive
+import { useParams } from 'next/navigation';  // Route parametrelerini almak için
+import Link from 'next/link';  // Link componenti için
+import { toast } from 'react-hot-toast';  // Toast mesajları için
+import { assignmentsApi, Assignment } from '@/lib/api/assignments';  // Assignment API'sini içe aktar
+import { useAuth } from '@/hooks/useAuth';  // useAuth hook'unu içe aktar
 
-export default function AssignmentsPage() {
-  const { courseId, lessonId } = useParams();
-  const { user } = useAuth();
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<number | null>(null);
+export default function AssignmentsPage() {  // AssignmentsPage componenti
+  const { courseId, lessonId } = useParams();  // Route parametrelerini al
+  const { user } = useAuth();  // useAuth hook'unu çağır
+  const [assignments, setAssignments] = useState<Assignment[]>([]);  // Assignments state'ini tut
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Hata durumunu kontrol et
+  const [deleting, setDeleting] = useState<number | null>(null);  // Deleting state'ini tut
 
-  const fetchAssignments = useCallback(async () => {
+  const fetchAssignments = useCallback(async () => {  // fetchAssignments fonksiyonu
     try {
-      setLoading(true);
-      const allAssignments = await assignmentsApi.getCourseAssignments(Number(courseId));
+      setLoading(true);  // Loading durumunu true yap
+      const allAssignments = await assignmentsApi.getCourseAssignments(Number(courseId));  // Tüm ödevleri al
       // Sadece bu derse ait ödevleri filtrele
-      const lessonAssignments = allAssignments.filter(
+      const lessonAssignments = allAssignments.filter(  // Sadece bu derse ait ödevleri filtrele
         assignment => assignment.lesson_id === Number(lessonId)
       );
-      setAssignments(lessonAssignments);
-    } catch (err) {
-      console.error('Error fetching assignments:', err);
-      setError('Ödevler yüklenirken bir hata oluştu.');
+      setAssignments(lessonAssignments);  // Assignments state'ini güncelle
+    } catch (err) {  // Hata durumunda
+      console.error('Error fetching assignments:', err);  // Hata mesajını konsola yazdır
+      setError('Ödevler yüklenirken bir hata oluştu.');  // Hata mesajını göster
     } finally {
-      setLoading(false);
+      setLoading(false);  // Loading durumunu false yap
     }
   }, [courseId, lessonId]);
 
-  useEffect(() => {
-    fetchAssignments();
-  }, [fetchAssignments]);
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    fetchAssignments();  // fetchAssignments fonksiyonunu çağır
+  }, [fetchAssignments]); 
 
   // Ödevi silme fonksiyonu
-  const handleDeleteAssignment = async (assignmentId: number) => {
-    if (!confirm('Bu ödevi silmek istediğinize emin misiniz?')) {
-      return;
+  const handleDeleteAssignment = async (assignmentId: number) => {  // handleDeleteAssignment fonksiyonu
+    if (!confirm('Bu ödevi silmek istediğinize emin misiniz?')) {  // Ödevi silmek istediğinize emin misiniz?
+      return;  // Fonksiyonu sonlandır
     }
 
     try {
-      setDeleting(assignmentId);
-      await assignmentsApi.deleteAssignment(Number(courseId), assignmentId);
-      toast.success('Ödev başarıyla silindi');
+      setDeleting(assignmentId);  // Deleting state'ini güncelle
+      await assignmentsApi.deleteAssignment(Number(courseId), assignmentId);  // Ödevi sil
+      toast.success('Ödev başarıyla silindi');  // Toast mesajı göster
       // Ödevleri yeniden yükle
-      fetchAssignments();
-    } catch (err) {
-      console.error('Error deleting assignment:', err);
-      toast.error('Ödev silinirken bir hata oluştu');
+      fetchAssignments();  // Ödevleri yeniden yükle
+    } catch (err) {  // Hata durumunda
+      console.error('Error deleting assignment:', err);  // Hata mesajını konsola yazdır
+      toast.error('Ödev silinirken bir hata oluştu');  // Toast mesajı göster
     } finally {
-      setDeleting(null);
+      setDeleting(null);  // Deleting state'ini null yap
     }
   };
 
   // Tarih formatını düzenleyen yardımcı fonksiyon
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('tr-TR', {
+  const formatDate = (dateString: string) => {  // formatDate fonksiyonu
+    const date = new Date(dateString);  // Tarihi al
+    return new Intl.DateTimeFormat('tr-TR', {  // Tarihi formatla
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -69,20 +69,20 @@ export default function AssignmentsPage() {
   };
 
   // Teslim tarihi geçmiş mi kontrolü
-  const isPastDue = (dueDate: string) => {
-    return new Date(dueDate) < new Date();
+  const isPastDue = (dueDate: string) => {  // isPastDue fonksiyonu
+    return new Date(dueDate) < new Date();  // Teslim tarihi geçmiş mi
   };
 
   // Son teslim tarihi yaklaşıyor mu?
-  const isCloseToDue = (dueDate: string) => {
-    const due = new Date(dueDate);
-    const now = new Date();
-    const diff = due.getTime() - now.getTime();
-    const days = diff / (1000 * 60 * 60 * 24);
-    return days <= 3 && days > 0; // 3 gün veya daha az kalmış
+  const isCloseToDue = (dueDate: string) => {  // isCloseToDue fonksiyonu
+    const due = new Date(dueDate);  // Teslim tarihi al
+    const now = new Date();  // Şu anki tarihi al
+    const diff = due.getTime() - now.getTime();  // Teslim tarihi ile şu anki tarih arasındaki farkı al
+    const days = diff / (1000 * 60 * 60 * 24);  // Gün cinsinden farkı al
+    return days <= 3 && days > 0;  // 3 gün veya daha az kalmış mı
   };
 
-  if (loading) {
+  if (loading) {  // Loading durumunda
     return (
       <div className="p-6 flex justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -90,7 +90,7 @@ export default function AssignmentsPage() {
     );
   }
 
-  if (error) {
+  if (error) {  // Hata durumunda
     return (
       <div className="p-6">
         <div className="bg-red-50 p-4 rounded-md text-red-800">

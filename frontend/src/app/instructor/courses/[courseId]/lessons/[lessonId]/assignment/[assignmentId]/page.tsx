@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { toast } from 'react-hot-toast';
-import { assignmentsApi } from '@/lib/api/assignments';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import Link from 'next/link';  // Link componenti için
+import { toast } from 'react-hot-toast';  // Toast mesajları için
+import { assignmentsApi } from '@/lib/api/assignments';  // Assignment API'sini içe aktar
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // Loading spinner için
 
-interface Assignment {
+interface Assignment {  // Assignment interface'i
   id: number;
   title: string;
   description: string;
@@ -19,65 +19,65 @@ interface Assignment {
   submission_count?: number;
 }
 
-export default function AssignmentDetailsPage() {
-  const { courseId, lessonId, assignmentId } = useParams();
-  const router = useRouter();
-  const [assignment, setAssignment] = useState<Assignment | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function AssignmentDetailsPage() {  // AssignmentDetailsPage componenti
+  const { courseId, lessonId, assignmentId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router instance'ını al
+  const [assignment, setAssignment] = useState<Assignment | null>(null);  // Assignment state'ini tut
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
 
-  const numericCourseId = Number(courseId);
-  const numericLessonId = Number(lessonId);
-  const numericAssignmentId = Number(assignmentId);
+  const numericCourseId = Number(courseId);  // Course ID'yi al
+  const numericLessonId = Number(lessonId);  // Lesson ID'yi al
+  const numericAssignmentId = Number(assignmentId);  // Assignment ID'yi al
 
-  useEffect(() => {
-    if (isNaN(numericCourseId) || isNaN(numericLessonId) || isNaN(numericAssignmentId)) {
-      toast.error('Geçersiz URL parametreleri');
-      router.push('/instructor/courses');
-      return;
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    if (isNaN(numericCourseId) || isNaN(numericLessonId) || isNaN(numericAssignmentId)) {  // Course ID, Lesson ID ve Assignment ID geçerliyse
+      toast.error('Geçersiz URL parametreleri');  // Toast mesajı göster
+      router.push('/instructor/courses');  // Router'ı güncelle
+      return;  // Fonksiyonu sonlandır
     }
 
-    const fetchAssignment = async () => {
-      setLoading(true);
-      try {
-        const assignmentData = await assignmentsApi.getAssignment(
-          numericCourseId,
-          numericLessonId,
-          numericAssignmentId
+    const fetchAssignment = async () => {  // fetchAssignment fonksiyonu
+      setLoading(true);  // Loading durumunu true yap
+      try {  // Try bloğu
+        const assignmentData = await assignmentsApi.getAssignment(  // Assignment API'sini çağır
+          numericCourseId,  // Course ID'yi al
+          numericLessonId,  // Lesson ID'yi al
+          numericAssignmentId  // Assignment ID'yi al
         );
-        setAssignment(assignmentData);
-      } catch (error) {
-        console.error('Failed to fetch assignment:', error);
-        toast.error('Ödev detayları yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
+        setAssignment(assignmentData);  // Assignment state'ini güncelle
+      } catch (error) {  // Hata durumunda
+        console.error('Failed to fetch assignment:', error);  // Hata mesajını konsola yazdır
+        toast.error('Ödev detayları yüklenirken bir hata oluştu.');  // Toast mesajı göster
+      } finally { 
+        setLoading(false);  // Loading durumunu false yap
       }
     };
 
-    fetchAssignment();
+    fetchAssignment();  // fetchAssignment fonksiyonunu çağır
   }, [numericCourseId, numericLessonId, numericAssignmentId, router]);
 
-  const handleDelete = async () => {
+  const handleDelete = async () => {  // handleDelete fonksiyonu
     if (!assignment) return;
 
     if (!confirm(`"${assignment.title}" ödevini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
       return;
     }
     
-    try {
-      await assignmentsApi.deleteAssignment(numericCourseId, numericLessonId, numericAssignmentId);
-      toast.success(`"${assignment.title}" ödevi başarıyla silindi.`);
-      router.push(`/instructor/courses/${courseId}/assignments`);
-    } catch (error) {
-      console.error('Failed to delete assignment:', error);
-      toast.error('Ödev silinirken bir hata oluştu.');
+    try {  // Try bloğu
+      await assignmentsApi.deleteAssignment(numericCourseId, numericLessonId, numericAssignmentId);  // Assignment API'sini çağır
+      toast.success(`"${assignment.title}" ödevi başarıyla silindi.`);  // Toast mesajı göster
+      router.push(`/instructor/courses/${courseId}/assignments`);  // Router'ı güncelle
+    } catch (error) {  // Hata durumunda
+      console.error('Failed to delete assignment:', error);  // Hata mesajını konsola yazdır
+      toast.error('Ödev silinirken bir hata oluştu.');  // Toast mesajı göster
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner size="medium" fullScreen />;
+  if (loading) {  // Loading durumunda
+    return <LoadingSpinner size="medium" fullScreen />;  // Loading spinner göster
   }
 
-  if (!assignment) {
+  if (!assignment) {  // Assignment state'i boşsa
     return (
       <div className="container mx-auto p-6">
         <div className="max-w-4xl mx-auto text-center">

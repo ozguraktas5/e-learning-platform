@@ -1,80 +1,79 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import { lessonApi } from '@/lib/api/lessons';
-import { quizApi } from '@/lib/api/quiz';
-import { useAuth } from '@/hooks/useAuth';
-import { Quiz } from '@/types/quiz';
+import { useEffect, useState } from 'react';  // Client-side rendering için directive
+import { useParams } from 'next/navigation';  // Route parametrelerini almak için
+import { toast } from 'react-hot-toast';  // Toast için
+import Link from 'next/link';  // Link için
+import { lessonApi } from '@/lib/api/lessons';  // Lesson API'sini içe aktar
+import { quizApi } from '@/lib/api/quiz';  // Quiz API'sini içe aktar
+import { useAuth } from '@/hooks/useAuth';  // useAuth hook'u içe aktar
+import { Quiz } from '@/types/quiz';  // Quiz tipini içe aktar
 
-interface Lesson {
-  id: number;
-  title: string;
-  content: string;
-  order: number;
-  course_id: number;
-  video_url?: string;
+interface Lesson {  // Lesson interface'i
+  id: number;  // Lesson ID
+  title: string;  // Lesson title
+  content: string;  // Lesson content
+  order: number;  // Lesson order
+  course_id: number;  // Course ID
+  video_url?: string;  // Lesson video URL
 }
 
-interface QuizSummary extends Omit<Quiz, 'questions'> {
-  question_count: number;
+interface QuizSummary extends Omit<Quiz, 'questions'> {  // QuizSummary interface'i
+  question_count: number; 
   created_at: string;
 }
 
-export default function QuizzesPage() {
-  const { courseId, lessonId } = useParams();
-  const { user } = useAuth();
-  const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
-  const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [loading, setLoading] = useState(true);
-  const isInstructor = user?.role === 'instructor';
+export default function QuizzesPage() {  // QuizzesPage componenti
+  const { courseId, lessonId } = useParams();  // Route parametrelerini al
+  const { user } = useAuth();  // useAuth hook'u içe aktar
+  const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);  // Quizzes state'ini kontrol et
+  const [lesson, setLesson] = useState<Lesson | null>(null);  // Lesson state'ini kontrol et
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const isInstructor = user?.role === 'instructor';  // Instructor kontrolü
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    async function fetchData() {  // fetchData fonksiyonu
+      setLoading(true);  // Loading durumunu true yap
+      try {  // Try bloğu
         // Fetch lesson details
-        const lessonData = await lessonApi.getLesson(Number(courseId), Number(lessonId));
-        setLesson(lessonData);
+        const lessonData = await lessonApi.getLesson(Number(courseId), Number(lessonId));  // Lesson API'sini kullanarak lesson detaylarını al
+        setLesson(lessonData);  // Lesson state'ini güncelle
         
-        // Fetch quizzes for this lesson
-        const quizzesData = await quizApi.getLessonQuizzes(Number(courseId), Number(lessonId));
-        // Transform Quiz[] to QuizSummary[] (add question_count if not present)
-        const quizSummaries = quizzesData.map(quiz => ({
-          ...quiz,
-          question_count: quiz.questions?.length || 0,
-          created_at: quiz.created_at || new Date().toISOString()
+        const quizzesData = await quizApi.getLessonQuizzes(Number(courseId), Number(lessonId));  // Quiz API'sini kullanarak lesson'a ait quizları al
+    
+        const quizSummaries = quizzesData.map(quiz => ({  // QuizSummary tipini kullan
+          ...quiz,  // Quiz'ı dönüştür
+          question_count: quiz.questions?.length || 0,  // Question count
+          created_at: quiz.created_at || new Date().toISOString()  // Created at
         }));
-        setQuizzes(quizSummaries);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Sınavlar yüklenirken bir hata oluştu');
-      } finally {
-        setLoading(false);
+        setQuizzes(quizSummaries);  // QuizSummary state'ini güncelle
+      } catch (error) {  // Hata durumunda
+        console.error('Error fetching data:', error);  // Hata mesajını konsola yazdır
+        toast.error('Sınavlar yüklenirken bir hata oluştu');  // Hata mesajını göster
+      } finally {  // Finally bloğu
+        setLoading(false);  // Loading durumunu false yap
       }
     }
     
-    fetchData();
-  }, [courseId, lessonId]);
+    fetchData();  // fetchData fonksiyonunu çağır
+  }, [courseId, lessonId]);  // courseId, lessonId değiştiğinde çalışır
 
-  const handleDeleteQuiz = async (quizId: number, quizTitle: string) => {
-    if (!confirm(`"${quizTitle}" sınavını silmek istediğinizden emin misiniz?`)) {
-      return;
+  const handleDeleteQuiz = async (quizId: number, quizTitle: string) => {  // handleDeleteQuiz fonksiyonu
+    if (!confirm(`"${quizTitle}" sınavını silmek istediğinizden emin misiniz?`)) {  // Quiz title'ını silmek istediğinizden emin misiniz?
+      return;  // Fonksiyonu sonlandır
     }
     
-    try {
-      await quizApi.deleteQuiz(Number(courseId), Number(lessonId), quizId);
-      toast.success('Sınav başarıyla silindi');
-      setQuizzes(quizzes.filter(quiz => quiz.id !== quizId));
-    } catch (error) {
-      console.error('Error deleting quiz:', error);
-      toast.error('Sınav silinirken bir hata oluştu');
+    try {  // Try bloğu
+      await quizApi.deleteQuiz(Number(courseId), Number(lessonId), quizId);  // Quiz API'sini kullanarak quiz'i sil
+      toast.success('Sınav başarıyla silindi');  // Başarı mesajını göster
+      setQuizzes(quizzes.filter(quiz => quiz.id !== quizId));  // QuizSummary state'ini güncelle
+    } catch (error) {  // Hata durumunda
+      console.error('Error deleting quiz:', error);  // Hata mesajını konsola yazdır
+      toast.error('Sınav silinirken bir hata oluştu');  // Hata mesajını göster
     }
   };
 
-  if (loading) {
+  if (loading) {  // Loading durumunda
     return (
       <div className="p-6">
         <div className="animate-pulse flex space-x-4">

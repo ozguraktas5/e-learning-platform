@@ -1,101 +1,101 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { quizApi } from '@/lib/api/quiz';
-import { Quiz, QuizAttempt, QuizAnswer } from '@/types/quiz';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams } from 'next/navigation';  // Route parametrelerini almak için
+import { quizApi } from '@/lib/api/quiz';  // Quiz API'sini içe aktar
+import { Quiz, QuizAttempt, QuizAnswer } from '@/types/quiz';  // Quiz ve QuizAttempt tipini içe aktar
+import { toast } from 'react-hot-toast';  // Toast için
+import Link from 'next/link';  // Link için
 
-interface ApiQuizResults {
-  quiz_title: string;
-  quiz_description: string;
-  total_attempts: number;
-  results: Array<{
-    attempt_id: number;
-    started_at: string;
-    completed_at: string | null;
-    total_score: number;
-    max_possible_score: number;
-    percentage: number;
-    answers: Array<{
-      question_text: string;
-      your_answer: string;
-      correct_answer: string | null;
-      points_earned: number;
-      is_correct: boolean;
+interface ApiQuizResults {  // ApiQuizResults interface'i
+  quiz_title: string;  // Quiz title alanı
+  quiz_description: string;  // Quiz description alanı
+  total_attempts: number;  // Total attempts alanı
+  results: Array<{  // Results alanı
+    attempt_id: number;  // Attempt id alanı
+    started_at: string;  // Started at alanı
+    completed_at: string | null;  // Completed at alanı
+    total_score: number;  // Total score alanı
+    max_possible_score: number;  // Max possible score alanı
+    percentage: number;  // Percentage alanı
+    answers: Array<{  // Answers alanı
+      question_text: string;  // Question text alanı
+      your_answer: string;  // Your answer alanı
+      correct_answer: string | null;  // Correct answer alanı
+      points_earned: number;  // Points earned alanı
+      is_correct: boolean;  // Is correct alanı
     }>;
   }>;
 }
 
-export default function QuizResultsPage() {
-  const { courseId, lessonId, quizId } = useParams();
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
-  const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function QuizResultsPage() {  // QuizResultsPage componenti
+  const { courseId, lessonId, quizId } = useParams();  // Route parametrelerini al
+  const [quiz, setQuiz] = useState<Quiz | null>(null);  // Quiz state'ini tut
+  const [attempts, setAttempts] = useState<QuizAttempt[]>([]);  // Attempt state'ini tut
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Hata durumunu kontrol et
 
-  useEffect(() => {
-    async function fetchResults() {
-      try {
-        setLoading(true);
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    async function fetchResults() {  // fetchResults fonksiyonu
+      try {  // Try bloğu
+        setLoading(true);  // Loading durumunu true yap
         
-        // First get the quiz details
-        const quizData = await quizApi.getQuiz(
-          Number(courseId), 
-          Number(lessonId), 
-          Number(quizId)
+        // Quiz detaylarını al
+        const quizData = await quizApi.getQuiz( 
+          Number(courseId),  // Course ID'yi al
+          Number(lessonId),  // Lesson ID'yi al
+          Number(quizId)  // Quiz ID'yi al
         );
         
-        if ('error' in quizData) {
-          throw new Error(quizData.error);
+        if ('error' in quizData) {  // ApiErrorResponse tipini kullan
+          throw new Error(quizData.error);  // Hata mesajını göster
         }
         
-        setQuiz(quizData as Quiz);
+        setQuiz(quizData as Quiz);  // Quiz state'ini güncelle
         
-        // Then get the attempts
-        try {
+        // Denemeleri al
+        try {  // Try bloğu 
           const resultsData = await quizApi.getQuizResults(
-            Number(courseId),
-            Number(lessonId),
-            Number(quizId)
+            Number(courseId),  // Course ID'yi al
+            Number(lessonId),  // Lesson ID'yi al
+            Number(quizId)  // Quiz ID'yi al
           );
           
           // API formatını kontrol et ve veri adaptasyonu yap
-          if (resultsData && 'results' in resultsData) {
+          if (resultsData && 'results' in resultsData) {  // ApiQuizResults tipini kullan
             // Backend formatı - veriyi dönüştür
             const apiResults = resultsData as ApiQuizResults;
             const adaptedAttempts: QuizAttempt[] = apiResults.results.map(result => {
-              const attemptAnswers: QuizAnswer[] = [];
+              const attemptAnswers: QuizAnswer[] = [];  // QuizAnswer tipini kullan
               
               // Her bir cevabı frontend formatına dönüştür
-              if (quizData.questions) {
-                for (const question of (quizData as Quiz).questions) {
+              if (quizData.questions) {  // QuizQuestion tipini kullan
+                for (const question of (quizData as Quiz).questions) {  // QuizQuestion tipini kullan
                   // Bu soru için cevabı bul
-                  const answerData = result.answers.find(a => 
-                    a.question_text === question.question_text
+                  const answerData = result.answers.find(a =>  // QuizAnswer tipini kullan
+                    a.question_text === question.question_text  // Question text alanını kontrol et
                   );
                   
-                  if (answerData) {
+                  if (answerData) {  // QuizAnswer tipini kullan
                     // Doğru seçeneği bul
-                    const correctOption = question.options.find(o => o.is_correct);
+                    const correctOption = question.options.find(o => o.is_correct);  // QuizOption tipini kullan
                     
                     // Kullanıcının seçtiği seçeneği bul (your_answer değeriyle eşleşen)
-                    let selectedOptionId = null;
-                    const selectedOption = question.options.find(o => 
-                      o.option_text === answerData.your_answer
+                    let selectedOptionId = null;  // Selected option id
+                    const selectedOption = question.options.find(o =>  // QuizOption tipini kullan
+                      o.option_text === answerData.your_answer  // Option text alanını kontrol et
                     );
                     
-                    if (selectedOption) {
-                      selectedOptionId = selectedOption.id;
+                    if (selectedOption) {  // QuizOption tipini kullan
+                      selectedOptionId = selectedOption.id;  // Selected option id
                     }
                     
                     // Cevabı oluştur
-                    attemptAnswers.push({
-                      question_id: question.id,
-                      selected_option_id: selectedOptionId,
-                      is_correct: answerData.is_correct,
-                      points_earned: answerData.points_earned
+                    attemptAnswers.push({  // QuizAnswer tipini kullan
+                      question_id: question.id,  // Question id
+                      selected_option_id: selectedOptionId,  // Selected option id
+                      is_correct: answerData.is_correct,  // Is correct alanını kontrol et
+                      points_earned: answerData.points_earned  // Points earned alanını kontrol et
                     });
                   }
                 }
@@ -104,22 +104,22 @@ export default function QuizResultsPage() {
               // Dönüştürülmüş denemeleri oluştur
               return {
                 id: result.attempt_id,
-                quiz_id: Number(quizId),
+                quiz_id: Number(quizId), 
                 user_id: 0, // Frontend'de kullanıcı ID'sine ihtiyaç yok
-                score: result.percentage,
-                started_at: result.started_at,
+                score: result.percentage, 
+                started_at: result.started_at, 
                 completed_at: result.completed_at,
                 answers: attemptAnswers
               };
             });
             
-            setAttempts(adaptedAttempts);
+            setAttempts(adaptedAttempts);  // Attempt state'ini güncelle
           } else {
             // Standart frontend formatı - doğrudan kullan
             setAttempts(resultsData as unknown as QuizAttempt[]);
           }
-        } catch (resultsError: any) {
-          console.error('Error fetching quiz results:', resultsError);
+        } catch (resultsError: any) {  // Hata durumunda
+          console.error('Error fetching quiz results:', resultsError); 
           if (resultsError.response && resultsError.response.status === 404) {
             // Henüz deneme olmadığında 
             setAttempts([]);
@@ -127,41 +127,40 @@ export default function QuizResultsPage() {
             throw resultsError;
           }
         }
-      } catch (error: any) {
-        console.error('Error loading quiz data:', error);
-        setError(error.message || 'Sonuçlar yüklenirken bir hata oluştu');
-        toast.error('Sonuçlar yüklenirken bir hata oluştu');
+      } catch (error: any) {  // Hata durumunda
+        console.error('Error loading quiz data:', error);  // Hata mesajını konsola yazdır
+        setError(error.message || 'Sonuçlar yüklenirken bir hata oluştu');  // Hata mesajını göster
+        toast.error('Sonuçlar yüklenirken bir hata oluştu');  // Hata mesajını göster
       } finally {
-        setLoading(false);
+        setLoading(false);  // Loading durumunu false yap
       }
     }
     
-    fetchResults();
-  }, [courseId, lessonId, quizId]);
+    fetchResults();  // fetchResults fonksiyonunu çağır
+  }, [courseId, lessonId, quizId]);  // courseId, lessonId, quizId değiştiğinde çalışır
 
-  const getScoreColor = (score: number): string => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+  const getScoreColor = (score: number): string => {  // getScoreColor fonksiyonu
+    if (score >= 80) return 'text-green-600';  // Score 80'den büyükse
+    if (score >= 60) return 'text-yellow-600';  // Score 60'dan büyükse
+    return 'text-red-600';  // Score 60'dan küçükse
   };
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('tr-TR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+  const formatDate = (dateString: string): string => {  // formatDate fonksiyonu
+    const date = new Date(dateString);  // Date tipini kullan
+    return new Intl.DateTimeFormat('tr-TR', {  // Intl.DateTimeFormat tipini kullan
+      day: '2-digit',  // Day tipini kullan
+      month: '2-digit',  // Month tipini kullan
+      year: 'numeric',  // Year tipini kullan
+      hour: '2-digit',  // Hour tipini kullan
+      minute: '2-digit'  // Minute tipini kullan
+    }).format(date);  // Date tipini kullan
   };
 
-  // Get the most recent attempt
-  const latestAttempt = attempts.length > 0 
-    ? attempts.sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0] 
-    : null;
+  const latestAttempt = attempts.length > 0  // Attempts array'inin uzunluğu 0'dan büyükse
+    ? attempts.sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0]  // Attempts array'inin başlangıç tarihi en yeni olanını al
+    : null;  // Attempts array'inin uzunluğu 0'dan küçükse null dön
 
-  if (loading) {
+  if (loading) {  // Loading durumunda
     return (
       <div className="p-6 flex justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -202,8 +201,8 @@ export default function QuizResultsPage() {
     );
   }
 
-  // Check if passed the quiz
-  const isPassed = latestAttempt.score >= quiz.passing_score;
+  // Sınavı geçip geçmediğini kontrol et
+  const isPassed = latestAttempt.score >= quiz.passing_score;  // Latest attempt'in score'u quiz'in passing_score'undan büyükse
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

@@ -1,50 +1,50 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { coursesApi, Course } from '@/lib/api/courses';
-import { reviewsApi, CourseReviewsResponse } from '@/lib/api/reviews';
-import StarRating from '@/components/StarRating';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams } from 'next/navigation';  // Route parametrelerini almak için
+import Link from 'next/link';  // Link için
+import { coursesApi, Course } from '@/lib/api/courses';  // Courses API'sini içe aktar
+import { reviewsApi, CourseReviewsResponse } from '@/lib/api/reviews';  // Reviews API'sini içe aktar
+import StarRating from '@/components/StarRating';  // StarRating componentini içe aktar
 
-export default function CourseReviewsPage() {
-  const { courseId } = useParams();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [reviewsData, setReviewsData] = useState<CourseReviewsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function CourseReviewsPage() {  // CourseReviewsPage componenti
+  const { courseId } = useParams();  // Route parametrelerini al
+  const [course, setCourse] = useState<Course | null>(null);  // Course state'ini kontrol et
+  const [reviewsData, setReviewsData] = useState<CourseReviewsResponse | null>(null);  // ReviewsData state'ini kontrol et
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Error state'ini kontrol et
 
-  useEffect(() => {
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
     // Veri yükleme
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+    const fetchData = async () => {  // fetchData fonksiyonu
+      try {  // Try bloğu
+        setLoading(true);  // Loading durumunu true yap
         
         // Kurs bilgilerini yükle
-        const courseData = await coursesApi.getCourse(Number(courseId));
-        setCourse(courseData);
+        const courseData = await coursesApi.getCourse(Number(courseId));  // Courses API'sini kullanarak course detaylarını al
+        setCourse(courseData);  // Course state'ini set et
         
         // Değerlendirme verilerini yükle
-        const reviewsResponse = await reviewsApi.getCourseReviews(Number(courseId));
-        setReviewsData(reviewsResponse);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Veriler yüklenirken bir hata oluştu');
-      } finally {
-        setLoading(false);
+        const reviewsResponse = await reviewsApi.getCourseReviews(Number(courseId));  // Reviews API'sini kullanarak course'a ait değerlendirme verilerini al
+        setReviewsData(reviewsResponse);  // ReviewsData state'ini set et
+      } catch (err) {  // Hata durumunda
+        console.error('Error fetching data:', err);  // Hata mesajını konsola yazdır
+        setError('Veriler yüklenirken bir hata oluştu');  // Error state'ini set et
+      } finally {  // Finally bloğu
+        setLoading(false);  // Loading durumunu false yap
       }
-    };
+    };  // fetchData fonksiyonunu çağır
 
-    fetchData();
-  }, [courseId]);
+    fetchData();  // fetchData fonksiyonunu çağır
+  }, [courseId]);  // courseId değiştiğinde çalışır
 
   // Format time ago function
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const formatTimeAgo = (dateString: string) => {  // formatTimeAgo fonksiyonu
+    const date = new Date(dateString);  // Date objesini oluştur
+    const now = new Date();  // Date objesini oluştur
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);  // Date objesinin farkını hesapla
     
-    const intervals = {
+    const intervals = {  // Intervals objesini oluştur
       yıl: 31536000,
       ay: 2592000,
       hafta: 604800,
@@ -54,17 +54,17 @@ export default function CourseReviewsPage() {
       saniye: 1
     };
     
-    for (const [unit, seconds] of Object.entries(intervals)) {
-      const interval = Math.floor(diffInSeconds / seconds);
-      if (interval >= 1) {
-        return interval === 1 ? `1 ${unit} önce` : `${interval} ${unit} önce`;
+    for (const [unit, seconds] of Object.entries(intervals)) {  // Intervals objesini dön
+      const interval = Math.floor(diffInSeconds / seconds);  // Date objesinin farkını hesapla
+      if (interval >= 1) {  // Date objesinin farkı 1'den büyükse
+        return interval === 1 ? `1 ${unit} önce` : `${interval} ${unit} önce`;  // Date objesinin farkını dön
       }
-    }
+    } 
     
     return 'Az önce';
   };
 
-  if (loading) {
+  if (loading) {  // Loading durumunda
     return (
       <div className="p-6 flex justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -72,7 +72,7 @@ export default function CourseReviewsPage() {
     );
   }
 
-  if (error || !course) {
+  if (error || !course) {  // Error veya course yoksa
     return (
       <div className="p-6 bg-red-50 rounded-lg">
         <h2 className="text-xl font-semibold text-red-700 mb-2">Hata</h2>
@@ -84,7 +84,7 @@ export default function CourseReviewsPage() {
     );
   }
 
-  return (
+  return (  // CourseReviewsPage componenti
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Kurs Değerlendirmeleri</h1>

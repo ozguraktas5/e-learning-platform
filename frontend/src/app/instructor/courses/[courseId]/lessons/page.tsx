@@ -1,89 +1,82 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
-// Assuming you have an API function to get lessons for a course
-// Adjust the import path and function name if necessary
-import { coursesApi, Lesson } from '@/lib/api/courses'; 
-import { lessonApi } from '@/lib/api/lessons';
-import Link from 'next/link';
-import no_video from '../../../../../../../uploads/no_video.png';
-import Image from 'next/image';
-import { getFullUrl } from '@/lib/utils';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useEffect, useState } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { toast } from 'react-hot-toast';  // Toast için
+import { coursesApi, Lesson } from '@/lib/api/courses';  // Courses API'sini içe aktar
+import { lessonApi } from '@/lib/api/lessons';  // Lesson API'sini içe aktar
+import Link from 'next/link';  // Link için
+import no_video from '../../../../../../../uploads/no_video.png';  // No video için
+import Image from 'next/image';  // Image için
+import { getFullUrl } from '@/lib/utils';  // getFullUrl fonksiyonunu içe aktar
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // LoadingSpinner componentini içe aktar
 
-export default function CourseLessonsPage() {
-  const { courseId } = useParams();
-  const router = useRouter();
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [courseTitle, setCourseTitle] = useState(''); // Optional: To display course title
+export default function CourseLessonsPage() {  // CourseLessonsPage componenti
+  const { courseId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router için
+  const [lessons, setLessons] = useState<Lesson[]>([]);  // Lessons state'ini kontrol et
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [courseTitle, setCourseTitle] = useState(''); // Course title state'ini kontrol et
 
-  const numericCourseId = Number(courseId);
+  const numericCourseId = Number(courseId);  // Course ID'yi sayıya çevir
 
   useEffect(() => {
-    if (isNaN(numericCourseId)) {
-      toast.error('Invalid Course ID');
-      router.push('/courses'); // Redirect if ID is not valid
-      return;
+    if (isNaN(numericCourseId)) {  // Course ID'yi sayıya çevir
+      toast.error('Invalid Course ID'); 
+      router.push('/courses'); // Kurslar sayfasına yönlendir
+      return; // Fonksiyonu sonlandır
     }
 
-    const fetchLessonsAndCourse = async () => {
-      setLoading(true);
-      try {
+    const fetchLessonsAndCourse = async () => {  // fetchLessonsAndCourse fonksiyonu
+      setLoading(true);  // Loading durumunu true yap
+      try {  // Try bloğu
         // Fetch course details to get the title (optional)
-        const courseDetails = await coursesApi.getCourse(numericCourseId);
-        setCourseTitle(courseDetails.title);
-        
-        // TODO: Implement or verify coursesApi.getCourseLessons(numericCourseId)
-        // This function should fetch lessons for the given course ID
-        // Replace with your actual API call if different
-        // Example: const courseLessons = await someOtherApi.getLessonsByCourse(numericCourseId);
-        const courseLessons = await coursesApi.getCourseLessons(numericCourseId); 
-        setLessons(courseLessons);
+        const courseDetails = await coursesApi.getCourse(numericCourseId);  // Courses API'sini kullanarak course detaylarını al
+        setCourseTitle(courseDetails.title);  // Course title'ı set et
+        const courseLessons = await coursesApi.getCourseLessons(numericCourseId);  // Courses API'sini kullanarak course'a ait dersleri al
+        setLessons(courseLessons);  // Lessons state'ini set et
 
-      } catch (error) {
-        console.error('Failed to fetch lessons or course:', error);
-        toast.error('Failed to load lessons.');
+      } catch (error) {  // Hata durumunda
+        console.error('Failed to fetch lessons or course:', error);  // Hata mesajını konsola yazdır
+        toast.error('Failed to load lessons.');  // Hata mesajını göster
         // Optionally redirect or show an error message
-      } finally {
-        setLoading(false);
+      } finally {  // Finally bloğu
+        setLoading(false);  // Loading durumunu false yap
       }
-    };
+    };  // fetchLessonsAndCourse fonksiyonunu çağır
 
-    fetchLessonsAndCourse();
-  }, [numericCourseId, router]);
+    fetchLessonsAndCourse();  // fetchLessonsAndCourse fonksiyonunu çağır
+  }, [numericCourseId, router]);  // numericCourseId, router değiştiğinde çalışır
 
-  // Function to handle edit button click
+  // Ders düzenleme işlemi
   const handleEditLesson = (lessonId: number) => {
-    router.push(`/courses/${courseId}/lessons/${lessonId}/edit`);
+    router.push(`/courses/${courseId}/lessons/${lessonId}/edit`);  // Ders düzenleme sayfasına yönlendir
   };
 
-  // Function to handle delete button click
+  // Ders silme işlemi
   const handleDeleteLesson = async (lessonId: number, lessonTitle: string) => {
-    // Show confirmation dialog
+    // Kullanıcı onayı istenir
     if (!confirm(`"${lessonTitle}" dersini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
-      return; // User canceled
+      return;  // Kullanıcı onayı istenir
     }
     
-    try {
-      await lessonApi.deleteLesson(numericCourseId, lessonId);
-      toast.success(`"${lessonTitle}" dersi başarıyla silindi.`);
+    try {  // Try bloğu
+      await lessonApi.deleteLesson(numericCourseId, lessonId);  // Lesson API'sini kullanarak dersi sil
+      toast.success(`"${lessonTitle}" dersi başarıyla silindi.`);  // Başarı mesajını göster
       
-      // Remove the deleted lesson from the state to update the UI
+      // Silinen dersi state'den kaldır
       setLessons(lessons.filter(lesson => lesson.id !== lessonId));
-    } catch (error) {
-      console.error('Failed to delete lesson:', error);
-      toast.error('Ders silinirken bir hata oluştu.');
+    } catch (error) {  // Hata durumunda
+      console.error('Failed to delete lesson:', error);  // Hata mesajını konsola yazdır
+      toast.error('Ders silinirken bir hata oluştu.');  // Hata mesajını göster
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner size="medium" fullScreen />;
+  if (loading) {  // Loading durumunda
+    return <LoadingSpinner size="medium" fullScreen />;  // LoadingSpinner componentini göster
   }
 
-  return (
+  return (  // CourseLessonsPage componenti
     <div className="container mx-auto max-w-7xl p-6">
       <div className="mx-auto">
         <div className="flex justify-between items-center mb-8">

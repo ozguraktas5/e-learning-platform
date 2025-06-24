@@ -1,89 +1,89 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { lessonApi } from '@/lib/api/lessons';
-import { CreateLessonData, Lesson } from '@/types/lesson';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useState } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { useForm } from 'react-hook-form';  // useForm hook'u içe aktar
+import { zodResolver } from '@hookform/resolvers/zod';  // Zod resolver için
+import { z } from 'zod';  // Zod için
+import { lessonApi } from '@/lib/api/lessons';  // Lesson API'sini içe aktar
+import { CreateLessonData, Lesson } from '@/types/lesson';  // Lesson tipini içe aktar
+import { toast } from 'react-hot-toast';  // Toast için
+import Link from 'next/link';  // Link için
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // LoadingSpinner componentini içe aktar
 
-const lessonSchema = z.object({
-  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
-  content: z.string().min(10, 'İçerik en az 10 karakter olmalıdır'),
-  order: z.number().min(1, 'Sıra numarası 1 veya daha büyük olmalıdır')
+const lessonSchema = z.object({  // Lesson schema'sı
+  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),  // Title alanı
+  content: z.string().min(10, 'İçerik en az 10 karakter olmalıdır'),  // Content alanı
+  order: z.number().min(1, 'Sıra numarası 1 veya daha büyük olmalıdır')  // Order alanı
 });
 
-export default function CreateLessonPage() {
-  const { courseId } = useParams();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+export default function CreateLessonPage() {  // CreateLessonPage componenti
+  const { courseId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router için
+  const [loading, setLoading] = useState(false);  // Loading durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Error durumunu kontrol et
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);  // Selected file state'ini kontrol et
 
-  const { register, handleSubmit, formState: { errors, isDirty } } = useForm<CreateLessonData>({
-    resolver: zodResolver(lessonSchema),
+  const { register, handleSubmit, formState: { errors, isDirty } } = useForm<CreateLessonData>({  // useForm hook'u ile form için
+    resolver: zodResolver(lessonSchema),  // Zod resolver için
     defaultValues: {
-      title: '',
-      content: '',
-      order: 1
+      title: '',  // Title alanı
+      content: '',  // Content alanı
+      order: 1  // Order alanı
     }
   });
 
-  const numericCourseId = Number(courseId);
+  const numericCourseId = Number(courseId);  // Course ID'yi sayıya çevir
 
-  const onSubmit = async (data: CreateLessonData) => {
-    if (isNaN(numericCourseId)) {
-      setError('Geçersiz Kurs ID');
-      return;
+  const onSubmit = async (data: CreateLessonData) => {  // onSubmit fonksiyonu
+    if (isNaN(numericCourseId)) {  // Course ID'yi sayıya çevir
+      setError('Geçersiz Kurs ID');  // Error mesajını göster
+      return;  // Fonksiyonu sonlandır
     }
   
-    setLoading(true);
-    setError(null);
-    let newLesson: Lesson | null = null;
+    setLoading(true);  // Loading durumunu true yap
+    setError(null);  // Error durumunu null yap
+    let newLesson: Lesson | null = null;  // New lesson state'ini kontrol et
 
-    try {
-      newLesson = await lessonApi.createLesson(numericCourseId, data);
-      toast.success(`Ders '${newLesson.title}' oluşturuldu.`);
+    try {  // Try bloğu
+      newLesson = await lessonApi.createLesson(numericCourseId, data);  // Lesson API'sini kullanarak lesson oluştur
+      toast.success(`Ders '${newLesson.title}' oluşturuldu.`);  // Başarı mesajını göster
 
-      if (selectedFile && newLesson && newLesson.id) {
-        const formData = new FormData();
-        formData.append('video', selectedFile);
+      if (selectedFile && newLesson && newLesson.id) {  // Selected file ve new lesson ve new lesson'ın id'si varsa
+        const formData = new FormData();  // FormData için
+        formData.append('video', selectedFile);  // Video alanına selected file'ı ekle
         
-        await lessonApi.uploadMedia(numericCourseId, newLesson.id, formData);
-        toast.success(`Video '${selectedFile.name}' başarıyla yüklendi.`);
+        await lessonApi.uploadMedia(numericCourseId, newLesson.id, formData);  // Lesson API'sini kullanarak video yükle
+        toast.success(`Video '${selectedFile.name}' başarıyla yüklendi.`);  // Başarı mesajını göster
       }
 
-      router.push(`/instructor/courses/${courseId}/lessons`);
+      router.push(`/instructor/courses/${courseId}/lessons`);  // Dersler sayfasına yönlendir
 
-    } catch (err: unknown) {
-      console.error('Error during lesson creation or upload process:', err);
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(`Ders oluşturulurken bir hata oluştu: ${errorMessage || 'Bilinmeyen hata'}`);
-    } finally {
-      setLoading(false);
+    } catch (err: unknown) {  // Hata durumunda
+      console.error('Error during lesson creation or upload process:', err);  // Hata mesajını konsola yazdır
+      const errorMessage = err instanceof Error ? err.message : String(err);  // Hata mesajını konsola yazdır
+      setError(`Ders oluşturulurken bir hata oluştu: ${errorMessage || 'Bilinmeyen hata'}`);  // Error mesajını göster
+    } finally {  // Finally bloğu
+      setLoading(false);  // Loading durumunu false yap
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setError(null);
-      console.log('File selected:', file.name);
-    } else {
-      setSelectedFile(null);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {  // handleFileChange fonksiyonu
+    const file = event.target.files?.[0];  // File'ı al
+    if (file) {  // File varsa
+      setSelectedFile(file);  // Selected file'ı set et
+      setError(null);  // Error durumunu null yap
+      console.log('File selected:', file.name);  // File'ın adını konsola yazdır
+    } else {  // File yoksa
+      setSelectedFile(null);  // Selected file'ı null yap
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner size="medium" fullScreen />;
+  if (loading) {  // Loading durumunda
+    return <LoadingSpinner size="medium" fullScreen />;  // LoadingSpinner componentini göster
   }
 
-  return (
+  return (  // CreateLessonPage componenti
     <div className="container mx-auto max-w-7xl p-6">
       <div className="mx-auto">
         <div className="flex justify-between items-center mb-8">

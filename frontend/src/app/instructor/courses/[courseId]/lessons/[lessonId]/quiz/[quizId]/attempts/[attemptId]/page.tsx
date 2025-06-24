@@ -1,41 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { quizApi } from '@/lib/api/quiz';
-import { Quiz, QuizAttempt } from '@/types/quiz';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { quizApi } from '@/lib/api/quiz';  // Quiz API'sini içe aktar
+import { Quiz, QuizAttempt } from '@/types/quiz';  // Quiz ve QuizAttempt tipini içe aktar
 
-export default function QuizAttemptDetailPage() {
-  const { courseId, lessonId, quizId, attemptId } = useParams();
-  const router = useRouter();
-  const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function QuizAttemptDetailPage() {  // QuizAttemptDetailPage componenti
+  const { courseId, lessonId, quizId, attemptId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router instance'ını al
+  const [attempt, setAttempt] = useState<QuizAttempt | null>(null);  // Attempt state'ini tut
+  const [quiz, setQuiz] = useState<Quiz | null>(null);  // Quiz state'ini tut
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Hata durumunu kontrol et
 
-  useEffect(() => {
-    fetchAttemptDetails();
-  }, []);
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    fetchAttemptDetails();  // fetchAttemptDetails fonksiyonunu çağır
+  }, []);  // Dependency array
 
-  const fetchAttemptDetails = async () => {
-    try {
-      setLoading(true);
-      const [quizData, attemptData] = await Promise.all([
+  const fetchAttemptDetails = async () => {  // fetchAttemptDetails fonksiyonu
+    try {  // Try bloğu
+      setLoading(true);  // Loading durumunu true yap
+      const [quizData, attemptData] = await Promise.all([  // Quiz ve Attempt data'larını al
         quizApi.getQuiz(Number(courseId), Number(lessonId), Number(quizId)),
-        quizApi.getAttemptDetails(Number(attemptId))
+        quizApi.getAttemptDetails(Number(attemptId))  // Attempt detaylarını al
       ]);
-      setQuiz(quizData);
-      setAttempt(attemptData);
-    } catch (err) {
-      setError('Sonuç detayları yüklenirken bir hata oluştu');
+      setQuiz(quizData);  // Quiz state'ini güncelle
+      setAttempt(attemptData);  // Attempt state'ini güncelle
+    } catch (err) {  // Hata durumunda
+      setError('Sonuç detayları yüklenirken bir hata oluştu');  // Hata mesajını göster
     } finally {
-      setLoading(false);
+      setLoading(false);  // Loading durumunu false yap
     }
   };
 
-  if (loading) return <div className="text-center py-8">Yükleniyor...</div>;
-  if (error) return <div className="text-red-600 text-center py-8">{error}</div>;
-  if (!quiz || !attempt) return <div className="text-center py-8">Sonuç bulunamadı</div>;
+  if (loading) return <div className="text-center py-8">Yükleniyor...</div>;  // Loading durumunda
+  if (error) return <div className="text-red-600 text-center py-8">{error}</div>;  // Hata durumunda
+  if (!quiz || !attempt) return <div className="text-center py-8">Sonuç bulunamadı</div>;  // Quiz veya Attempt yoksa
 
   return (
     <div className="container mx-auto px-4 py-8">

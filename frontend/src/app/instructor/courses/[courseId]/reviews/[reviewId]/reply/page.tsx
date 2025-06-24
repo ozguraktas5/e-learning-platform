@@ -1,105 +1,105 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import { coursesApi, Course } from '@/lib/api/courses';
-import { reviewsApi, Review, ReplyData } from '@/lib/api/reviews';
-import { useAuth } from '@/hooks/useAuth';
-import StarRating from '@/components/StarRating';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { useForm } from 'react-hook-form';  // useForm hook'u içe aktar
+import { toast } from 'react-hot-toast';  // Toast için
+import Link from 'next/link';  // Link için
+import { coursesApi, Course } from '@/lib/api/courses';  // Courses API'sini içe aktar
+import { reviewsApi, Review, ReplyData } from '@/lib/api/reviews';  // Reviews API'sini içe aktar
+import { useAuth } from '@/hooks/useAuth';  // useAuth hook'u içe aktar
+import StarRating from '@/components/StarRating';  // StarRating componentini içe aktar
 
-export default function ReviewReplyPage() {
-  const { courseId, reviewId } = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [review, setReview] = useState<Review | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isInstructor, setIsInstructor] = useState(false);
+export default function ReviewReplyPage() {  // ReviewReplyPage componenti
+  const { courseId, reviewId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router için
+  const { user } = useAuth();  // useAuth hook'u içe aktar
+  const [course, setCourse] = useState<Course | null>(null);  // Course state'ini kontrol et
+  const [review, setReview] = useState<Review | null>(null);  // Review state'ini kontrol et
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [submitting, setSubmitting] = useState(false);  // Submitting state'ini kontrol et
+  const [error, setError] = useState<string | null>(null);  // Error state'ini kontrol et
+  const [isInstructor, setIsInstructor] = useState(false);  // IsInstructor state'ini kontrol et
 
-  const { register, handleSubmit, formState: { errors } } = useForm<{ reply: string }>();
+  const { register, handleSubmit, formState: { errors } } = useForm<{ reply: string }>();  // useForm hook'u içe aktar
 
-  useEffect(() => {
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
     // Oturum kontrolünü kaldırdık, tüm kullanıcılar bu sayfaya erişebilir
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+    const fetchData = async () => {  // fetchData fonksiyonu
+      try {  // Try bloğu
+        setLoading(true);  // Loading durumunu true yap
         
         // Kurs bilgilerini yükle
-        const courseData = await coursesApi.getCourse(Number(courseId));
-        setCourse(courseData);
+        const courseData = await coursesApi.getCourse(Number(courseId));  // Courses API'sini kullanarak course detaylarını al
+        setCourse(courseData);  // Course state'ini set et
         
         // Eğitmen kontrolü - sadece sayfanın görüntülenmesi için şimdi yükleme sırasında yapıyoruz
-        if (user && courseData.instructor_id === Number(user.id)) {
-          setIsInstructor(true);
+        if (user && courseData.instructor_id === Number(user.id)) {  // Kullanıcı ve courseData.instructor_id kullanıcının id'si ise
+          setIsInstructor(true);  // IsInstructor state'ini true yap
         }
         
         // Değerlendirme verilerini yükle
-        const reviewsResponse = await reviewsApi.getCourseReviews(Number(courseId));
-        const reviewData = reviewsResponse.reviews.find(r => r.id === Number(reviewId));
+        const reviewsResponse = await reviewsApi.getCourseReviews(Number(courseId));  // Reviews API'sini kullanarak course'a ait değerlendirme verilerini al
+        const reviewData = reviewsResponse.reviews.find(r => r.id === Number(reviewId));  // ReviewData state'ini set et
         
-        if (!reviewData) {
-          setError('Değerlendirme bulunamadı');
-        } else {
-          setReview(reviewData);
+        if (!reviewData) {  // ReviewData yoksa
+          setError('Değerlendirme bulunamadı');  // Error state'ini set et
+        } else {  // ReviewData varsa
+          setReview(reviewData);  // Review state'ini set et
           
           // Eğer zaten yanıtlanmışsa değerlendirmeler sayfasına yönlendir
-          if (reviewData.instructor_reply) {
-            toast.error('Bu değerlendirme zaten yanıtlanmış');
-            router.push(`/instructor/courses/${courseId}/reviews`);
+          if (reviewData.instructor_reply) {  // ReviewData.instructor_reply varsa
+            toast.error('Bu değerlendirme zaten yanıtlanmış');  // Hata mesajını göster
+            router.push(`/instructor/courses/${courseId}/reviews`);  // Değerlendirmelere dön
           }
         }
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Veriler yüklenirken bir hata oluştu');
-      } finally {
-        setLoading(false);
+      } catch (err) {  // Hata durumunda
+        console.error('Error fetching data:', err);  // Hata mesajını konsola yazdır
+        setError('Veriler yüklenirken bir hata oluştu');  // Error state'ini set et
+      } finally {  // Finally bloğu
+        setLoading(false);  // Loading durumunu false yap
       }
-    };
+    };  // fetchData fonksiyonunu çağır
 
-    fetchData();
-  }, [courseId, reviewId, router, user]);
+    fetchData();  // fetchData fonksiyonunu çağır
+  }, [courseId, reviewId, router, user]);  // courseId, reviewId, router, user değiştiğinde çalışır
 
-  const onSubmit = async (data: { reply: string }) => {
+  const onSubmit = async (data: { reply: string }) => {  // onSubmit fonksiyonu
     // Yanıt gönderme sırasında eğitmen yetkisini kontrol et
-    if (!user) {
-      toast.error('Değerlendirmeye yanıt vermek için giriş yapmalısınız');
+    if (!user) {  // Kullanıcı yoksa
+      toast.error('Değerlendirmeye yanıt vermek için giriş yapmalısınız');  // Hata mesajını göster
       // Mevcut sayfayı kaydet
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('redirectAfterLogin', window.location.pathname);
+      if (typeof window !== 'undefined') {  // window undefined değilse
+        localStorage.setItem('redirectAfterLogin', window.location.pathname);  // Mevcut sayfayı kaydet
       }
-      router.push('/login');
-      return;
+      router.push('/login');  // Login sayfasına yönlendir
+      return;  // Fonksiyonu sonlandır
     }
 
-    if (!course || Number(user.id) !== course.instructor_id) {
-      toast.error('Bu işlemi yapmaya yetkiniz yok');
-      return;
+    if (!course || Number(user.id) !== course.instructor_id) {  // Course veya user.id course.instructor_id değilse
+      toast.error('Bu işlemi yapmaya yetkiniz yok');  // Hata mesajını göster
+      return;  // Fonksiyonu sonlandır
     }
 
-    try {
-      setSubmitting(true);
-      const replyData: ReplyData = {
-        reply: data.reply
+    try {  // Try bloğu
+      setSubmitting(true);  // Submitting state'ini true yap
+      const replyData: ReplyData = {  // ReplyData tipini kullan
+        reply: data.reply  // Reply
       };
 
-      await reviewsApi.replyToReview(Number(courseId), Number(reviewId), replyData);
-      toast.success('Yanıtınız başarıyla kaydedildi');
-      router.push(`/instructor/courses/${courseId}/reviews`);
-    } catch (err) {
-      console.error('Error submitting reply:', err);
-      toast.error('Yanıt gönderilirken bir hata oluştu');
-    } finally {
-      setSubmitting(false);
+      await reviewsApi.replyToReview(Number(courseId), Number(reviewId), replyData);  // Reviews API'sini kullanarak review'a yanıt ver
+      toast.success('Yanıtınız başarıyla kaydedildi');  // Başarı mesajını göster
+      router.push(`/instructor/courses/${courseId}/reviews`);  // Değerlendirmelere dön
+    } catch (err) {  // Hata durumunda
+      console.error('Error submitting reply:', err);  // Hata mesajını konsola yazdır
+      toast.error('Yanıt gönderilirken bir hata oluştu');  // Hata mesajını göster
+    } finally {  // Finally bloğu
+      setSubmitting(false);  // Submitting state'ini false yap
     }
-  };
+  };  // onSubmit fonksiyonunu çağır
 
-  if (loading) {
+  if (loading) {  // Loading durumunda
     return (
       <div className="flex justify-center items-center h-64">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>

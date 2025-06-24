@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { quizApi, ApiErrorResponse } from '@/lib/api/quiz';
-import { coursesApi } from '@/lib/api/courses';
-import { Quiz, QuizQuestion } from '@/types/quiz';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { quizApi, ApiErrorResponse } from '@/lib/api/quiz';  // Quiz API'sini içe aktar
+import { coursesApi } from '@/lib/api/courses';  // Courses API'sini içe aktar
+import { Quiz, QuizQuestion } from '@/types/quiz';  // Quiz ve QuizQuestion tipini içe aktar
+import { toast } from 'react-hot-toast';  // Toast için
+import Link from 'next/link';  // Link için
 
-interface QuizAnswers {
+interface QuizAnswers {  // QuizAnswers interface'i
   [questionId: number]: {
     question_id: number;
     selected_option_id: number | null;
@@ -16,166 +16,166 @@ interface QuizAnswers {
   };
 }
 
-export default function TakeQuizPage() {
-  const { courseId, lessonId, quizId } = useParams();
-  const router = useRouter();
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [answers, setAnswers] = useState<QuizAnswers>({});
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [quizNotFound, setQuizNotFound] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function TakeQuizPage() {  // TakeQuizPage componenti
+  const { courseId, lessonId, quizId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router için
+  const [quiz, setQuiz] = useState<Quiz | null>(null);  // Quiz state'ini tut
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [answers, setAnswers] = useState<QuizAnswers>({});  // Answers state'ini tut
+  const [currentQuestion, setCurrentQuestion] = useState(0);  // Current question state'ini tut
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);  // Time left state'ini tut
+  const [submitting, setSubmitting] = useState(false);  // Submitting state'ini tut
+  const [quizNotFound, setQuizNotFound] = useState(false);  // Quiz not found state'ini tut
+  const [error, setError] = useState<string | null>(null);  // Error state'ini tut
 
-  useEffect(() => {
-    async function fetchQuiz() {
-      try {
-        setLoading(true);
-        const response = await quizApi.getQuiz(
-          Number(courseId),
-          Number(lessonId),
-          Number(quizId)
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    async function fetchQuiz() {  // fetchQuiz fonksiyonu
+      try {  // Try bloğu
+        setLoading(true);  // Loading durumunu true yap
+        const response = await quizApi.getQuiz(  // Quiz API'sini kullanarak quiz'i al
+          Number(courseId),  // Course ID'yi al
+          Number(lessonId),  // Lesson ID'yi al
+          Number(quizId)  // Quiz ID'yi al
         );
         
         // API'nin hata döndürdüğü kontrol edilmeli
-        if ('error' in response && response.not_found) {
-          setQuizNotFound(true);
-          return;
+        if ('error' in response && response.not_found) {  // ApiErrorResponse tipini kullan
+          setQuizNotFound(true);  // Quiz not found state'ini true yap
+          return;  // Fonksiyonu sonlandır
         }
         
         // Normal quiz yanıtı
-        const quizData = response as Quiz;
-        setQuiz(quizData);
+        const quizData = response as Quiz;  // Quiz tipini kullan
+        setQuiz(quizData);  // Quiz state'ini güncelle
         
         // Initialize answers
-        const initialAnswers: QuizAnswers = {};
-        quizData.questions.forEach(question => {
-          initialAnswers[question.id] = {
+        const initialAnswers: QuizAnswers = {};  // QuizAnswers tipini kullan
+        quizData.questions.forEach(question => {  // QuizQuestion tipini kullan
+          initialAnswers[question.id] = {  // QuizAnswers tipini kullan
             question_id: question.id,
-            selected_option_id: null
+            selected_option_id: null 
           };
         });
         setAnswers(initialAnswers);
         
-        // Set timer if there's a time limit
-        if (quizData.time_limit) {
-          setTimeLeft(quizData.time_limit * 60); // Convert minutes to seconds
+        // Süre limiti varsa timer'ı ayarla
+        if (quizData.time_limit) {  // QuizData tipini kullan
+          setTimeLeft(quizData.time_limit * 60);  // Süre limitini saniyeye çevir
         }
-      } catch (error) {
-        console.error('Error fetching quiz:', error);
-        setError('Sınav yüklenirken bir hata oluştu');
-        toast.error('Sınav yüklenirken bir hata oluştu');
+      } catch (error) {  // Hata durumunda
+        console.error('Error fetching quiz:', error);  // Hata mesajını konsola yazdır
+        setError('Sınav yüklenirken bir hata oluştu');  // Hata mesajını göster
+        toast.error('Sınav yüklenirken bir hata oluştu');  // Hata mesajını göster
       } finally {
-        setLoading(false);
+        setLoading(false);  // Loading durumunu false yap
       }
-    }
+    } 
 
-    fetchQuiz();
-  }, [courseId, lessonId, quizId]);
+    fetchQuiz();  // fetchQuiz fonksiyonunu çağır
+  }, [courseId, lessonId, quizId]);  // courseId, lessonId, quizId değiştiğinde çalışır
 
   // Timer countdown
-  useEffect(() => {
-    if (!timeLeft) return;
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    if (!timeLeft) return;  // Time left null ise fonksiyonu sonlandır
     
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev && prev > 0) {
-          return prev - 1;
-        } else {
-          clearInterval(timer);
-          toast.error('Süre doldu! Sınav otomatik olarak teslim edilecek.');
-          handleSubmit();
-          return 0;
+    const timer = setInterval(() => {  // Timer'ı ayarla
+      setTimeLeft(prev => {  // Time left state'ini güncelle
+        if (prev && prev > 0) {  // Time left 0'dan büyükse
+          return prev - 1;  // Time left'i 1 azalt
+        } else {  // Time left 0'dan küçükse
+          clearInterval(timer);  // Timer'ı temizle
+          toast.error('Süre doldu! Sınav otomatik olarak teslim edilecek.');  // Hata mesajını göster
+          handleSubmit();  // handleSubmit fonksiyonunu çağır
+          return 0;  // Time left'i 0 yap
         }
       });
-    }, 1000);
+    }, 1000);  // 1 saniye beklet
     
-    return () => clearInterval(timer);
-  }, [timeLeft]);
+    return () => clearInterval(timer);  // Timer'ı temizle
+  }, [timeLeft]);  // timeLeft değiştiğinde çalışır
 
-  const handleOptionSelect = (questionId: number, optionId: number) => {
-    setAnswers(prev => ({
+  const handleOptionSelect = (questionId: number, optionId: number) => {  // handleOptionSelect fonksiyonu
+    setAnswers(prev => ({  // Answers state'ini güncelle
       ...prev,
       [questionId]: {
-        ...prev[questionId],
+        ...prev[questionId], 
         selected_option_id: optionId
       }
     }));
   };
 
-  const handleSubmit = async () => {
-    if (submitting) return;
+  const handleSubmit = async () => {  // handleSubmit fonksiyonu
+    if (submitting) return;  // Submitting true ise fonksiyonu sonlandır
     
-    // Confirm submission
+    // Sınavı teslim etmek istediğinizden emin misiniz?
     if (!confirm('Sınavı teslim etmek istediğinizden emin misiniz?')) {
-      return;
+      return;  // Fonksiyonu sonlandır
     }
     
-    setSubmitting(true);
+    setSubmitting(true);  // Submitting state'ini true yap
     
-    try {
-      // Format answers for submission
-      const answersArray = Object.values(answers);
+    try {  // Try bloğu
+      // Cevapları formatla
+      const answersArray = Object.values(answers);  // Answers state'ini array'e çevir
       
-      // Submit quiz
-      await quizApi.submitQuiz(
-        Number(courseId),
-        Number(lessonId),
-        Number(quizId),
-        answersArray
+      // Sınavı teslim et 
+      await quizApi.submitQuiz( 
+        Number(courseId),  // Course ID'yi al
+        Number(lessonId),  // Lesson ID'yi al
+        Number(quizId),  // Quiz ID'yi al
+        answersArray  // Answers state'ini gönder
       );
       
-      toast.success('Sınav başarıyla teslim edildi!');
+      toast.success('Sınav başarıyla teslim edildi!');  // Başarı mesajını göster
       
-      // Redirect to results page
+      // Sonuçlar sayfasına yönlendir
       router.push(`/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}/results`);
-    } catch (error) {
-      console.error('Error submitting quiz:', error);
+    } catch (error) {  // Hata durumunda
+      console.error('Error submitting quiz:', error);  // Hata mesajını konsola yazdır
       
       // 403 hatası için özel mesaj
       const axiosError = error as any;
       if (axiosError.response && axiosError.response.status === 403) {
-        toast.error('Bu quizi çözmek için kursa kayıtlı olmalısınız');
+        toast.error('Bu quizi çözmek için kursa kayıtlı olmalısınız');  // Hata mesajını göster
         
         // Kursa kayıt için yönlendir veya popup göster
         if (confirm('Bu quizi çözmek için kursa kayıtlı olmanız gerekiyor. Şimdi kaydolmak ister misiniz?')) {
-          try {
-            await coursesApi.enrollInCourse(Number(courseId));
-            toast.success('Kursa başarıyla kaydoldunuz! Şimdi quizi tekrar gönderebilirsiniz.');
-            setSubmitting(false);
+          try {  // Try bloğu
+            await coursesApi.enrollInCourse(Number(courseId));  // Kursa kayıt için yönlendir
+            toast.success('Kursa başarıyla kaydoldunuz! Şimdi quizi tekrar gönderebilirsiniz.');  // Başarı mesajını göster
+            setSubmitting(false);  // Submitting state'ini false yap
           } catch (enrollError) {
-            console.error('Error enrolling to course:', enrollError);
-            toast.error('Kursa kaydolurken bir hata oluştu');
-            router.push(`/courses/${courseId}`);
+            console.error('Error enrolling to course:', enrollError);  // Hata mesajını konsola yazdır
+            toast.error('Kursa kaydolurken bir hata oluştu');  // Hata mesajını göster
+            router.push(`/courses/${courseId}`);  // Kursa yönlendir
           }
         } else {
-          router.push(`/courses/${courseId}`);
+          router.push(`/courses/${courseId}`);  // Kursa yönlendir
         }
       } else {
-        toast.error('Sınav gönderilirken bir hata oluştu');
+        toast.error('Sınav gönderilirken bir hata oluştu');  // Hata mesajını göster
         setSubmitting(false);
       }
     }
   };
 
-  const navigateQuestion = (direction: 'prev' | 'next') => {
-    if (!quiz) return;
+  const navigateQuestion = (direction: 'prev' | 'next') => {  // navigateQuestion fonksiyonu
+    if (!quiz) return;  // Quiz null ise fonksiyonu sonlandır
     
-    if (direction === 'prev' && currentQuestion > 0) {
-      setCurrentQuestion(prev => prev - 1);
-    } else if (direction === 'next' && currentQuestion < quiz.questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
+    if (direction === 'prev' && currentQuestion > 0) {  // Direction prev ise ve currentQuestion 0'dan büyükse
+      setCurrentQuestion(prev => prev - 1);  // Current question'ı 1 azalt
+    } else if (direction === 'next' && currentQuestion < quiz.questions.length - 1) {  // Direction next ise ve currentQuestion quiz'in questions'ının uzunluğundan 1 küçükse
+      setCurrentQuestion(prev => prev + 1);  // Current question'ı 1 artır
     }
   };
 
-  const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  const formatTime = (seconds: number): string => {  // formatTime fonksiyonu
+    const minutes = Math.floor(seconds / 60);  // Saniyeyi dakikaya çevir
+    const remainingSeconds = seconds % 60;  // Kalan saniyeyi al
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;  // Dakika ve saniye formatını döndür
   };
 
-  if (loading) {
+  if (loading) {  // Loading durumunda
     return (
       <div className="p-6 flex justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -183,7 +183,7 @@ export default function TakeQuizPage() {
     );
   }
 
-  if (quizNotFound) {
+  if (quizNotFound) {  // Quiz not found durumunda
     return (
       <div className="p-6">
         <div className="bg-red-50 p-4 rounded-md text-red-800">
@@ -197,7 +197,7 @@ export default function TakeQuizPage() {
     );
   }
 
-  if (error) {
+  if (error) {  // Error durumunda
     return (
       <div className="p-6">
         <div className="bg-red-50 p-4 rounded-md text-red-800">
@@ -211,7 +211,7 @@ export default function TakeQuizPage() {
     );
   }
 
-  if (!quiz) {
+  if (!quiz) {  // Quiz null ise
     return (
       <div className="p-6">
         <div className="bg-red-50 p-4 rounded-md text-red-800">
@@ -225,9 +225,9 @@ export default function TakeQuizPage() {
     );
   }
 
-  const currentQ: QuizQuestion | undefined = quiz.questions[currentQuestion];
+  const currentQ: QuizQuestion | undefined = quiz.questions[currentQuestion];  // QuizQuestion tipini kullan
 
-  if (!currentQ) {
+  if (!currentQ) {  // CurrentQ null ise
     return <div className="p-6">Soru bulunamadı</div>;
   }
 

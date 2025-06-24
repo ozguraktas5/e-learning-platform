@@ -1,57 +1,57 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { assignmentsApi, Assignment } from '@/lib/api/assignments';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { useForm } from 'react-hook-form';  // Form işleme için
+import { assignmentsApi, Assignment } from '@/lib/api/assignments';  // Assignment API'sini içe aktar
+import { toast } from 'react-hot-toast';  // Toast mesajları için
+import Link from 'next/link';  // Link componenti için
 
 interface FormValues {
   text: string;
 }
 
-export default function SubmitAssignmentPage() {
-  const { courseId, lessonId, assignmentId } = useParams();
-  const router = useRouter();
-  const [assignment, setAssignment] = useState<Assignment | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function SubmitAssignmentPage() {  // SubmitAssignmentPage componenti
+  const { courseId, lessonId, assignmentId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router instance'ını al
+  const [assignment, setAssignment] = useState<Assignment | null>(null);  // Assignment state'ini tut
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [submitting, setSubmitting] = useState(false);  // Submit durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Hata durumunu kontrol et
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
-    defaultValues: {
-      text: ''
+  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({  // Form işleme için
+    defaultValues: {  // Varsayılan değerler
+      text: ''  // Text alanının varsayılan değeri
     }
   });
 
-  useEffect(() => {
-    async function fetchAssignment() {
-      try {
-        setLoading(true);
-        const data = await assignmentsApi.getAssignment(
-          Number(courseId),
-          Number(lessonId),
-          Number(assignmentId)
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    async function fetchAssignment() {  // fetchAssignment fonksiyonu
+      try {  // Try block
+        setLoading(true);  // Loading durumunu true yap
+        const data = await assignmentsApi.getAssignment(  // Assignment API'sini çağır
+          Number(courseId),  // Course ID'yi al
+          Number(lessonId),  // Lesson ID'yi al
+          Number(assignmentId)  // Assignment ID'yi al
         );
-        setAssignment(data);
+        setAssignment(data);  // Assignment state'ini güncelle
         
         // Son teslim tarihini kontrol et
         if (new Date(data.due_date) < new Date()) {
-          setError('Bu ödevin son teslim tarihi geçmiştir.');
+          setError('Bu ödevin son teslim tarihi geçmiştir.');  // Hata mesajını göster
         }
-      } catch (err) {
-        console.error('Error fetching assignment:', err);
-        setError('Ödev bilgileri yüklenirken bir hata oluştu.');
+      } catch (err) {  // Hata durumunda
+        console.error('Error fetching assignment:', err);  // Hata mesajını konsola yazdır
+        setError('Ödev bilgileri yüklenirken bir hata oluştu.');  // Hata mesajını göster
       } finally {
-        setLoading(false);
+        setLoading(false);  // Loading durumunu false yap
       }
     }
 
-    fetchAssignment();
-  }, [courseId, lessonId, assignmentId]);
+    fetchAssignment();  // fetchAssignment fonksiyonunu çağır
+  }, [courseId, lessonId, assignmentId]);  // Dependency array
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {  // onSubmit fonksiyonu
     try {
       // Son teslim tarihini kontrol et
       if (assignment && new Date(assignment.due_date) < new Date()) {
@@ -59,28 +59,28 @@ export default function SubmitAssignmentPage() {
         return;
       }
 
-      setSubmitting(true);
-      await assignmentsApi.submitAssignment(
-        Number(courseId),
-        Number(lessonId),
-        Number(assignmentId),
-        { text: data.text }
+      setSubmitting(true);  // Submit durumunu true yap
+      await assignmentsApi.submitAssignment(  // Assignment API'sini çağır
+        Number(courseId),  // Course ID'yi al
+        Number(lessonId),  // Lesson ID'yi al
+        Number(assignmentId),  // Assignment ID'yi al
+        { text: data.text }  // Text alanının değeri
       );
       
-      toast.success('Ödev başarıyla teslim edildi!');
-      router.push(`/courses/${courseId}/lessons/${lessonId}/assignments`);
-    } catch (err) {
-      console.error('Error submitting assignment:', err);
-      toast.error('Ödev gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
+      toast.success('Ödev başarıyla teslim edildi!');  // Toast mesajı göster
+      router.push(`/courses/${courseId}/lessons/${lessonId}/assignments`);  // Router'ı güncelle
+    } catch (err) {  // Hata durumunda
+      console.error('Error submitting assignment:', err);  // Hata mesajını konsola yazdır
+      toast.error('Ödev gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');  // Toast mesajı göster
     } finally {
-      setSubmitting(false);
+      setSubmitting(false);  // Submit durumunu false yap
     }
   };
 
   // Tarih formatını düzenleyen yardımcı fonksiyon
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('tr-TR', {
+  const formatDate = (dateString: string) => {  // formatDate fonksiyonu
+    const date = new Date(dateString);  // Tarihi al
+    return new Intl.DateTimeFormat('tr-TR', {  // Tarihi formatla
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -89,7 +89,7 @@ export default function SubmitAssignmentPage() {
     }).format(date);
   };
 
-  if (loading) {
+  if (loading) {  // Loading durumunda
     return (
       <div className="p-6 flex justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -97,7 +97,7 @@ export default function SubmitAssignmentPage() {
     );
   }
 
-  if (error || !assignment) {
+  if (error || !assignment) {  // Hata durumunda
     return (
       <div className="p-6">
         <div className="bg-red-50 p-4 rounded-md text-red-800">

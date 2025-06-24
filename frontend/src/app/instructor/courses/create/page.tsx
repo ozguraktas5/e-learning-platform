@@ -1,18 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { coursesApi } from '@/lib/api/courses';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useState } from 'react';  // Client-side rendering için directive
+import { useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { useForm } from 'react-hook-form';  // useForm hook'u içe aktar
+import { zodResolver } from '@hookform/resolvers/zod';  // zodResolver hook'u içe aktar
+import { z } from 'zod';  // zod hook'u içe aktar
+import { coursesApi } from '@/lib/api/courses';  // coursesApi hook'u içe aktar
+import { toast } from 'react-hot-toast';  // toast hook'u içe aktar
+import Link from 'next/link';  // Link için
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // LoadingSpinner componentini içe aktar
 
-// Form validation schema
-const courseSchema = z.object({
-  title: z.string().min(3, 'Kurs başlığı en az 3 karakter olmalıdır'),
+const courseSchema = z.object({  // courseSchema objesi
+  title: z.string().min(3, 'Kurs başlığı en az 3 karakter olmalıdır'), 
   description: z.string().min(10, 'Kurs açıklaması en az 10 karakter olmalıdır'),
   price: z.number().min(0, 'Fiyat 0\'dan küçük olamaz'),
   category: z.string().min(1, 'Kategori seçmelisiniz'),
@@ -20,9 +19,9 @@ const courseSchema = z.object({
   image_url: z.string().url('Geçerli bir resim URL\'si giriniz').optional(),
 });
 
-type CourseFormData = z.infer<typeof courseSchema>;
+type CourseFormData = z.infer<typeof courseSchema>;  // CourseFormData tipi
 
-const categories = [
+const categories = [  // categories objesi
   'Programlama',
   'Veri Bilimi',
   'Web Geliştirme',
@@ -35,12 +34,12 @@ const categories = [
   'Oyun Geliştirme'
 ];
 
-export default function CreateCoursePage() {
-  const router = useRouter();
-  const [submitting, setSubmitting] = useState(false);
+export default function CreateCoursePage() {  // CreateCoursePage componenti
+  const router = useRouter();  // Router için
+  const [submitting, setSubmitting] = useState(false);  // Submitting state'ini kontrol et
 
-  const {
-    register,
+  const { 
+    register, 
     handleSubmit,
     formState: { errors }
   } = useForm<CourseFormData>({
@@ -51,31 +50,31 @@ export default function CreateCoursePage() {
     }
   });
 
-  const onSubmit = async (data: CourseFormData) => {
-    try {
-      setSubmitting(true);
-      const formData = new FormData();
-      formData.append('title', data.title);
-      formData.append('description', data.description);
-      formData.append('category', data.category);
-      formData.append('level', data.level);
-      formData.append('price', data.price.toString());
-      if (data.image_url) {
-        formData.append('image_url', data.image_url);
+  const onSubmit = async (data: CourseFormData) => {  // onSubmit fonksiyonu
+    try {  // Try bloğu
+      setSubmitting(true);  // Submitting state'ini true yap
+      const formData = new FormData();  // FormData objesini oluştur
+      formData.append('title', data.title);  // FormData objesine title ekleye
+      formData.append('description', data.description);  // FormData objesine description ekleye
+      formData.append('category', data.category);  // FormData objesine category ekleye
+      formData.append('level', data.level);  // FormData objesine level ekleye
+      formData.append('price', data.price.toString());  // FormData objesine price ekleye
+      if (data.image_url) {  // data.image_url varsa
+        formData.append('image_url', data.image_url);  // FormData objesine image_url ekleye
       }
-      await coursesApi.createCourse(formData);
-      toast.success('Kurs başarıyla oluşturuldu!');
-      router.push('/instructor/courses');
-    } catch (error) {
-      console.error('Error creating course:', error);
-      toast.error('Kurs oluşturulurken bir hata oluştu');
-    } finally {
-      setSubmitting(false);
+      await coursesApi.createCourse(formData);  // Courses API'sini kullanarak kursu oluştur
+      toast.success('Kurs başarıyla oluşturuldu!');  // Başarı mesajını göster
+      router.push('/instructor/courses');  // Kurslar sayfasına yönlendir
+    } catch (error) {  // Hata durumunda
+      console.error('Error creating course:', error);  // Hata mesajını konsola yazdır
+      toast.error('Kurs oluşturulurken bir hata oluştu');  // Hata mesajını göster
+    } finally {  // Finally bloğu
+      setSubmitting(false);  // Submitting state'ini false yap
     }
-  };
+  };  // onSubmit fonksiyonunu çağır
 
-  if (submitting) {
-    return <LoadingSpinner size="large" fullScreen />;
+  if (submitting) {  // Submitting durumunda
+    return <LoadingSpinner size="large" fullScreen />;  // LoadingSpinner componentini göster
   }
 
   return (

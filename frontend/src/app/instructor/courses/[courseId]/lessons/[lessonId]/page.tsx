@@ -1,55 +1,55 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { lessonApi } from '@/lib/api/lessons';
-import { Lesson } from '@/types/lesson';
-import { useAuth } from '@/contexts/AuthContext';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { lessonApi } from '@/lib/api/lessons';  // Lesson API'sini içe aktar
+import { Lesson } from '@/types/lesson';  // Lesson tipini içe aktar
+import { useAuth } from '@/contexts/AuthContext';  // useAuth hook'u içe aktar
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // LoadingSpinner componentini içe aktar
 
-export default function LessonDetailPage() {
-  const { courseId, lessonId } = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
-  const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+export default function LessonDetailPage() {  // LessonDetailPage componenti
+  const { courseId, lessonId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router için
+  const { user } = useAuth();  // useAuth hook'u içe aktar
+  const [lesson, setLesson] = useState<Lesson | null>(null);  // Lesson state'ini kontrol et
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Error durumunu kontrol et
+  const [userRole, setUserRole] = useState<string | null>(null);  // User role state'ini kontrol et
 
-  useEffect(() => {
-    fetchLessonDetails();
-    console.log("Current user:", user);
-    setUserRole(user?.role || 'No role');
-  }, [courseId, lessonId, user]);
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    fetchLessonDetails();  // fetchLessonDetails fonksiyonunu çağır
+    console.log("Current user:", user);  // Kullanıcı bilgisini konsola yazdır
+    setUserRole(user?.role || 'No role');  // User role state'ini güncelle
+  }, [courseId, lessonId, user]);  // courseId, lessonId, user değiştiğinde çalışır
 
-  const fetchLessonDetails = async () => {
+  const fetchLessonDetails = async () => {  // fetchLessonDetails fonksiyonu
     try {
-      setLoading(true);
-      const data = await lessonApi.getLesson(Number(courseId), Number(lessonId));
-      setLesson(data);
+      setLoading(true);  // Loading durumunu true yap
+      const data = await lessonApi.getLesson(Number(courseId), Number(lessonId));  // Lesson API'sini kullanarak lesson detaylarını al
+      setLesson(data);  // Lesson state'ini güncelle
     } catch (error) {
-      console.error('Error loading lesson details:', error);
-      setError('Ders detayları yüklenirken bir hata oluştu');
-    } finally {
-      setLoading(false);
+      console.error('Error loading lesson details:', error);  // Hata mesajını konsola yazdır
+      setError('Ders detayları yüklenirken bir hata oluştu');  // Error mesajını göster
+    } finally {  // Finally bloğu
+      setLoading(false);  // Loading durumunu false yap
     }
   };
 
-  const navigateToQuizzes = () => {
-    router.push(`/instructor/courses/${courseId}/lessons/${lessonId}/quizzes`);
+  const navigateToQuizzes = () => {  // navigateToQuizzes fonksiyonu
+    router.push(`/instructor/courses/${courseId}/lessons/${lessonId}/quizzes`);  // Quizler sayfasına yönlendir
   };
   
-  const createNewQuiz = () => {
-    router.push(`/instructor/courses/${courseId}/lessons/${lessonId}/quiz/create`);
+  const createNewQuiz = () => {  // createNewQuiz fonksiyonu
+    router.push(`/instructor/courses/${courseId}/lessons/${lessonId}/quiz/create`);  // Quiz oluşturma sayfasına yönlendir
   };
 
-  const navigateToAssignments = () => {
-    router.push(`/instructor/courses/${courseId}/lessons/${lessonId}/assignments`);
+  const navigateToAssignments = () => {  // navigateToAssignments fonksiyonu
+    router.push(`/instructor/courses/${courseId}/lessons/${lessonId}/assignments`);  // Ödevler sayfasına yönlendir
   };
 
-  if (loading) return <LoadingSpinner fullScreen size="large" />;
+  if (loading) return <LoadingSpinner fullScreen size="large" />;  // Loading durumunda
 
-  if (error) {
+  if (error) {  // Error durumunda
     return (
       <div className="p-6">
         <div className="bg-red-50 p-4 rounded-md text-red-800">

@@ -1,122 +1,121 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { lessonApi } from '@/lib/api/lessons';
-import { Lesson, CreateLessonData } from '@/types/lesson';
-import { toast } from 'react-hot-toast';
-import { BASE_URL } from '@/lib/api/index';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { useForm } from 'react-hook-form';  // Form işleme için
+import { zodResolver } from '@hookform/resolvers/zod';  // Zod resolver için
+import { z } from 'zod';  // Zod için
+import { lessonApi } from '@/lib/api/lessons';  // Lesson API'sini içe aktar
+import { Lesson, CreateLessonData } from '@/types/lesson';  // Lesson ve CreateLessonData tipini içe aktar
+import { toast } from 'react-hot-toast';  // Toast mesajları için
+import { BASE_URL } from '@/lib/api/index';  // BASE_URL'i içe aktar
 
-const lessonSchema = z.object({
-  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
-  content: z.string().min(10, 'İçerik en az 10 karakter olmalıdır'),
-  order: z.number().min(1, 'Sıra numarası 1 veya daha büyük olmalıdır')
+const lessonSchema = z.object({  // Lesson şeması
+  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),  // Title alanı
+  content: z.string().min(10, 'İçerik en az 10 karakter olmalıdır'),  // Content alanı
+  order: z.number().min(1, 'Sıra numarası 1 veya daha büyük olmalıdır')  // Order alanı
 });
 
-// UpdateLessonData için kullanılacak tip
-type LessonFormData = CreateLessonData;
+type LessonFormData = CreateLessonData;  // LessonFormData tipi
 
-export default function EditLessonPage() {
-  const { courseId, lessonId } = useParams();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
+export default function EditLessonPage() {  // EditLessonPage componenti
+  const { courseId, lessonId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router instance'ını al
+  const [loading, setLoading] = useState(false);  // Loading durumunu kontrol et
+  const [fetchLoading, setFetchLoading] = useState(true);  // Fetch loading durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Hata durumunu kontrol et
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);  // Seçilen dosya
+  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);  // Mevcut ders
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<LessonFormData>({
-    resolver: zodResolver(lessonSchema),
-    defaultValues: {
-      title: '',
-      content: '',
-      order: 1
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<LessonFormData>({  // Form işleme için
+    resolver: zodResolver(lessonSchema),  // Zod resolver için
+    defaultValues: {  // Varsayılan değerler
+      title: '',  // Title alanının varsayılan değeri
+      content: '',  // Content alanının varsayılan değeri
+      order: 1  // Order alanının varsayılan değeri
     }
   });
 
-  const numericCourseId = Number(courseId);
-  const numericLessonId = Number(lessonId);
+  const numericCourseId = Number(courseId);  // Course ID'yi al
+  const numericLessonId = Number(lessonId);  // Lesson ID'yi al
 
   // Mevcut ders bilgilerini getir
-  useEffect(() => {
-    const fetchLessonDetails = async () => {
-      if (isNaN(numericCourseId) || isNaN(numericLessonId)) {
-        setError('Geçersiz Kurs ID veya Ders ID');
-        setFetchLoading(false);
-        return;
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    const fetchLessonDetails = async () => {  // fetchLessonDetails fonksiyonu
+      if (isNaN(numericCourseId) || isNaN(numericLessonId)) {  // Course ID veya Lesson ID geçersizse
+        setError('Geçersiz Kurs ID veya Ders ID');  // Hata mesajını göster
+        setFetchLoading(false);  // Fetch loading durumunu false yap
+        return;  // Fonksiyonu sonlandır
       }
 
-      try {
-        const lessonData = await lessonApi.getLesson(numericCourseId, numericLessonId);
-        setCurrentLesson(lessonData);
+      try {  // Try bloğu
+        const lessonData = await lessonApi.getLesson(numericCourseId, numericLessonId);  // Ders bilgilerini al
+        setCurrentLesson(lessonData);  // Mevcut dersi güncelle
         
         // Form alanlarını doldur
         reset({
-          title: lessonData.title,
-          content: lessonData.content,
-          order: lessonData.order
+          title: lessonData.title,  // Title alanının değeri
+          content: lessonData.content,  // Content alanının değeri
+          order: lessonData.order  // Order alanının değeri
         });
-      } catch (err) {
-        console.error('Error fetching lesson details:', err);
-        setError('Ders bilgileri yüklenirken bir hata oluştu');
+      } catch (err) {  // Hata durumunda
+        console.error('Error fetching lesson details:', err);  // Hata mesajını konsola yazdır
+        setError('Ders bilgileri yüklenirken bir hata oluştu');  // Hata mesajını göster
       } finally {
-        setFetchLoading(false);
+        setFetchLoading(false);  // Fetch loading durumunu false yap
       }
     };
 
-    fetchLessonDetails();
+    fetchLessonDetails();  // fetchLessonDetails fonksiyonunu çağır
   }, [numericCourseId, numericLessonId, reset]);
 
-  const onSubmit = async (data: LessonFormData) => {
-    if (isNaN(numericCourseId) || isNaN(numericLessonId)) {
-      setError('Geçersiz Kurs ID veya Ders ID');
-      return;
+  const onSubmit = async (data: LessonFormData) => {  // onSubmit fonksiyonu
+    if (isNaN(numericCourseId) || isNaN(numericLessonId)) {  // Course ID veya Lesson ID geçersizse
+      setError('Geçersiz Kurs ID veya Ders ID');  // Hata mesajını göster
+      return;  // Fonksiyonu sonlandır
     }
   
-    setLoading(true);
-    setError(null);
+    setLoading(true);  // Loading durumunu true yap
+    setError(null);  // Hata mesajını null yap
 
     try {
       // Dersi güncelle
-      const updatedLesson = await lessonApi.updateLesson(numericCourseId, numericLessonId, data);
-      toast.success(`Ders '${updatedLesson.title}' güncellendi.`);
+      const updatedLesson = await lessonApi.updateLesson(numericCourseId, numericLessonId, data);  // Dersi güncelle
+      toast.success(`Ders '${updatedLesson.title}' güncellendi.`);  // Toast mesajı göster
 
       // Eğer yeni bir video seçilmişse, onu da yükle
       if (selectedFile) {
-        const formData = new FormData();
-        formData.append('video', selectedFile);
+        const formData = new FormData();  // FormData instance'ını oluştur
+        formData.append('video', selectedFile);  // Video dosyasını formData'ya ekle
         
-        await lessonApi.uploadMedia(numericCourseId, numericLessonId, formData);
-        toast.success(`Video '${selectedFile.name}' başarıyla yüklendi.`);
+        await lessonApi.uploadMedia(numericCourseId, numericLessonId, formData);  // Video dosyasını yükle
+        toast.success(`Video '${selectedFile.name}' başarıyla yüklendi.`);  // Toast mesajı göster
       }
 
       // Dersler sayfasına geri dön
-      router.push(`/courses/${courseId}/lessons`);
+      router.push(`/courses/${courseId}/lessons`);  // Dersler sayfasına geri dön
 
-    } catch (err: unknown) {
-      console.error('Error during lesson update or upload process:', err);
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(`Ders güncellenirken bir hata oluştu: ${errorMessage || 'Bilinmeyen hata'}`);
+    } catch (err: unknown) {  // Hata durumunda
+      console.error('Error during lesson update or upload process:', err);  // Hata mesajını konsola yazdır
+      const errorMessage = err instanceof Error ? err.message : String(err);  // Hata mesajını al
+      setError(`Ders güncellenirken bir hata oluştu: ${errorMessage || 'Bilinmeyen hata'}`);  // Hata mesajını göster
     } finally {
-      setLoading(false);
+      setLoading(false);  // Loading durumunu false yap
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setError(null);
-      console.log('File selected:', file.name);
-    } else {
-      setSelectedFile(null);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {  // handleFileChange fonksiyonu
+    const file = event.target.files?.[0];  // Seçilen dosya
+    if (file) {  // Seçilen dosya varsa
+      setSelectedFile(file);  // Seçilen dosyayı setSelectedFile'a ekle
+      setError(null);  // Hata mesajını null yap
+      console.log('File selected:', file.name);  // Seçilen dosyanın adını konsola yazdır
+    } else {  // Seçilen dosya yoksa
+      setSelectedFile(null);  // Seçilen dosyayı null yap
     }
   };
 
-  if (fetchLoading) {
+  if (fetchLoading) {  // Fetch loading durumunda
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">Ders bilgileri yükleniyor...</div>
@@ -124,14 +123,14 @@ export default function EditLessonPage() {
     );
   }
 
-  if (error && !currentLesson) {
+  if (error && !currentLesson) {  // Hata durumunda ve mevcut ders yoksa
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           {error}
         </div>
         <button 
-          onClick={() => router.back()} 
+          onClick={() => router.back()}  // Geri dön 
           className="mt-4 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300"
         >
           Geri Dön

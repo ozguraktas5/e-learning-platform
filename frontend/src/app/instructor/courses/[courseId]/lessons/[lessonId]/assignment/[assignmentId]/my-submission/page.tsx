@@ -1,33 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { assignmentsApi, Assignment, AssignmentSubmission } from '@/lib/api/assignments';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { assignmentsApi, Assignment, AssignmentSubmission } from '@/lib/api/assignments';  // Assignment API'sini içe aktar
+import { useAuth } from '@/hooks/useAuth';  // Auth hook'unu içe aktar
+import { toast } from 'react-hot-toast';  // Toast mesajları için
+import Link from 'next/link';  // Link componenti için
 
-export default function MyAssignmentSubmissionPage() {
-  const { courseId, lessonId, assignmentId } = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
+export default function MyAssignmentSubmissionPage() {  // MyAssignmentSubmissionPage componenti
+  const { courseId, lessonId, assignmentId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router instance'ını al
+  const { user } = useAuth();  // Auth hook'unu al
   
-  const [assignment, setAssignment] = useState<Assignment | null>(null);
-  const [submission, setSubmission] = useState<AssignmentSubmission | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [assignment, setAssignment] = useState<Assignment | null>(null);  // Assignment state'ini tut
+  const [submission, setSubmission] = useState<AssignmentSubmission | null>(null);  // AssignmentSubmission state'ini tut
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Hata durumunu kontrol et
 
-  useEffect(() => {
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
     // Öğrenci kontrolü
-    if (user && user.role !== 'student') {
-      toast.error('Bu sayfayı görüntüleme yetkiniz yok');
-      router.push(`/courses/${courseId}/lessons/${lessonId}`);
-      return;
+    if (user && user.role !== 'student') {  // Kullanıcı rolü öğrenci değilse
+      toast.error('Bu sayfayı görüntüleme yetkiniz yok');  // Toast mesajı göster
+      router.push(`/courses/${courseId}/lessons/${lessonId}`);  // Router'ı güncelle
+      return;  // Fonksiyonu sonlandır
     }
 
-    async function fetchData() {
-      try {
-        setLoading(true);
+    async function fetchData() {  // fetchData fonksiyonu
+      try {  // Try block
+        setLoading(true);  // Loading durumunu true yap
         
         // Ödev bilgilerini al
         const assignmentData = await assignmentsApi.getAssignment(
@@ -35,69 +35,69 @@ export default function MyAssignmentSubmissionPage() {
           Number(lessonId),
           Number(assignmentId)
         );
-        setAssignment(assignmentData);
+        setAssignment(assignmentData);  // Assignment state'ini güncelle
         
         // Öğrencinin bu ödeve gönderimini al
-        try {
-          const submissionData = await assignmentsApi.getUserSubmission(
-            Number(courseId),
-            Number(lessonId),
-            Number(assignmentId)
+        try {  // Try block
+          const submissionData = await assignmentsApi.getUserSubmission(  // AssignmentSubmission API'sini çağır
+            Number(courseId),  // Course ID'yi al
+            Number(lessonId),  // Lesson ID'yi al
+            Number(assignmentId)  // Assignment ID'yi al
           );
-          setSubmission(submissionData);
+          setSubmission(submissionData);  // AssignmentSubmission state'ini güncelle
         } catch (submissionErr) {
-          console.error('Error fetching submission:', submissionErr);
+          console.error('Error fetching submission:', submissionErr);  // Hata mesajını konsola yazdır
           // Hata kullanıcıya gösterilmeyecek, sadece loglayıp, submission'ı null bırakacağız
           // Bu şekilde kullanıcı ödev gönderisi oluşturma seçeneğini görecek
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Veriler yüklenirken bir hata oluştu.');
+        console.error('Error fetching data:', err);  // Hata mesajını konsola yazdır
+        setError('Veriler yüklenirken bir hata oluştu.');  // Hata mesajını göster
       } finally {
-        setLoading(false);
+        setLoading(false);  // Loading durumunu false yap
       }
     }
 
-    fetchData();
-  }, [courseId, lessonId, assignmentId, router, user]);
+    fetchData();  // fetchData fonksiyonunu çağır
+  }, [courseId, lessonId, assignmentId, router, user]);  // Dependency array
 
   // Tarih formatını düzenleyen yardımcı fonksiyon
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "Tarih yok";
+  const formatDate = (dateString: string) => {  // formatDate fonksiyonu
+    if (!dateString) return "Tarih yok";  // Tarih yoksa "Tarih yok" döndür
     
-    try {
-      const date = new Date(dateString);
-      // Check if the date is valid
-      if (isNaN(date.getTime())) {
+    try {  // Try block
+      const date = new Date(dateString);  // Tarihi al
+      // Tarih geçerli mi kontrol et
+      if (isNaN(date.getTime())) {  // Tarih geçersizse
         return "Geçersiz tarih";
       }
       
-      return new Intl.DateTimeFormat('tr-TR', {
+      return new Intl.DateTimeFormat('tr-TR', {  // Tarihi formatla
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       }).format(date);
-    } catch (error) {
-      console.error("Date formatting error:", error);
-      return "Geçersiz tarih";
+    } catch (error) {  // Hata durumunda
+      console.error("Date formatting error:", error);  // Hata mesajını konsola yazdır
+      return "Geçersiz tarih";  // "Geçersiz tarih" döndür
     }
   };
 
-  if (loading) {
+  if (loading) {  // Loading durumunda
     return (
-      <div className="p-6 flex justify-center">
+      <div className="p-6 flex justify-center"> 
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
-  if (error || !assignment) {
+  if (error || !assignment) {  // Hata durumunda
     return (
-      <div className="p-6">
+      <div className="p-6"> 
         <div className="bg-red-50 p-4 rounded-md text-red-800">
-          <h3 className="font-medium">Hata</h3>
+          <h3 className="font-medium">Hata</h3> 
           <p className="mt-2">{error || 'Ödev bulunamadı'}</p>
           <Link href={`/courses/${courseId}/lessons/${lessonId}/assignments`} className="mt-4 block text-blue-600 hover:underline">
             Ödevlere geri dön

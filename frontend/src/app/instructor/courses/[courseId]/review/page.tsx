@@ -1,98 +1,97 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import { coursesApi, Course } from '@/lib/api/courses';
-import { reviewsApi, CreateReviewData } from '@/lib/api/reviews';
-import { useAuth } from '@/hooks/useAuth';
-import StarRating from '@/components/StarRating';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { useForm } from 'react-hook-form';  // useForm hook'u içe aktar
+import { toast } from 'react-hot-toast';  // Toast için
+import Link from 'next/link';  // Link için
+import { coursesApi, Course } from '@/lib/api/courses';  // Courses API'sini içe aktar
+import { reviewsApi, CreateReviewData } from '@/lib/api/reviews';  // Reviews API'sini içe aktar
+import { useAuth } from '@/hooks/useAuth';  // useAuth hook'u içe aktar
+import StarRating from '@/components/StarRating';  // StarRating componentini içe aktar
 
-export default function CourseReviewPage() {
-  const { courseId } = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [rating, setRating] = useState<number>(5);
+export default function CourseReviewPage() {  // CourseReviewPage componenti
+  const { courseId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router için
+  const { user } = useAuth();  // useAuth hook'u içe aktar
+  const [course, setCourse] = useState<Course | null>(null);  // Course state'ini kontrol et
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [submitting, setSubmitting] = useState(false);  // Submitting state'ini kontrol et
+  const [error, setError] = useState<string | null>(null);  // Error state'ini kontrol et
+  const [rating, setRating] = useState<number>(5);  // Rating state'ini kontrol et
 
-  const { register, handleSubmit, formState: { errors } } = useForm<{ comment: string }>();
+  const { register, handleSubmit, formState: { errors } } = useForm<{ comment: string }>();  // useForm hook'u içe aktar
 
-  useEffect(() => {
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
     // Kullanıcı kontrolünü kaldırdık, hemen kurs bilgilerini yükle
-    const fetchCourse = async () => {
-      try {
-        setLoading(true);
-        const courseData = await coursesApi.getCourse(Number(courseId));
-        setCourse(courseData);
-      } catch (err) {
-        console.error('Error fetching course:', err);
-        setError('Kurs bilgileri yüklenirken bir hata oluştu');
-      } finally {
-        setLoading(false);
+    const fetchCourse = async () => {  // fetchCourse fonksiyonu
+      try {  // Try bloğu
+        setLoading(true);  // Loading durumunu true yap
+        const courseData = await coursesApi.getCourse(Number(courseId));  // Courses API'sini kullanarak course detaylarını al
+        setCourse(courseData);  // Course state'ini set et
+      } catch (err) {  // Hata durumunda
+        console.error('Error fetching course:', err);  // Hata mesajını konsola yazdır
+        setError('Kurs bilgileri yüklenirken bir hata oluştu');  // Error mesajını göster
+      } finally {  // Finally bloğu
+        setLoading(false);  // Loading durumunu false yap
       }
-    };
+    };  // fetchCourse fonksiyonunu çağır
 
-    fetchCourse();
-  }, [courseId]);
+    fetchCourse();  // fetchCourse fonksiyonunu çağır
+  }, [courseId]);  // courseId değiştiğinde çalışır
 
-  const onSubmit = async (data: { comment: string }) => {
-    if (!user) {
-      toast.error('Değerlendirme yapmak için giriş yapmalısınız');
+  const onSubmit = async (data: { comment: string }) => {  // onSubmit fonksiyonu
+    if (!user) {  // Kullanıcı yoksa
+      toast.error('Değerlendirme yapmak için giriş yapmalısınız');  // Hata mesajını göster
       // Mevcut URL'yi localStorage'a kaydedelim, böylece giriş sonrası buraya dönebiliriz
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('redirectAfterLogin', window.location.pathname);
+      if (typeof window !== 'undefined') {  // window undefined değilse
+        localStorage.setItem('redirectAfterLogin', window.location.pathname);  // Mevcut URL'yi localStorage'a kaydet
       }
-      router.push('/login');
-      return;
+      router.push('/login');  // Login sayfasına yönlendir
+      return;  // Fonksiyonu sonlandır
     }
 
-    if (rating < 1 || rating > 5) {
-      toast.error('Lütfen 1-5 arası bir puan verin');
-      return;
+    if (rating < 1 || rating > 5) {  // Rating 1-5 arasında değilse
+      toast.error('Lütfen 1-5 arası bir puan verin');  // Hata mesajını göster
+      return;  // Fonksiyonu sonlandır
     }
 
-    try {
-      setSubmitting(true);
-      const reviewData: CreateReviewData = {
-        rating,
-        comment: data.comment
+    try {  // Try bloğu
+      setSubmitting(true);  // Submitting state'ini true yap
+      const reviewData: CreateReviewData = {  // ReviewData tipini kullan
+        rating,  // Rating
+        comment: data.comment  // Comment
       };
 
-      await reviewsApi.createReview(Number(courseId), reviewData);
-      toast.success('Değerlendirmeniz başarıyla kaydedildi');
-      router.push(`/courses/${courseId}/reviews`);
-    } catch (error) {
-      console.error('Error submitting review:', error);
+      await reviewsApi.createReview(Number(courseId), reviewData);  // Reviews API'sini kullanarak review oluştur
+      toast.success('Değerlendirmeniz başarıyla kaydedildi');  // Başarı mesajını göster
+      router.push(`/courses/${courseId}/reviews`);  // Reviews sayfasına yönlendir
+    } catch (error) {  // Hata durumunda
+      console.error('Error submitting review:', error);  // Hata mesajını konsola yazdır
       
-      // @ts-expect-error: API error response handling
-      const errorMessage = error?.response?.data?.error;
+      const errorMessage = error?.response?.data?.error;  // Error mesajını al
       
-      if (errorMessage === 'Bu kurs için zaten bir değerlendirme yapmışsınız.') {
-        toast.error('Bu kurs için daha önce değerlendirme yapmışsınız');
-      } else if (errorMessage === 'Bu kursa değerlendirme yapabilmek için kursa kayıtlı olmalısınız.') {
-        toast.error('Değerlendirme yapmak için kursa kayıtlı olmalısınız');
-      } else {
-        toast.error('Değerlendirme gönderilirken bir hata oluştu');
+      if (errorMessage === 'Bu kurs için zaten bir değerlendirme yapmışsınız.') {  // Error mesajı "Bu kurs için zaten bir değerlendirme yapmışsınız." ise
+        toast.error('Bu kurs için daha önce değerlendirme yapmışsınız');  // Hata mesajını göster
+      } else if (errorMessage === 'Bu kursa değerlendirme yapabilmek için kursa kayıtlı olmalısınız.') {  // Error mesajı "Bu kursa değerlendirme yapabilmek için kursa kayıtlı olmalısınız." ise
+        toast.error('Değerlendirme yapmak için kursa kayıtlı olmalısınız');  // Hata mesajını göster
+      } else {  // Hata mesajı değilse
+        toast.error('Değerlendirme gönderilirken bir hata oluştu');  // Hata mesajını göster
       }
-    } finally {
-      setSubmitting(false);
+    } finally {  // Finally bloğu
+      setSubmitting(false);  // Submitting state'ini false yap
     }
   };
 
-  if (loading) {
-    return (
+  if (loading) {  // Loading durumunda
+    return (  // LoadingSpinner componentini göster
       <div className="flex justify-center items-center h-64">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  if (error || !course) {
+  if (error || !course) {  // Error veya course yoksa
     return (
       <div className="p-6 bg-red-50 rounded-lg">
         <h2 className="text-xl font-semibold text-red-700 mb-2">Hata</h2>
@@ -104,7 +103,7 @@ export default function CourseReviewPage() {
     );
   }
 
-  return (
+  return (  // CourseReviewPage componenti
     <div className="container mx-auto max-w-7xl p-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Kurs Değerlendirme</h1>

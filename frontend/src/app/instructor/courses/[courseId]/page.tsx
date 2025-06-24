@@ -1,71 +1,71 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { toast } from 'react-hot-toast';
-import { coursesApi, Course } from '@/lib/api/courses';
-import { useAuth } from '@/hooks/useAuth';
-import Link from 'next/link';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import Image from 'next/image';
-import { API_URL } from '@/config';
-import { translateLevelToTurkish } from '@/lib/utils/courseUtils';
+import { useEffect, useState } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { toast } from 'react-hot-toast';  // Toast için
+import { coursesApi, Course } from '@/lib/api/courses';  // Courses API'sini içe aktar
+import { useAuth } from '@/hooks/useAuth';  // useAuth hook'u içe aktar
+import Link from 'next/link';  // Link için
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // LoadingSpinner componentini içe aktar
+import Image from 'next/image';  // Image için
+import { API_URL } from '@/config';  // API_URL için
+import { translateLevelToTurkish } from '@/lib/utils/courseUtils';  // translateLevelToTurkish fonksiyonunu içe aktar
 
-export default function CourseDetail() {
-  const { courseId } = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [enrolling, setEnrolling] = useState(false);
+export default function CourseDetail() {  // CourseDetail componenti
+  const { courseId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router için
+  const { user } = useAuth();  // useAuth hook'u içe aktar
+  const [course, setCourse] = useState<Course | null>(null);  // Course state'ini kontrol et
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [enrolling, setEnrolling] = useState(false);  // Enrolling state'ini kontrol et
 
-  useEffect(() => {
-    const fetchCourse = async () => {
-      try {
-        const response = await coursesApi.getCourse(Number(courseId));
-        setCourse(response);
-      } catch (error) {
-        toast.error('Failed to load course details');
-        console.error('Error fetching course:', error);
-      } finally {
-        setLoading(false);
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    const fetchCourse = async () => {  // fetchCourse fonksiyonu
+      try {  // Try bloğu
+        const response = await coursesApi.getCourse(Number(courseId));  // Courses API'sini kullanarak course detaylarını al
+        setCourse(response);  // Course state'ini set et
+      } catch (error) {  // Hata durumunda
+        toast.error('Failed to load course details');  // Hata mesajını göster
+        console.error('Error fetching course:', error);  // Hata mesajını konsola yazdır
+      } finally {  // Finally bloğu
+        setLoading(false);  // Loading durumunu false yap
       }
-    };
+    };  // fetchCourse fonksiyonunu çağır
 
-    fetchCourse();
-  }, [courseId]);
+    fetchCourse();  // fetchCourse fonksiyonunu çağır
+  }, [courseId]);  // courseId değiştiğinde çalışır
 
-  const handleEnroll = async () => {
-    if (!user) {
-      toast.error('Please login to enroll in courses');
-      return;
+  const handleEnroll = async () => {  // handleEnroll fonksiyonu
+    if (!user) {  // Kullanıcı yoksa
+      toast.error('Please login to enroll in courses');  // Hata mesajını göster
+      return;  // Fonksiyonu sonlandır
     }
 
-    setEnrolling(true);
-    try {
-      await coursesApi.enrollInCourse(Number(courseId));
-      toast.success('Successfully enrolled in course!');
-    } catch (error) {
-      toast.error('Failed to enroll in course');
-      console.error('Error enrolling in course:', error);
-    } finally {
-      setEnrolling(false);
+    setEnrolling(true);  // Enrolling state'ini true yap
+    try {  // Try bloğu
+      await coursesApi.enrollInCourse(Number(courseId));  // Courses API'sini kullanarak kursa kayıt ol
+      toast.success('Successfully enrolled in course!');  // Başarı mesajını göster
+    } catch (error) {  // Hata durumunda
+      toast.error('Failed to enroll in course');  // Hata mesajını göster
+      console.error('Error enrolling in course:', error);  // Hata mesajını konsola yazdır
+    } finally {  // Finally bloğu
+      setEnrolling(false);  // Enrolling state'ini false yap
     }
-  };
+  };  // handleEnroll fonksiyonunu çağır
 
-  if (loading) {
-    return <LoadingSpinner size="medium" fullScreen />;
+  if (loading) {  // Loading durumunda
+    return <LoadingSpinner size="medium" fullScreen />;  // LoadingSpinner componentini göster
   }
 
-  if (!course) {
-    return <div>Kurs bulunamadı</div>;
+  if (!course) {  // Course yoksa
+    return <div>Kurs bulunamadı</div>;  // Hata mesajını göster
   }
 
-  return (
+  return (  // CourseDetail componenti
     <div className="container mx-auto max-w-7xl p-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">{course.title}</h1>
-        {user?.role === 'instructor' && (
+        {user?.role === 'instructor' && (  // Kullanıcı rolü instructor ise
           <div className="flex space-x-2">
             <Link
               href={`/instructor/courses/${course.id}/edit`}
@@ -77,17 +77,17 @@ export default function CourseDetail() {
               Düzenle
             </Link>
             <button
-              onClick={async () => {
-                if (!confirm('Bu kursu silmek istediğinize emin misiniz?')) return;
-                try {
-                  await coursesApi.deleteCourse(course.id.toString());
-                  toast.success('Kurs başarıyla silindi');
-                  router.push('/instructor/courses');
-                } catch (err) {
-                  toast.error('Kurs silme işlemi başarısız');
-                  console.error(err);
+              onClick={async () => {  // onClick fonksiyonu
+                if (!confirm('Bu kursu silmek istediğinize emin misiniz?')) return;  // Kullanıcı onay vermezse fonksiyonu sonlandır
+                try {  // Try bloğu
+                  await coursesApi.deleteCourse(course.id.toString());  // Courses API'sini kullanarak kursu sil
+                  toast.success('Kurs başarıyla silindi');  // Başarı mesajını göster
+                  router.push('/instructor/courses');  // Kurslar sayfasına yönlendir
+                } catch (err) {  // Hata durumunda
+                  toast.error('Kurs silme işlemi başarısız');  // Hata mesajını göster
+                  console.error(err);  // Hata mesajını konsola yazdır
                 }
-              }}
+              }}  // onClick fonksiyonunu çağır
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2">

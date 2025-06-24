@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { coursesApi, Course } from '@/lib/api/courses';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import api from '@/lib/api';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { coursesApi, Course } from '@/lib/api/courses';  // coursesApi hook'u içe aktar
+import { toast } from 'react-hot-toast';  // toast hook'u içe aktar
+import Link from 'next/link';  // Link için
+import api from '@/lib/api';  // api hook'u içe aktar
 
-interface InstructorCourse extends Course {
+interface InstructorCourse extends Course {  // InstructorCourse interface'i
   student_count: number;
-  average_rating?: number;
+  average_rating?: number; 
   completion_rate?: number;
   revenue?: number;
   last_updated?: string;
@@ -16,58 +16,58 @@ interface InstructorCourse extends Course {
 }
 
 // HTML taglarını temizleme fonksiyonu
-const stripHtmlTags = (html: string) => {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
+const stripHtmlTags = (html: string) => {  // stripHtmlTags fonksiyonu
+  const tmp = document.createElement('div');  // tmp objesini oluştur
+  tmp.innerHTML = html;  // tmp objesine html ekleye
+  return tmp.textContent || tmp.innerText || '';  // tmp objesinin textContent veya innerText'ini dön
 };
 
-export default function InstructorCoursesPage() {
-  const [courses, setCourses] = useState<InstructorCourse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<string>('created_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+export default function InstructorCoursesPage() {  // InstructorCoursesPage componenti
+  const [courses, setCourses] = useState<InstructorCourse[]>([]);  // courses state'ini kontrol et
+  const [loading, setLoading] = useState(true);  // loading state'ini kontrol et
+  const [error, setError] = useState<string | null>(null);  // error state'ini kontrol et
+  const [sortBy, setSortBy] = useState<string>('created_at');  // sortBy state'ini kontrol et
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');  // sortOrder state'ini kontrol et
+  const [filterStatus, setFilterStatus] = useState<string>('all');  // filterStatus state'ini kontrol et
+  const [searchQuery, setSearchQuery] = useState<string>('');  // searchQuery state'ini kontrol et
 
-  useEffect(() => {
-    async function fetchCourses() {
-      try {
-        setLoading(true);
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    async function fetchCourses() {  // fetchCourses fonksiyonu
+      try {  // Try bloğu
+        setLoading(true);  // loading state'ini true yap
         
-        // Get all courses for the current instructor
+        // Tüm kursları al
         const allCourses = await coursesApi.getAllCourses();
         
-        // Fetch details for each course
+        // Her kurs için detayları al
         const detailedCourses = await Promise.all(
           allCourses.map(async (course) => {
             try {
-              // Get course reviews
-              const reviewsResponse = await api.get(`/courses/${course.id}/reviews`);
-              const reviewsData = reviewsResponse.data;
+              // Kurs değerlendirmelerini al
+              const reviewsResponse = await api.get(`/courses/${course.id}/reviews`);  // api hook'u içe aktar
+              const reviewsData = reviewsResponse.data;  // reviewsResponse objesinin data'sını al
               
-              // Enrollment data is not available through a direct endpoint, so use default values
+              // Kayıt verileri doğrudan bir endpoint aracılığıyla alınamaz, bu yüzden varsayılan değerler kullanılır
               const enrollmentData = {
                 total_students: 0,
                 average_completion: 0
               };
               
               return {
-                ...course,
-                student_count: enrollmentData?.total_students || 0,
+                ...course,  // course objesini dön
+                student_count: enrollmentData?.total_students || 0, 
                 average_rating: reviewsData?.average_rating || 0,
                 completion_rate: enrollmentData?.average_completion || 0,
-                revenue: 0, // Revenue feature might be added later
+                revenue: 0,
                 last_updated: course.updated_at || course.created_at,
-                published: true // Default to published - could be updated with real data later
+                published: true
               };
             } catch (err) {
-              console.error(`Error fetching details for course ${course.id}:`, err);
+              console.error(`Error fetching details for course ${course.id}:`, err);  // Hata mesajını konsola yazdır
               return {
-                ...course,
-                student_count: 0,
-                average_rating: 0,
+                ...course,  // course objesini dön
+                student_count: 0, 
+                average_rating: 0, 
                 completion_rate: 0,
                 revenue: 0,
                 last_updated: course.updated_at || course.created_at,
@@ -77,58 +77,66 @@ export default function InstructorCoursesPage() {
           })
         );
         
-        setCourses(detailedCourses);
-      } catch (err) {
-        console.error('Error fetching courses:', err);
-        setError('Kurslar yüklenirken bir hata oluştu.');
-        toast.error('Kurslar yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
+        setCourses(detailedCourses);  // detailedCourses objesini set et 
+      } catch (err) {  // Hata durumunda
+        console.error('Error fetching courses:', err);  // Hata mesajını konsola yazdır
+        setError('Kurslar yüklenirken bir hata oluştu.');  // error state'ini set et
+        toast.error('Kurslar yüklenirken bir hata oluştu.');  // Hata mesajını göster
+      } finally {  // Finally bloğu
+        setLoading(false);  // loading state'ini false yap
       }
-    }
+    }  // fetchCourses fonksiyonunu çağır
     
-    fetchCourses();
+    fetchCourses();  // fetchCourses fonksiyonunu çağır
 
     // Sayfaya her gelindiğinde kursları yeniden yükle
-    const handleRouteChange = () => {
-      fetchCourses();
-    };
+    const handleRouteChange = () => {  // handleRouteChange fonksiyonu
+      fetchCourses();  // fetchCourses fonksiyonunu çağır
+    };  // handleRouteChange fonksiyonunu çağır
     
-    window.addEventListener('focus', handleRouteChange);
+    window.addEventListener('focus', handleRouteChange);  // window objesine focus event'i ekle
     
-    return () => {
-      window.removeEventListener('focus', handleRouteChange);
-    };
-  }, []);
+    return () => {  // return bloğu
+      window.removeEventListener('focus', handleRouteChange);  // window objesine focus event'i kaldır
+    };  // return bloğu
+  }, []);  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
 
   // Sıralama işlevi
-  const sortCourses = (a: InstructorCourse, b: InstructorCourse) => {
-    if (sortBy === 'title') {
-      return sortOrder === 'asc' 
-        ? a.title.localeCompare(b.title)
-        : b.title.localeCompare(a.title);
-    } else if (sortBy === 'student_count') {
-      return sortOrder === 'asc'
-        ? a.student_count - b.student_count
-        : b.student_count - a.student_count;
-    } else if (sortBy === 'average_rating') {
-      const aRating = a.average_rating || 0;
-      const bRating = b.average_rating || 0;
-      return sortOrder === 'asc' ? aRating - bRating : bRating - aRating;
-    } else if (sortBy === 'revenue') {
-      const aRevenue = a.revenue || 0;
-      const bRevenue = b.revenue || 0;
-      return sortOrder === 'asc' ? aRevenue - bRevenue : bRevenue - aRevenue;
-    } else if (sortBy === 'last_updated') {
-      const aDate = new Date(a.last_updated || a.updated_at || a.created_at).getTime();
-      const bDate = new Date(b.last_updated || b.updated_at || b.created_at).getTime();
-      return sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
+  const sortCourses = (a: InstructorCourse, b: InstructorCourse) => {  // sortCourses fonksiyonu
+    if (sortBy === 'title') {  // sortBy 'title' ise
+      return sortOrder === 'asc'  // sortOrder 'asc' ise
+        ? a.title.localeCompare(b.title)  // a.title'ı b.title'a göre sırala
+        : b.title.localeCompare(a.title);  // b.title'ı a.title'a göre sırala
+    } else if (sortBy === 'student_count') {  // sortBy 'student_count' ise
+      return sortOrder === 'asc'  // sortOrder 'asc' ise
+        ? a.student_count - b.student_count  // a.student_count'ı b.student_count'a göre sırala
+        : b.student_count - a.student_count;  // b.student_count'ı a.student_count'a göre sırala
+    } else if (sortBy === 'average_rating') {  // sortBy 'average_rating' ise
+      const aRating = a.average_rating || 0;  // a.average_rating'ı 0'a eşitle
+      const bRating = b.average_rating || 0;  // b.average_rating'ı 0'a eşitle
+      return sortOrder === 'asc'  // sortOrder 'asc' ise
+        ? aRating - bRating  // aRating'ı bRating'a göre sırala
+        : bRating - aRating;  // bRating'ı aRating'a göre sırala
+    } else if (sortBy === 'revenue') {  // sortBy 'revenue' ise
+      const aRevenue = a.revenue || 0;  // a.revenue'ı 0'a eşitle
+      const bRevenue = b.revenue || 0;  // b.revenue'ı 0'a eşitle
+      return sortOrder === 'asc'  // sortOrder 'asc' ise
+        ? aRevenue - bRevenue  // aRevenue'ı bRevenue'a göre sırala
+        : bRevenue - aRevenue;  // bRevenue'ı aRevenue'a göre sırala
+    } else if (sortBy === 'last_updated') {  // sortBy 'last_updated' ise
+      const aDate = new Date(a.last_updated || a.updated_at || a.created_at).getTime();  // a.last_updated'ı a.updated_at veya a.created_at'a göre sırala
+      const bDate = new Date(b.last_updated || b.updated_at || b.created_at).getTime();  // b.last_updated'ı b.updated_at veya b.created_at'a göre sırala
+      return sortOrder === 'asc'  // sortOrder 'asc' ise
+        ? aDate - bDate  // aDate'ı bDate'a göre sırala
+        : bDate - aDate;  // bDate'ı aDate'a göre sırala
     }
     
     // Varsayılan sıralama: oluşturma tarihine göre
-    const aDate = new Date(a.created_at).getTime();
-    const bDate = new Date(b.created_at).getTime();
-    return sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
+    const aDate = new Date(a.created_at).getTime();  // a.created_at'ı getTime() ile sırala 
+    const bDate = new Date(b.created_at).getTime();  // b.created_at'ı getTime() ile sırala
+    return sortOrder === 'asc'  // sortOrder 'asc' ise
+      ? aDate - bDate  // aDate'ı bDate'a göre sırala
+      : bDate - aDate;  // bDate'ı aDate'a göre sırala
   };
 
   // Filtreleme işlevi
@@ -155,13 +163,13 @@ export default function InstructorCoursesPage() {
   };
 
   // Tarih formatı
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (dateString: string) => { 
+    const date = new Date(dateString);  // dateString'i Date objesine çevir
     return new Intl.DateTimeFormat('tr-TR', { 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric'
-    }).format(date);
+    }).format(date);  // date objesini formatla
   };
 
   // Sıralama için sütun başlığı

@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { quizApi, ApiErrorResponse } from '@/lib/api/quiz';
-import { Quiz, QuizQuestion } from '@/types/quiz';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { useForm } from 'react-hook-form';  // Form işleme için
+import { zodResolver } from '@hookform/resolvers/zod';  // Zod resolver için
+import { z } from 'zod';  // Zod için
+import { quizApi, ApiErrorResponse } from '@/lib/api/quiz';  // Quiz API'sini içe aktar
+import { Quiz, QuizQuestion } from '@/types/quiz';  // Quiz ve QuizQuestion tipini içe aktar
 
-interface QuizFormValues {
+interface QuizFormValues {  // QuizFormValues interface'i
   title: string;
   description: string;
   time_limit: number | null;
@@ -23,15 +23,14 @@ interface QuizFormValues {
   }[];
 }
 
-const quizSchema = z.object({
-  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
-  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),
+const quizSchema = z.object({  // Quiz şeması
+  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),  // Title alanı
+  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),  // Description alanı
   time_limit: z.preprocess(
-    // Convert empty string to null
-    val => val === '' ? null : Number(val),
-    z.number().nullable()
+    val => val === '' ? null : Number(val),  // Boş string'i null yap
+    z.number().nullable()  // Zorunlu alan
   ),
-  passing_score: z.number().min(0).max(100),
+  passing_score: z.number().min(0).max(100),  // Passing score alanı
   questions: z.array(z.object({
     question_text: z.string().min(1, 'Soru metni gereklidir'),
     points: z.number().min(1, 'Puan 1 veya daha büyük olmalıdır'),
@@ -42,134 +41,133 @@ const quizSchema = z.object({
   })).min(1, 'En az 1 soru gereklidir')
 });
 
-export default function EditQuizPage() {
-  const { courseId, lessonId, quizId } = useParams();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [fetchingQuiz, setFetchingQuiz] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [quizNotFound, setQuizNotFound] = useState(false);
+export default function EditQuizPage() {  // EditQuizPage componenti
+  const { courseId, lessonId, quizId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router instance'ını al
+  const [loading, setLoading] = useState(false);  // Loading durumunu kontrol et
+  const [fetchingQuiz, setFetchingQuiz] = useState(true);  // Fetching quiz durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Hata durumunu kontrol et
+  const [quizNotFound, setQuizNotFound] = useState(false);  // Quiz bulunamadı durumunu kontrol et
 
   const { register, handleSubmit, formState: { errors }, watch, setValue, reset } = useForm<QuizFormValues>({
-    resolver: zodResolver(quizSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      time_limit: null,
-      passing_score: 60,
-      questions: [{ 
-        question_text: '',
-        points: 10,
-        options: [
-          { option_text: '', is_correct: false },
-          { option_text: '', is_correct: false },
-          { option_text: '', is_correct: false },
-          { option_text: '', is_correct: false }
+    resolver: zodResolver(quizSchema),  // Zod resolver için
+    defaultValues: {  // Varsayılan değerler
+      title: '',  // Title alanının varsayılan değeri
+      description: '',  // Description alanının varsayılan değeri 
+      time_limit: null,  // Time limit alanının varsayılan değeri
+      passing_score: 60,  // Passing score alanının varsayılan değeri
+      questions: [{  // Questions alanının varsayılan değeri
+        question_text: '',  // Question text alanının varsayılan değeri
+        points: 10,  // Points alanının varsayılan değeri
+        options: [  // Options alanının varsayılan değeri
+          { option_text: '', is_correct: false },  // Option text alanının varsayılan değeri
+          { option_text: '', is_correct: false },  // Option text alanının varsayılan değeri
+          { option_text: '', is_correct: false },  // Option text alanının varsayılan değeri
+          { option_text: '', is_correct: false }  // Option text alanının varsayılan değeri
         ] 
       }]
-    }
+    }  // Varsayılan değerler
   });
 
   // Mevcut quiz verilerini getir
-  useEffect(() => {
-    const fetchQuizData = async () => {
-      try {
-        setFetchingQuiz(true);
-        const response = await quizApi.getQuiz(
-          Number(courseId), 
-          Number(lessonId), 
-          Number(quizId)
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    const fetchQuizData = async () => {  // fetchQuizData fonksiyonu
+      try {  // Try bloğu
+        setFetchingQuiz(true);  // Fetching quiz durumunu true yap
+        const response = await quizApi.getQuiz(  // Quiz verilerini al
+          Number(courseId),  // Course ID'yi al
+          Number(lessonId),  // Lesson ID'yi al
+          Number(quizId)  // Quiz ID'yi al
         );
-        
+         
         // 404 hata kontrolü - ApiErrorResponse tipini kullan
-        if ('error' in response && response.not_found) {
-          setQuizNotFound(true);
-          setError('Quiz bulunamadı');
-          setFetchingQuiz(false);
-          return;
+        if ('error' in response && response.not_found) {  // ApiErrorResponse tipini kullan
+          setQuizNotFound(true);  // Quiz bulunamadı durumunu true yap
+          setError('Quiz bulunamadı');  // Hata mesajını göster
+          setFetchingQuiz(false);  // Fetching quiz durumunu false yap
+          return;  // Fonksiyonu sonlandır
         }
         
         // Formu mevcut verilerle doldur
-        const quizData = response as Quiz;
-        const formData = {
-          title: quizData.title,
-          description: quizData.description,
-          time_limit: quizData.time_limit,
-          passing_score: quizData.passing_score,
-          questions: quizData.questions.map((question: QuizQuestion) => ({
-            question_text: question.question_text,
-            points: question.points,
-            options: question.options.map(option => ({
-              option_text: option.option_text,
-              is_correct: option.is_correct
+        const quizData = response as Quiz;  // Quiz tipini kullan
+        const formData = {  // Form verilerini al
+          title: quizData.title,  // Title alanının değeri
+          description: quizData.description,  // Description alanının değeri
+          time_limit: quizData.time_limit,  // Time limit alanının değeri
+          passing_score: quizData.passing_score,  // Passing score alanının değeri
+          questions: quizData.questions.map((question: QuizQuestion) => ({  // QuizQuestion tipini kullan
+            question_text: question.question_text,  // Question text alanının değeri
+            points: question.points,  // Points alanının değeri
+            options: question.options.map(option => ({  // Option tipini kullan
+              option_text: option.option_text,  // Option text alanının değeri
+              is_correct: option.is_correct  // Is correct alanının değeri
             }))
-          }))
+          })) 
         };
         
-        reset(formData);
-      } catch (err) {
-        console.error('Error fetching quiz:', err);
-        setError('Quiz yüklenirken bir hata oluştu');
+        reset(formData);  // Form verilerini reset et
+      } catch (err) {  // Hata durumunda
+        console.error('Error fetching quiz:', err);  // Hata mesajını konsola yazdır
+        setError('Quiz yüklenirken bir hata oluştu');  // Hata mesajını göster
       } finally {
-        setFetchingQuiz(false);
+        setFetchingQuiz(false);  // Fetching quiz durumunu false yap
       }
     };
 
-    fetchQuizData();
+    fetchQuizData();  // fetchQuizData fonksiyonunu çağır
   }, [courseId, lessonId, quizId, reset]);
 
-  const questions = watch('questions');
+  const questions = watch('questions');  // Questions alanının değerini al
 
-  const addQuestion = () => {
-    setValue('questions', [...questions, { 
-      question_text: '',
-      points: 10,
+  const addQuestion = () => {  // addQuestion fonksiyonu
+    setValue('questions', [...questions, {  // Questions alanının değerini güncelle
+      question_text: '',  // Question text alanının değeri
+      points: 10,  // Points alanının değeri
       options: [
-        { option_text: '', is_correct: false },
-        { option_text: '', is_correct: false },
-        { option_text: '', is_correct: false },
-        { option_text: '', is_correct: false }
+        { option_text: '', is_correct: false },  // Option text alanının değeri
+        { option_text: '', is_correct: false },  // Option text alanının değeri
+        { option_text: '', is_correct: false },  // Option text alanının değeri
+        { option_text: '', is_correct: false }  // Option text alanının değeri
       ] 
     }]);
   };
 
-  const removeQuestion = (index: number) => {
-    const newQuestions = questions.filter((_, i) => i !== index);
-    setValue('questions', newQuestions);
+  const removeQuestion = (index: number) => {  // removeQuestion fonksiyonu
+    const newQuestions = questions.filter((_, i) => i !== index);  // Questions alanının değerini güncelle
+    setValue('questions', newQuestions);  // Questions alanının değerini güncelle
   };
 
-  const onSubmit = async (data: QuizFormValues) => {
-    try {
-      setLoading(true);
+  const onSubmit = async (data: QuizFormValues) => {  // onSubmit fonksiyonu
+    try {  // Try bloğu
+      setLoading(true);  // Loading durumunu true yap
       
-      // Transform the data to match the backend API expectations
-      const transformedData = {
-        ...data,
-        questions: data.questions.map(question => ({
-          ...question,
-          options: question.options.map(option => ({
-            text: option.option_text,
-            is_correct: option.is_correct
+      const transformedData = {  // Transform the data to match the backend API expectations
+        ...data,  // Data'yı transform et
+        questions: data.questions.map(question => ({  // Question tipini kullan
+          ...question,  // Question tipini kullan
+          options: question.options.map(option => ({  // Option tipini kullan
+            text: option.option_text,  // Option text alanının değeri
+            is_correct: option.is_correct  // Is correct alanının değeri
           }))
         }))
       };
       
-      await quizApi.updateQuiz(
-        Number(courseId), 
-        Number(lessonId), 
-        Number(quizId), 
-        transformedData
+      await quizApi.updateQuiz(  // Quiz'i güncelle
+        Number(courseId),  // Course ID'yi al
+        Number(lessonId),  // Lesson ID'yi al
+        Number(quizId),  // Quiz ID'yi al
+        transformedData 
       );
-      router.push(`/courses/${courseId}/lessons/${lessonId}/quizzes`);
-    } catch (err) {
-      console.error('Error updating quiz:', err);
-      setError('Quiz güncellenirken bir hata oluştu');
+      router.push(`/courses/${courseId}/lessons/${lessonId}/quizzes`);  // Quiz'e geri dön
+    } catch (err) {  // Hata durumunda
+      console.error('Error updating quiz:', err);  // Hata mesajını konsola yazdır
+      setError('Quiz güncellenirken bir hata oluştu');  // Hata mesajını göster
     } finally {
-      setLoading(false);
+      setLoading(false);  // Loading durumunu false yap
     }
   };
 
-  if (fetchingQuiz) {
+  if (fetchingQuiz) {  // Fetching quiz durumunda
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center h-64">
@@ -179,14 +177,14 @@ export default function EditQuizPage() {
     );
   }
 
-  if (quizNotFound) {
+  if (quizNotFound) {  // Quiz bulunamadı durumunda
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex flex-col items-center">
           <h2 className="text-xl font-bold mb-2">Quiz Bulunamadı</h2>
           <p className="mb-4">Aradığınız quiz sistemde bulunmuyor veya silinmiş olabilir.</p>
           <button
-            onClick={() => router.push(`/courses/${courseId}/lessons/${lessonId}/quizzes`)}
+            onClick={() => router.push(`/courses/${courseId}/lessons/${lessonId}/quizzes`)}  // Quiz'e geri dön
             className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
           >
             Quizlere Dön
@@ -196,18 +194,18 @@ export default function EditQuizPage() {
     );
   }
 
-  return (
+  return (  // Quiz'i düzenle
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Quiz Düzenle</h1>
 
-        {error && (
+        {error && (  // Hata durumunda
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">  // Form işleme için
           <div>
             <label className="block text-sm font-medium text-gray-700">Quiz Başlığı</label>
             <input
@@ -215,12 +213,12 @@ export default function EditQuizPage() {
               type="text"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
             />
-            {errors.title && (
+            {errors.title && (  // Hata durumunda
               <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
             )}
           </div>
 
-          <div>
+          <div> 
             <label className="block text-sm font-medium text-gray-700">Açıklama</label>
             <textarea
               {...register('description')}

@@ -1,82 +1,82 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'react-hot-toast';
-import { assignmentsApi } from '@/lib/api/assignments';
+import { useState } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { useForm } from 'react-hook-form';  // Form işleme için
+import { zodResolver } from '@hookform/resolvers/zod';  // Zod resolver için
+import { z } from 'zod';  // Zod için
+import { toast } from 'react-hot-toast';  // Toast mesajları için
+import { assignmentsApi } from '@/lib/api/assignments';  // Assignment API'sini içe aktar
 
 // Form şeması
-const assignmentSchema = z.object({
-  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
-  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),
-  due_date: z.string().refine(val => {
+const assignmentSchema = z.object({  // Assignment şeması
+  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),  // Title alanı
+  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),  // Description alanı
+  due_date: z.string().refine(val => {  // Due date alanı
     try {
-      const date = new Date(val);
-      return date > new Date();
-    } catch {
-      return false;
+      const date = new Date(val);  // Tarihi al
+      return date > new Date();  // Tarih gelecekte mi
+    } catch {  // Hata durumunda
+      return false;  // False döndür
     }
-  }, { message: 'Son teslim tarihi gelecekte bir tarih olmalıdır' }),
-  max_points: z.number().min(1, 'Maksimum puan 1 veya daha büyük olmalıdır')
+  }, { message: 'Son teslim tarihi gelecekte bir tarih olmalıdır' }), 
+  max_points: z.number().min(1, 'Maksimum puan 1 veya daha büyük olmalıdır')  // Max points alanı
 });
 
 // Form değerleri için tip
-type AssignmentFormValues = z.infer<typeof assignmentSchema>;
+type AssignmentFormValues = z.infer<typeof assignmentSchema>;  // AssignmentFormValues tipi
 
-export default function CreateAssignmentPage() {
-  const { courseId, lessonId } = useParams();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function CreateAssignmentPage() {  // CreateAssignmentPage componenti
+  const { courseId, lessonId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router instance'ını al
+  const [loading, setLoading] = useState(false);  // Loading durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Hata durumunu kontrol et
 
   // React Hook Form
-  const { register, handleSubmit, formState: { errors } } = useForm<AssignmentFormValues>({
-    resolver: zodResolver(assignmentSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      due_date: '',
-      max_points: 100
+  const { register, handleSubmit, formState: { errors } } = useForm<AssignmentFormValues>({  // Form işleme için
+    resolver: zodResolver(assignmentSchema),  // Zod resolver için
+    defaultValues: {  // Varsayılan değerler
+      title: '',  // Title alanının varsayılan değeri
+      description: '',  // Description alanının varsayılan değeri
+      due_date: '',  // Due date alanının varsayılan değeri
+      max_points: 100  // Max points alanının varsayılan değeri
     }
   });
 
   // Form gönderimi
-  const onSubmit = async (data: AssignmentFormValues) => {
-    try {
-      setLoading(true);
+  const onSubmit = async (data: AssignmentFormValues) => {  // onSubmit fonksiyonu
+    try {  // Try bloğu
+      setLoading(true);  // Loading durumunu true yap
       
       // API'ye gönderilecek veriyi hazırla
-      const assignmentData = {
-        title: data.title,
-        description: data.description,
-        due_date: new Date(data.due_date).toISOString(),
-        max_points: data.max_points,
-        lesson_id: Number(lessonId)
+      const assignmentData = {  // Assignment data
+        title: data.title,  // Title alanının değeri
+        description: data.description,  // Description alanının değeri
+        due_date: new Date(data.due_date).toISOString(),  // Due date alanının değeri
+        max_points: data.max_points,  // Max points alanının değeri
+        lesson_id: Number(lessonId)  // Lesson ID'yi al
       };
       
       // API'ye gönder
-      await assignmentsApi.createAssignment(
-        Number(courseId),
-        assignmentData
+      await assignmentsApi.createAssignment(  // Assignment API'sini çağır
+        Number(courseId),  // Course ID'yi al
+        assignmentData  // Assignment data
       );
       
-      toast.success('Ödev başarıyla oluşturuldu!');
-      router.push(`/instructor/courses/${courseId}/lessons/${lessonId}/assignments`);
-    } catch (err) {
-      console.error('Error creating assignment:', err);
-      setError('Ödev oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
+      toast.success('Ödev başarıyla oluşturuldu!');  // Toast mesajı göster
+      router.push(`/instructor/courses/${courseId}/lessons/${lessonId}/assignments`);  // Router'ı güncelle
+    } catch (err) {  // Hata durumunda
+      console.error('Error creating assignment:', err);  // Hata mesajını konsola yazdır
+      setError('Ödev oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');  // Hata mesajını göster
     } finally {
-      setLoading(false);
+      setLoading(false);  // Loading durumunu false yap
     }
   };
 
   // Minimum tarih belirleme (bugün)
-  const today = new Date();
-  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-  const minDate = today.toISOString().slice(0, 16); // format: YYYY-MM-DDThh:mm
+  const today = new Date();  // Bugünü al
+  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());  // Saat dilimini ayarla
+  const minDate = today.toISOString().slice(0, 16);  // format: YYYY-MM-DDThh:mm
 
   return (
     <div className="container mx-auto p-6">

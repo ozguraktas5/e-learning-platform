@@ -1,93 +1,93 @@
-'use client';
+'use client'; 
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { assignmentsApi } from '@/lib/api/assignments';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import { format } from 'date-fns';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useState, useEffect } from 'react';  // Client-side rendering için directive    
+import { useParams, useRouter } from 'next/navigation';     // Route parametrelerini almak için
+import { assignmentsApi } from '@/lib/api/assignments';   // API fonksiyonlarını içe aktar
+import { toast } from 'react-hot-toast';  // Toast mesajları için
+import Link from 'next/link';  // Link componenti için
+import { format } from 'date-fns';  // Tarih formatlama için
+import LoadingSpinner from '@/components/ui/LoadingSpinner';  // Loading spinner için
 
-export default function EditAssignmentPage() {
-  const router = useRouter();
-  const params = useParams();
-  const courseId = Number(params.courseId);
-  const lessonId = Number(params.lessonId);
-  const assignmentId = Number(params.assignmentId);
+export default function EditAssignmentPage() {  // EditAssignmentPage componenti
+  const router = useRouter();  // Router instance'ını al
+  const params = useParams();  // Route parametrelerini al
+  const courseId = Number(params.courseId);  // Course ID'yi al
+  const lessonId = Number(params.lessonId);  // Lesson ID'yi al
+  const assignmentId = Number(params.assignmentId);  // Assignment ID'yi al
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    due_date: '',
-    max_points: 100,
-    is_published: true
+  const [loading, setLoading] = useState(true);  // Loading durumunu kontrol et
+  const [saving, setSaving] = useState(false);  // Kaydedilme durumunu kontrol et
+  const [formData, setFormData] = useState({  // Form verilerini tut
+    title: '',  // Başlık
+    description: '',  // Açıklama
+    due_date: '',  // Son teslim tarihi
+    max_points: 100,  // Maksimum puan
+    is_published: true  // Yayın durumu
   });
 
-  useEffect(() => {
-    async function fetchAssignment() {
+  useEffect(() => {  // useEffect hook'u ile component mount edildiğinde veya dependency değiştiğinde çalışır
+    async function fetchAssignment() {  // fetchAssignment fonksiyonu
       try {
-        setLoading(true);
-        const assignment = await assignmentsApi.getAssignment(courseId, lessonId, assignmentId);
-        setFormData({
-          title: assignment.title,
-          description: assignment.description,
-          due_date: format(new Date(assignment.due_date), "yyyy-MM-dd'T'HH:mm"),
-          max_points: assignment.max_points,
-          is_published: assignment.status !== 'draft'
+        setLoading(true);  // Loading durumunu true yap
+        const assignment = await assignmentsApi.getAssignment(courseId, lessonId, assignmentId);  // Assignment API'sini çağır
+        setFormData({  // Form verilerini güncelle
+          title: assignment.title,  // Başlık
+          description: assignment.description,  // Açıklama
+          due_date: format(new Date(assignment.due_date), "yyyy-MM-dd'T'HH:mm"),  // Son teslim tarihi
+          max_points: assignment.max_points,  // Maksimum puan
+          is_published: assignment.status !== 'draft'  // Yayın durumu
         });
-      } catch (error) {
-        console.error('Error fetching assignment:', error);
-        toast.error('Ödev bilgileri yüklenirken bir hata oluştu');
+      } catch (error) {  // Hata durumunda
+        console.error('Error fetching assignment:', error);  // Hata mesajını konsola yazdır
+        toast.error('Ödev bilgileri yüklenirken bir hata oluştu');  // Toast mesajı göster
       } finally {
-        setLoading(false);
+        setLoading(false);  // Loading durumunu false yap
       }
     }
 
-    fetchAssignment();
-  }, [courseId, lessonId, assignmentId]);
+    fetchAssignment();  // fetchAssignment fonksiyonunu çağır
+  }, [courseId, lessonId, assignmentId]);  // Dependency array
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {  // handleInputChange fonksiyonu
+    const { name, value } = e.target;  // Input değerini al
+    setFormData(prev => ({  // Form verilerini güncelle
+      ...prev,  // Önceki verileri koru
+      [name]: value  // Yeni değeri ekle
+    }));
+  }; 
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {  // handleCheckboxChange fonksiyonu
+    const { name, checked } = e.target;  // Checkbox değerini al
+    setFormData(prev => ({  // Form verilerini güncelle
+      ...prev,  // Önceki verileri koru
+      [name]: checked  // Yeni değeri ekle
     }));
   };
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: checked
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {  // handleSubmit fonksiyonu
+    e.preventDefault();  // Form submit etmeyi engelle
     
-    try {
-      setSaving(true);
-      await assignmentsApi.updateAssignment(courseId, lessonId, assignmentId, {
-        title: formData.title,
-        description: formData.description,
-        due_date: formData.due_date,
-        max_points: formData.max_points,
-        is_published: formData.is_published
+    try {  // Try block
+      setSaving(true);  // Kaydedilme durumunu true yap
+      await assignmentsApi.updateAssignment(courseId, lessonId, assignmentId, {  // Assignment API'sini çağır
+        title: formData.title,  // Başlık
+        description: formData.description,  // Açıklama
+        due_date: formData.due_date,  // Son teslim tarihi
+        max_points: formData.max_points,  // Maksimum puan
+        is_published: formData.is_published  // Yayın durumu
       });
       
-      toast.success('Ödev başarıyla güncellendi');
-      router.push(`/instructor/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`);
-    } catch (error) {
-      console.error('Error updating assignment:', error);
-      toast.error('Ödev güncellenirken bir hata oluştu');
+      toast.success('Ödev başarıyla güncellendi');  // Toast mesajı göster
+      router.push(`/instructor/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`);  // Router'ı güncelle
+    } catch (error) {  // Hata durumunda
+      console.error('Error updating assignment:', error);  // Hata mesajını konsola yazdır
+      toast.error('Ödev güncellenirken bir hata oluştu');  // Toast mesajı göster
     } finally {
-      setSaving(false);
+      setSaving(false);  // Kaydedilme durumunu false yap
     }
   };
 
-  if (loading) {
+  if (loading) {  // Loading durumunda
     return (
       <div className="flex justify-center items-center min-h-screen">
         <LoadingSpinner />

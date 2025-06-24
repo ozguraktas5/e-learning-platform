@@ -1,32 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { quizApi } from '@/lib/api/quiz';
+import { useState } from 'react';  // Client-side rendering için directive
+import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
+import { useForm } from 'react-hook-form';  // Form için
+import { zodResolver } from '@hookform/resolvers/zod';  // Zod resolver için
+import { z } from 'zod';  // Zod için
+import { quizApi } from '@/lib/api/quiz';  // Quiz API'sini içe aktar
 
-const quizSchema = z.object({
-  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
-  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),
+const quizSchema = z.object({  // Quiz schema'sı
+  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),  // Title alanı
+  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),  // Description alanı
   time_limit: z.preprocess(
-    // Convert empty string to null
-    val => val === '' ? null : Number(val),
-    z.number().nullable()
+    // Boş string'i null'a çevir
+    val => val === '' ? null : Number(val),  // Boş string'i null'a çevir
+    z.number().nullable()  // Zorunlu alan
   ),
-  passing_score: z.number().min(0).max(100),
-  questions: z.array(z.object({
-    question_text: z.string().min(1, 'Soru metni gereklidir'),
-    points: z.number().min(1, 'Puan 1 veya daha büyük olmalıdır'),
+  passing_score: z.number().min(0).max(100),  // Passing score alanı
+  questions: z.array(z.object({  // Questions alanı
+    question_text: z.string().min(1, 'Soru metni gereklidir'),  // Question text alanı
+    points: z.number().min(1, 'Puan 1 veya daha büyük olmalıdır'),  // Points alanı
     options: z.array(z.object({
-      option_text: z.string().min(1, 'Seçenek metni gereklidir'),
-      is_correct: z.boolean()
-    })).min(2, 'En az 2 seçenek gereklidir')
-  })).min(1, 'En az 1 soru gereklidir')
+      option_text: z.string().min(1, 'Seçenek metni gereklidir'),  // Option text alanı
+      is_correct: z.boolean()  // Is correct alanı
+    })).min(2, 'En az 2 seçenek gereklidir')  // En az 2 seçenek gereklidir
+  })).min(1, 'En az 1 soru gereklidir')  // En az 1 soru gereklidir
 });
 
-interface QuizFormValues {
+interface QuizFormValues {  // Quiz form values interface'i
   title: string;
   description: string;
   time_limit: number | null;
@@ -41,23 +41,23 @@ interface QuizFormValues {
   }[];
 }
 
-export default function CreateQuizPage() {
-  const { courseId, lessonId } = useParams();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function CreateQuizPage() {  // CreateQuizPage componenti
+  const { courseId, lessonId } = useParams();  // Route parametrelerini al
+  const router = useRouter();  // Router için
+  const [loading, setLoading] = useState(false);  // Loading durumunu kontrol et
+  const [error, setError] = useState<string | null>(null);  // Error durumunu kontrol et
 
-  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm({
-    resolver: zodResolver(quizSchema),
+  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm({  // useForm hook'u ile form için
+    resolver: zodResolver(quizSchema),  // Zod resolver için
     defaultValues: {
-      title: '',
-      description: '',
-      time_limit: null,
-      passing_score: 60,
-      questions: [{ 
-        question_text: '',
-        points: 10,
-        options: [
+      title: '',  // Title alanı
+      description: '',  // Description alanı
+      time_limit: null,  // Time limit alanı
+      passing_score: 60,  // Passing score alanı
+      questions: [{  // Questions alanı
+        question_text: '',  // Question text alanı
+        points: 10,  // Points alanı
+        options: [  // Options alanı
           { option_text: '', is_correct: false },
           { option_text: '', is_correct: false },
           { option_text: '', is_correct: false },
@@ -67,13 +67,13 @@ export default function CreateQuizPage() {
     }
   });
 
-  const questions = watch('questions');
+  const questions = watch('questions');  // Questions alanını watch et
 
-  const addQuestion = () => {
-    setValue('questions', [...questions, { 
-      question_text: '',
-      points: 10,
-      options: [
+  const addQuestion = () => {  // addQuestion fonksiyonu
+    setValue('questions', [...questions, {  // Questions alanını güncelle
+      question_text: '',  // Question text alanı
+      points: 10,  // Points alanı
+      options: [  // Options alanı
         { option_text: '', is_correct: false },
         { option_text: '', is_correct: false },
         { option_text: '', is_correct: false },
@@ -82,47 +82,47 @@ export default function CreateQuizPage() {
     }]);
   };
 
-  const removeQuestion = (index: number) => {
-    const newQuestions = questions.filter((_, i) => i !== index);
-    setValue('questions', newQuestions);
+  const removeQuestion = (index: number) => {  // removeQuestion fonksiyonu
+    const newQuestions = questions.filter((_, i) => i !== index);  // Questions alanını güncelle
+    setValue('questions', newQuestions);  // Questions alanını güncelle
   };
 
-  const onSubmit = async (data: QuizFormValues) => {
-    try {
-      setLoading(true);
-      setError(null);
+  const onSubmit = async (data: QuizFormValues) => {  // onSubmit fonksiyonu
+    try {  // Try bloğu
+      setLoading(true);  // Loading durumunu true yap
+      setError(null);  // Error durumunu null yap
       
-      // Transform the data to match the backend API expectations
-      const transformedData = {
-        ...data,
-        questions: data.questions.map(question => ({
+      // Backend API'nin beklediği formatta veri dönüştürme 
+      const transformedData = {  // Transformed data
+        ...data,  // Data'yı dönüştür
+        questions: data.questions.map(question => ({  // Questions alanını dönüştür
           ...question,
-          options: question.options.map(option => ({
-            text: option.option_text,
-            is_correct: option.is_correct
+          options: question.options.map(option => ({  // Options alanını dönüştür
+            text: option.option_text,  // Option text alanı
+            is_correct: option.is_correct  // Is correct alanı
           }))
         }))
       };
       
-      const result = await quizApi.createQuiz(Number(courseId), Number(lessonId), transformedData);
+      const result = await quizApi.createQuiz(Number(courseId), Number(lessonId), transformedData);  // Quiz API'sini kullanarak quiz oluştur
       
-      // Check if result is an error response
-      if ('error' in result) {
-        setError(result.error);
-        return;
+      // Sonuç hata ise
+      if ('error' in result) {  // Sonuç hata ise
+        setError(result.error);  // Error durumunu güncelle
+        return;  // Fonksiyonu sonlandır
       }
-      
+
       // Başarılı oluşturma sonrası ders sayfasına yönlendir
-      router.push(`/instructor/courses/${courseId}/lessons/${lessonId}`);
-    } catch (err) {
-      console.error('Error creating quiz:', err);
-      setError('Quiz oluşturulurken bir hata oluştu');
-    } finally {
-      setLoading(false);
+      router.push(`/instructor/courses/${courseId}/lessons/${lessonId}`);  // Ders sayfasına yönlendir
+    } catch (err) {  // Hata durumunda
+      console.error('Error creating quiz:', err);  // Hata mesajını konsola yazdır
+      setError('Quiz oluşturulurken bir hata oluştu');  // Hata mesajını göster
+    } finally {  // Finally bloğu
+      setLoading(false);  // Loading durumunu false yap
     }
   };
 
-  return (
+  return (  // CreateQuizPage componenti
     <div className="container mx-auto p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Yeni Quiz Oluştur</h1>
