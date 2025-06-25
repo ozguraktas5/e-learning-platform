@@ -69,7 +69,7 @@ export default function CourseReviewPage() {
     } catch (error) {
       console.error('Error submitting review:', error);
       
-      // @ts-expect-error: API error response handling
+      // API hata yanıtını kontrol et
       const errorMessage = error?.response?.data?.error;
       
       if (errorMessage === 'Bu kurs için zaten bir değerlendirme yapmışsınız.') {

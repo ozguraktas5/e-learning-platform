@@ -43,7 +43,7 @@ export default function CourseSearch() {
     per_page: 10
   });
 
-  // only debounce price filter
+  // Fiyat filtresini debounce ile yönet
   const debouncedPrice = useDebounce({ min: filters.min_price, max: filters.max_price }, 300);
 
   // Kategorileri getir
@@ -63,7 +63,7 @@ export default function CourseSearch() {
     }
   });
 
-  // Helper to get instructor username by ID
+  // Eğitmen adını al
   const getInstructorName = (id: number) => instructors.find(instr => instr.id === id)?.username || 'Bilinmiyor';
 
   // Kursları getir
@@ -86,7 +86,7 @@ export default function CourseSearch() {
     }
   });
 
-  // Apply client-side filter on the raw search input (filters.q) for both title and description
+  // Client-side filtreleme (filters.q) hem başlık hem de açıklama için
   const filteredCourses = searchResults?.courses.filter(course => {
     const term = filters.q.toLowerCase();
     return (

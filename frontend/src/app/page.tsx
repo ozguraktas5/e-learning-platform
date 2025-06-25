@@ -7,7 +7,7 @@ import { BookOpen, Award, Users } from 'lucide-react';
 export default function HomePage() {
   return (
     <div className="min-h-screen">
-      {/* Hero Section - Modern and clean design */}
+      {/* Ana Bölüm */}
       <section className="relative overflow-hidden bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,7 +36,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Section - Elegant cards */}
+      {/* Özellikler Bölümü */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -88,7 +88,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Statistics Section - Light elegant */}
+      {/* İstatistikler Bölümü */}
       <section className="py-24 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -124,7 +124,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials section */}
+      {/* Referanslar Bölümü */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -182,7 +182,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA Bölümü */}
       <section className="py-20 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl mb-6">

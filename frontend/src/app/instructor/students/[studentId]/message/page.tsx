@@ -1,25 +1,25 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
+import { useState } from 'react'; //useState için
+import { useParams, useRouter } from 'next/navigation'; //useParams ve useRouter için
+import { useForm } from 'react-hook-form'; //useForm için
+import { zodResolver } from '@hookform/resolvers/zod'; //zodResolver için
+import { z } from 'zod'; //z için 
+import { toast } from 'react-hot-toast'; //toast için
+import Link from 'next/link'; //Link için
 
-// Form validation schema
-const messageSchema = z.object({
-  subject: z.string().min(3, 'Konu en az 3 karakter olmalıdır'),
+// Form validasyon şeması
+const messageSchema = z.object({ 
+  subject: z.string().min(3, 'Konu en az 3 karakter olmalıdır'), 
   message: z.string().min(10, 'Mesaj en az 10 karakter olmalıdır'),
 });
 
-type MessageFormData = z.infer<typeof messageSchema>;
+type MessageFormData = z.infer<typeof messageSchema>; //MessageFormData için
 
-export default function SendMessagePage() {
-  const router = useRouter();
-  const { studentId } = useParams();
-  const [submitting, setSubmitting] = useState(false);
+export default function SendMessagePage() { //SendMessagePage için
+  const router = useRouter(); //router için
+  const { studentId } = useParams(); //studentId için
+  const [submitting, setSubmitting] = useState(false); //submitting için
 
   const {
     register,
@@ -29,17 +29,17 @@ export default function SendMessagePage() {
     resolver: zodResolver(messageSchema)
   });
 
-  const onSubmit = async (data: MessageFormData) => {
+  const onSubmit = async (data: MessageFormData) => { //onSubmit için
     try {
-      setSubmitting(true);
+      setSubmitting(true); //submitting için
       // API entegrasyonu burada yapılacak
-      toast.success('Mesaj başarıyla gönderildi!');
-      router.push('/instructor/students');
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Mesaj gönderilirken bir hata oluştu');
-    } finally {
-      setSubmitting(false);
+      toast.success('Mesaj başarıyla gönderildi!'); //toast.success için
+      router.push('/instructor/students'); //router.push için
+    } catch (error) { //error için
+      console.error('Error sending message:', error); //console.error için
+      toast.error('Mesaj gönderilirken bir hata oluştu'); //toast.error için
+    } finally { //finally için
+      setSubmitting(false); //setSubmitting için
     }
   };
 

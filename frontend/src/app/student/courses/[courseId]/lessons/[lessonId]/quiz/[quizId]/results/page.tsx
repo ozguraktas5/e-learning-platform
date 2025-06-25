@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { quizApi } from '@/lib/api/quiz';
-import { Quiz, QuizAttempt, QuizAnswer } from '@/types/quiz';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
+import { useState, useEffect } from 'react'; //useState, useEffect için
+import { useParams } from 'next/navigation'; //useParams için
+import { quizApi } from '@/lib/api/quiz'; //quizApi için
+import { Quiz, QuizAttempt, QuizAnswer } from '@/types/quiz'; //Quiz, QuizAttempt, QuizAnswer için
+import { toast } from 'react-hot-toast'; //toast için
+import Link from 'next/link'; //Link için
 
-interface ApiQuizResults {
+interface ApiQuizResults { //ApiQuizResults için
   quiz_title: string;
   quiz_description: string;
   total_attempts: number;
@@ -29,47 +29,47 @@ interface ApiQuizResults {
 }
 
 export default function QuizResultsPage() {
-  const { courseId, lessonId, quizId } = useParams();
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
-  const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { courseId, lessonId, quizId } = useParams(); //courseId, lessonId, quizId için
+  const [quiz, setQuiz] = useState<Quiz | null>(null); //quiz için
+  const [attempts, setAttempts] = useState<QuizAttempt[]>([]); //attempts için
+  const [loading, setLoading] = useState(true); //loading için
+  const [error, setError] = useState<string | null>(null); //error için
 
-  useEffect(() => {
-    async function fetchResults() {
+  useEffect(() => { //useEffect için
+    async function fetchResults() { //fetchResults için
       try {
-        setLoading(true);
+        setLoading(true); //setLoading için
         
-        // First get the quiz details
+        // Önce quiz detaylarını al
         const quizData = await quizApi.getQuiz(
           Number(courseId), 
           Number(lessonId), 
           Number(quizId)
         );
         
-        if ('error' in quizData) {
+        if ('error' in quizData) { //'error' in quizData için
           throw new Error(quizData.error);
         }
         
-        setQuiz(quizData as Quiz);
+        setQuiz(quizData as Quiz); //setQuiz için
         
-        // Then get the attempts
-        try {
-          const resultsData = await quizApi.getQuizResults(
-            Number(courseId),
-            Number(lessonId),
-            Number(quizId)
+        // Denemeleri al
+        try { //try için
+          const resultsData = await quizApi.getQuizResults( //quizApi.getQuizResults için
+            Number(courseId), //Number(courseId) için
+            Number(lessonId), //Number(lessonId) için
+            Number(quizId) //Number(quizId) için
           );
           
           // API formatını kontrol et ve veri adaptasyonu yap
-          if (resultsData && 'results' in resultsData) {
+          if (resultsData && 'results' in resultsData) { //resultsData ve 'results' in resultsData için
             // Backend formatı - veriyi dönüştür
-            const apiResults = resultsData as ApiQuizResults;
-            const adaptedAttempts: QuizAttempt[] = apiResults.results.map(result => {
-              const attemptAnswers: QuizAnswer[] = [];
+            const apiResults = resultsData as ApiQuizResults; //apiResults için
+            const adaptedAttempts: QuizAttempt[] = apiResults.results.map(result => { //apiResults.results.map için
+              const attemptAnswers: QuizAnswer[] = []; //attemptAnswers için
               
               // Her bir cevabı frontend formatına dönüştür
-              if (quizData.questions) {
+              if (quizData.questions) { //quizData.questions için
                 for (const question of (quizData as Quiz).questions) {
                   // Bu soru için cevabı bul
                   const answerData = result.answers.find(a => 
@@ -127,25 +127,25 @@ export default function QuizResultsPage() {
             throw resultsError;
           }
         }
-      } catch (error: any) {
-        console.error('Error loading quiz data:', error);
-        setError(error.message || 'Sonuçlar yüklenirken bir hata oluştu');
-        toast.error('Sonuçlar yüklenirken bir hata oluştu');
-      } finally {
-        setLoading(false);
+      } catch (error: any) { //error için
+        console.error('Error loading quiz data:', error); //console.error için
+        setError(error.message || 'Sonuçlar yüklenirken bir hata oluştu'); //setError için
+        toast.error('Sonuçlar yüklenirken bir hata oluştu'); //toast.error için
+      } finally { //finally için
+        setLoading(false); //setLoading için
       }
-    }
+    } //fetchResults için
     
-    fetchResults();
-  }, [courseId, lessonId, quizId]);
+    fetchResults(); //fetchResults için
+  }, [courseId, lessonId, quizId]); //courseId, lessonId, quizId için
 
-  const getScoreColor = (score: number): string => {
+  const getScoreColor = (score: number): string => { //getScoreColor için
     if (score >= 80) return 'text-green-600';
     if (score >= 60) return 'text-yellow-600';
     return 'text-red-600';
   };
 
-  const formatDate = (dateString: string): string => {
+  const formatDate = (dateString: string): string => { //formatDate için
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('tr-TR', {
       day: '2-digit',
@@ -156,7 +156,7 @@ export default function QuizResultsPage() {
     }).format(date);
   };
 
-  // Get the most recent attempt
+  // En son deneme
   const latestAttempt = attempts.length > 0 
     ? attempts.sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0] 
     : null;

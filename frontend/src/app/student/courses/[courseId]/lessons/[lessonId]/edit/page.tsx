@@ -1,129 +1,129 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { lessonApi } from '@/lib/api/lessons';
-import { Lesson, CreateLessonData } from '@/types/lesson';
-import { toast } from 'react-hot-toast';
-import { BASE_URL } from '@/lib/api/index';
-import Link from 'next/link';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { ArrowLeft, BookOpen, Edit, Upload, AlertTriangle, CheckCircle, Play } from 'lucide-react';
+import { useState, useEffect } from 'react'; //useState, useEffect için
+import { useParams, useRouter } from 'next/navigation'; //useParams, useRouter için
+import { useForm } from 'react-hook-form'; //useForm için
+import { zodResolver } from '@hookform/resolvers/zod'; //zodResolver için
+import { z } from 'zod'; //z için
+import { lessonApi } from '@/lib/api/lessons'; //lessonApi için
+import { Lesson, CreateLessonData } from '@/types/lesson'; //Lesson, CreateLessonData için
+import { toast } from 'react-hot-toast'; //toast için
+import { BASE_URL } from '@/lib/api/index'; //BASE_URL için
+import Link from 'next/link'; //Link için
+import LoadingSpinner from '@/components/ui/LoadingSpinner'; //LoadingSpinner için
+import { ArrowLeft, BookOpen, Edit, Upload, AlertTriangle, CheckCircle, Play } from 'lucide-react'; //ArrowLeft, BookOpen, Edit, Upload, AlertTriangle, CheckCircle, Play için
 
-const lessonSchema = z.object({
-  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
-  content: z.string().min(10, 'İçerik en az 10 karakter olmalıdır'),
-  order: z.number().min(1, 'Sıra numarası 1 veya daha büyük olmalıdır')
-});
+const lessonSchema = z.object({ //lessonSchema için
+  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'), //title için
+  content: z.string().min(10, 'İçerik en az 10 karakter olmalıdır'), //content için
+  order: z.number().min(1, 'Sıra numarası 1 veya daha büyük olmalıdır') //order için
+}); //z.object için
 
 // UpdateLessonData için kullanılacak tip
-type LessonFormData = CreateLessonData;
+type LessonFormData = CreateLessonData; //LessonFormData için
 
-export default function EditLessonPage() {
-  const { courseId, lessonId } = useParams();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
+export default function EditLessonPage() { //EditLessonPage için
+  const { courseId, lessonId } = useParams(); //courseId, lessonId için
+  const router = useRouter(); //router için
+  const [loading, setLoading] = useState(false); //loading için
+  const [fetchLoading, setFetchLoading] = useState(true); //fetchLoading için
+  const [error, setError] = useState<string | null>(null); //error için
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); //selectedFile için
+  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null); //currentLesson için
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<LessonFormData>({
-    resolver: zodResolver(lessonSchema),
-    defaultValues: {
-      title: '',
-      content: '',
-      order: 1
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<LessonFormData>({ //register, handleSubmit, formState: { errors }, reset için
+    resolver: zodResolver(lessonSchema), //zodResolver için
+    defaultValues: { //defaultValues için
+      title: '', //title için
+      content: '', //content için
+      order: 1 //order için
     }
-  });
+  }); //useForm için
 
-  const numericCourseId = Number(courseId);
-  const numericLessonId = Number(lessonId);
+  const numericCourseId = Number(courseId); //numericCourseId için
+  const numericLessonId = Number(lessonId); //numericLessonId için
 
   // Mevcut ders bilgilerini getir
-  useEffect(() => {
-    const fetchLessonDetails = async () => {
-      if (isNaN(numericCourseId) || isNaN(numericLessonId)) {
-        setError('Geçersiz Kurs ID veya Ders ID');
-        setFetchLoading(false);
-        return;
+  useEffect(() => { //useEffect için
+    const fetchLessonDetails = async () => { //fetchLessonDetails için
+      if (isNaN(numericCourseId) || isNaN(numericLessonId)) { //isNaN(numericCourseId) || isNaN(numericLessonId) için
+        setError('Geçersiz Kurs ID veya Ders ID'); //setError için
+        setFetchLoading(false); //setFetchLoading için
+        return; //return için
       }
 
-      try {
-        const lessonData = await lessonApi.getLesson(numericCourseId, numericLessonId);
-        setCurrentLesson(lessonData);
+      try { //try için
+        const lessonData = await lessonApi.getLesson(numericCourseId, numericLessonId); //lessonApi.getLesson için
+        setCurrentLesson(lessonData); //setCurrentLesson için
         
-        // Form alanlarını doldur
-        reset({
-          title: lessonData.title,
-          content: lessonData.content,
-          order: lessonData.order
+        // Form alanlarını doldur (reset için)
+        reset({ 
+          title: lessonData.title, //title için
+          content: lessonData.content, //content için
+          order: lessonData.order //order için
         });
-      } catch (err) {
-        console.error('Error fetching lesson details:', err);
-        setError('Ders bilgileri yüklenirken bir hata oluştu');
-      } finally {
-        setFetchLoading(false);
+      } catch (err) { //err için
+        console.error('Error fetching lesson details:', err); //console.error için
+        setError('Ders bilgileri yüklenirken bir hata oluştu'); //setError için
+      } finally { //finally için
+        setFetchLoading(false); //setFetchLoading için
       }
-    };
+    }; //fetchLessonDetails için
 
-    fetchLessonDetails();
-  }, [numericCourseId, numericLessonId, reset]);
+    fetchLessonDetails(); //fetchLessonDetails için
+  }, [numericCourseId, numericLessonId, reset]); //numericCourseId, numericLessonId, reset için
 
-  const onSubmit = async (data: LessonFormData) => {
-    if (isNaN(numericCourseId) || isNaN(numericLessonId)) {
-      setError('Geçersiz Kurs ID veya Ders ID');
-      return;
+  const onSubmit = async (data: LessonFormData) => { //onSubmit için
+    if (isNaN(numericCourseId) || isNaN(numericLessonId)) { //isNaN(numericCourseId) || isNaN(numericLessonId) için
+      setError('Geçersiz Kurs ID veya Ders ID'); //setError için
+      return; //return için
     }
   
-    setLoading(true);
-    setError(null);
+    setLoading(true); //setLoading için
+    setError(null); //setError için
 
-    try {
+    try { //try için
       // Dersi güncelle
-      const updatedLesson = await lessonApi.updateLesson(numericCourseId, numericLessonId, data);
-      toast.success(`Ders '${updatedLesson.title}' güncellendi.`);
+      const updatedLesson = await lessonApi.updateLesson(numericCourseId, numericLessonId, data); //lessonApi.updateLesson için
+      toast.success(`Ders '${updatedLesson.title}' güncellendi.`); //toast.success için
 
       // Eğer yeni bir video seçilmişse, onu da yükle
-      if (selectedFile) {
-        const formData = new FormData();
-        formData.append('video', selectedFile);
+      if (selectedFile) { //selectedFile için
+        const formData = new FormData(); //FormData için
+        formData.append('video', selectedFile); //formData.append için
         
-        await lessonApi.uploadMedia(numericCourseId, numericLessonId, formData);
-        toast.success(`Video '${selectedFile.name}' başarıyla yüklendi.`);
+        await lessonApi.uploadMedia(numericCourseId, numericLessonId, formData); //lessonApi.uploadMedia için
+        toast.success(`Video '${selectedFile.name}' başarıyla yüklendi.`); //toast.success için
       }
 
       // Dersler sayfasına geri dön
-      router.push(`/student/courses/${courseId}/lessons`);
+      router.push(`/student/courses/${courseId}/lessons`); //router.push için
 
-    } catch (err: unknown) {
-      console.error('Error during lesson update or upload process:', err);
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(`Ders güncellenirken bir hata oluştu: ${errorMessage || 'Bilinmeyen hata'}`);
-    } finally {
-      setLoading(false);
+    } catch (err: unknown) { //err için
+      console.error('Error during lesson update or upload process:', err); //console.error için
+      const errorMessage = err instanceof Error ? err.message : String(err); //errorMessage için
+      setError(`Ders güncellenirken bir hata oluştu: ${errorMessage || 'Bilinmeyen hata'}`); //setError için
+    } finally { //finally için
+      setLoading(false); //setLoading için
     }
-  };
+  }; //onSubmit için
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setError(null);
-      console.log('File selected:', file.name);
-    } else {
-      setSelectedFile(null);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => { //handleFileChange için
+    const file = event.target.files?.[0]; //file için
+    if (file) { //file için
+      setSelectedFile(file); //setSelectedFile için
+      setError(null); //setError için
+      console.log('File selected:', file.name); //console.log için
+    } else { //else için
+      setSelectedFile(null); //setSelectedFile için
     }
-  };
+  }; //handleFileChange için
 
-  if (fetchLoading) {
-    return <LoadingSpinner size="large" fullScreen />;
+  if (fetchLoading) { //fetchLoading için
+    return <LoadingSpinner size="large" fullScreen />; //LoadingSpinner için
   }
 
-  if (error && !currentLesson) {
+  if (error && !currentLesson) { //error veya currentLesson için
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
         <div className="max-w-7xl mx-auto px-4 py-8">
@@ -149,7 +149,7 @@ export default function EditLessonPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Başlık */}
         <div className="mb-8">
           <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">
             <div className="flex items-center justify-between">
@@ -174,7 +174,7 @@ export default function EditLessonPage() {
           </div>
         </div>
 
-        {/* Error Message */}
+        {/* Hata Mesajı */}
         {error && (
           <div className="mb-6">
             <div className="backdrop-blur-sm bg-red-50/90 border border-red-200 rounded-2xl p-4 shadow-lg">
@@ -189,7 +189,7 @@ export default function EditLessonPage() {
         {/* Form */}
         <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Title Field */}
+            {/* Başlık Alanı */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Ders Başlığı *
@@ -208,7 +208,7 @@ export default function EditLessonPage() {
               )}
             </div>
 
-            {/* Content Field */}
+            {/* İçerik Alanı */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Ders İçeriği *
@@ -227,7 +227,7 @@ export default function EditLessonPage() {
               )}
             </div>
 
-            {/* Order Field */}
+            {/* Sıra Numarası Alanı */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Sıra Numarası *
@@ -247,7 +247,7 @@ export default function EditLessonPage() {
               )}
             </div>
 
-            {/* Current Video Display */}
+            {/* Mevcut Video Görüntüleme */}
             {currentLesson?.video_url && (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -270,7 +270,7 @@ export default function EditLessonPage() {
               </div>
             )}
 
-            {/* Video Upload Field */}
+            {/* Video Yükleme Alanı */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 {currentLesson?.video_url ? 'Videoyu Değiştir (İsteğe bağlı)' : 'Video Ekle (İsteğe bağlı)'}
@@ -312,7 +312,7 @@ export default function EditLessonPage() {
               )}
             </div>
 
-            {/* Action Buttons */}
+            {/* İşlem Butonları */}
             <div className="flex gap-4 pt-6 border-t border-gray-200">
               <button
                 type="submit"

@@ -1,55 +1,55 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'react-hot-toast';
-import { assignmentsApi } from '@/lib/api/assignments';
+import { useState } from 'react'; //useState için
+import { useParams, useRouter } from 'next/navigation'; //useParams, useRouter için
+import { useForm } from 'react-hook-form'; //useForm için
+import { zodResolver } from '@hookform/resolvers/zod'; //zodResolver için
+import { z } from 'zod'; //z için
+import { toast } from 'react-hot-toast'; //toast için
+import { assignmentsApi } from '@/lib/api/assignments'; //assignmentsApi için
 
 // Form şeması
-const assignmentSchema = z.object({
-  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
-  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),
-  due_date: z.string().refine(val => {
-    try {
-      const date = new Date(val);
-      return date > new Date();
-    } catch {
-      return false;
+const assignmentSchema = z.object({ //assignmentSchema için
+  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'), //title için
+  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'), //description için
+  due_date: z.string().refine(val => { //due_date için
+    try { //try için
+      const date = new Date(val); //date için
+      return date > new Date(); //date > new Date() için
+    } catch { //catch için
+      return false; //false için
     }
-  }, { message: 'Son teslim tarihi gelecekte bir tarih olmalıdır' }),
-  max_points: z.number().min(1, 'Maksimum puan 1 veya daha büyük olmalıdır')
-});
+  }, { message: 'Son teslim tarihi gelecekte bir tarih olmalıdır' }), 
+  max_points: z.number().min(1, 'Maksimum puan 1 veya daha büyük olmalıdır') //max_points için
+}); //z.object için
 
 // Form değerleri için tip
 type AssignmentFormValues = z.infer<typeof assignmentSchema>;
 
-export default function CreateAssignmentPage() {
-  const { courseId, lessonId } = useParams();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function CreateAssignmentPage() { //CreateAssignmentPage için
+  const { courseId, lessonId } = useParams(); //courseId, lessonId için
+  const router = useRouter(); //router için
+  const [loading, setLoading] = useState(false); //loading için
+  const [error, setError] = useState<string | null>(null); //error için
 
-  // React Hook Form
-  const { register, handleSubmit, formState: { errors } } = useForm<AssignmentFormValues>({
-    resolver: zodResolver(assignmentSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      due_date: '',
-      max_points: 100
+  // Form değerleri için tip
+  const { register, handleSubmit, formState: { errors } } = useForm<AssignmentFormValues>({ //register, handleSubmit, formState: { errors } için
+    resolver: zodResolver(assignmentSchema), //zodResolver için
+    defaultValues: { //defaultValues için
+      title: '', //title için
+      description: '', //description için
+      due_date: '', //due_date için
+      max_points: 100 //max_points için
     }
-  });
+  }); //useForm için
 
   // Form gönderimi
-  const onSubmit = async (data: AssignmentFormValues) => {
+  const onSubmit = async (data: AssignmentFormValues) => { //onSubmit için
     try {
-      setLoading(true);
+      setLoading(true); //setLoading için
       
       // API'ye gönderilecek veriyi hazırla
-      const assignmentData = {
+      const assignmentData = { //assignmentData için
         title: data.title,
         description: data.description,
         due_date: new Date(data.due_date).toISOString(),
@@ -63,19 +63,19 @@ export default function CreateAssignmentPage() {
         assignmentData
       );
       
-      toast.success('Ödev başarıyla oluşturuldu!');
-      router.push(`/courses/${courseId}/lessons/${lessonId}/assignments`);
-    } catch (err) {
-      console.error('Error creating assignment:', err);
-      setError('Ödev oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
-    } finally {
-      setLoading(false);
+      toast.success('Ödev başarıyla oluşturuldu!'); //toast.success için
+      router.push(`/courses/${courseId}/lessons/${lessonId}/assignments`); //router.push için
+    } catch (err) { //err için
+      console.error('Error creating assignment:', err); //console.error için
+      setError('Ödev oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.'); //setError için
+    } finally { //finally için
+      setLoading(false); //setLoading için
     }
   };
 
   // Minimum tarih belirleme (bugün)
-  const today = new Date();
-  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+  const today = new Date(); //today için
+  today.setMinutes(today.getMinutes() - today.getTimezoneOffset()); //today.setMinutes için
   const minDate = today.toISOString().slice(0, 16); // format: YYYY-MM-DDThh:mm
 
   return (

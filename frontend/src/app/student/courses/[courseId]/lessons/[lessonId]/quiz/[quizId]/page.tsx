@@ -48,7 +48,7 @@ export default function TakeQuizPage() {
         const quizData = response as Quiz;
         setQuiz(quizData);
         
-        // Initialize answers
+        // Cevapları başlat
         const initialAnswers: QuizAnswers = {};
         quizData.questions.forEach(question => {
           initialAnswers[question.id] = {
@@ -58,9 +58,9 @@ export default function TakeQuizPage() {
         });
         setAnswers(initialAnswers);
         
-        // Set timer if there's a time limit
+        // Süre sınırı varsa timer'ı ayarla
         if (quizData.time_limit) {
-          setTimeLeft(quizData.time_limit * 60); // Convert minutes to seconds
+          setTimeLeft(quizData.time_limit * 60); // Dakikayı saniyeye çevir
         }
       } catch (error) {
         console.error('Error fetching quiz:', error);
@@ -74,7 +74,7 @@ export default function TakeQuizPage() {
     fetchQuiz();
   }, [courseId, lessonId, quizId]);
 
-  // Timer countdown
+  // Süre sınırı varsa timer'ı başlat
   useEffect(() => {
     if (!timeLeft) return;
     
@@ -107,7 +107,7 @@ export default function TakeQuizPage() {
   const handleSubmit = async () => {
     if (submitting) return;
     
-    // Confirm submission
+    // Onay iste
     if (!confirm('Sınavı teslim etmek istediğinizden emin misiniz?')) {
       return;
     }
@@ -115,10 +115,10 @@ export default function TakeQuizPage() {
     setSubmitting(true);
     
     try {
-      // Format answers for submission
+      // Cevapları dönüştür
       const answersArray = Object.values(answers);
       
-      // Submit quiz
+      // Sınavı gönder
       await quizApi.submitQuiz(
         Number(courseId),
         Number(lessonId),
@@ -128,7 +128,7 @@ export default function TakeQuizPage() {
       
       toast.success('Sınav başarıyla teslim edildi!');
       
-      // Redirect to results page
+      // Sonuçlar sayfasına yönlendir
       router.push(`/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}/results`);
     } catch (error) {
       console.error('Error submitting quiz:', error);

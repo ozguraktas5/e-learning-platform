@@ -37,13 +37,13 @@ export default function QuizzesPage() {
     async function fetchData() {
       setLoading(true);
       try {
-        // Fetch lesson details
+        // Ders detaylarını al
         const lessonData = await lessonApi.getLesson(Number(courseId), Number(lessonId));
         setLesson(lessonData);
         
-        // Fetch quizzes for this lesson
+        // Bu ders için sınavları al
         const quizzesData = await quizApi.getLessonQuizzes(Number(courseId), Number(lessonId));
-        // Transform Quiz[] to QuizSummary[] (add question_count if not present)
+        // Sınavları QuizSummary[] formatına dönüştür
         const quizSummaries = quizzesData.map(quiz => ({
           ...quiz,
           question_count: quiz.questions?.length || 0,
@@ -83,7 +83,7 @@ export default function QuizzesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
       <div className="container mx-auto p-6 max-w-7xl">
-        {/* Header */}
+        {/* Başlık */}
         <div className="mb-8">
           <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">
             <div className="flex items-center justify-between">
@@ -117,7 +117,7 @@ export default function QuizzesPage() {
           </div>
         </div>
         
-        {/* Content */}
+        {/* İçerik */}
         {quizzes.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-lg border border-indigo-50 p-12 text-center">
             <div className="p-6 bg-indigo-50 rounded-full mx-auto w-24 h-24 flex items-center justify-center mb-6">

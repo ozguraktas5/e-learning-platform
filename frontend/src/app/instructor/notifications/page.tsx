@@ -1,10 +1,10 @@
 'use client';
 
-import NotificationList from "@/components/notifications/NotificationList";
-import { PageHeader } from "@/components/ui/page-header";
-import { Bell } from "lucide-react";
+import NotificationList from "@/components/notifications/NotificationList"; //NotificationList için
+import { PageHeader } from "@/components/ui/page-header"; //PageHeader için
+import { Bell } from "lucide-react"; //Bell için
 
-export default function InstructorNotificationsPage() {
+export default function InstructorNotificationsPage() { //InstructorNotificationsPage için
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">

@@ -1,47 +1,47 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'react-toastify';
-import { coursesApi } from '@/lib/api/courses';
-import { useAuth } from '@/hooks/useAuth';
-import axios from 'axios';
-import Image from 'next/image';
-import { useDropzone } from 'react-dropzone';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import TextStyle from '@tiptap/extension-text-style';
-import Color from '@tiptap/extension-color';
-import LinkExtension from '@tiptap/extension-link';
-import type { Editor } from '@tiptap/react';
+import { useState, useEffect, useCallback } from 'react'; //useState, useEffect, useCallback için
+import { useRouter, useParams } from 'next/navigation'; //useRouter, useParams için
+import { useForm, Controller } from 'react-hook-form'; //useForm, Controller için
+import { zodResolver } from '@hookform/resolvers/zod'; //zodResolver için
+import { z } from 'zod'; //z için
+import { toast } from 'react-toastify'; //toast için
+import { coursesApi } from '@/lib/api/courses'; //coursesApi için
+import { useAuth } from '@/hooks/useAuth'; //useAuth için
+import axios from 'axios'; //axios için
+import Image from 'next/image'; //Image için
+import { useDropzone } from 'react-dropzone'; //useDropzone için
+import { useEditor, EditorContent } from '@tiptap/react'; //useEditor, EditorContent için
+import StarterKit from '@tiptap/starter-kit'; //StarterKit için
+import Underline from '@tiptap/extension-underline'; //Underline için
+import TextStyle from '@tiptap/extension-text-style'; //TextStyle için
+import Color from '@tiptap/extension-color'; //Color için
+import LinkExtension from '@tiptap/extension-link'; //LinkExtension için
+import type { Editor } from '@tiptap/react'; //Editor için
 
-// Constants for image upload
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+// Görsel yükleme için sabitler
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB için
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']; //ACCEPTED_IMAGE_TYPES için
 
-// Form schema
-const courseSchema = z.object({
-  title: z.string().min(1, 'Kurs başlığı gerekli'),
-  description: z.string().min(1, 'Açıklama gerekli'),
-  category: z.string().min(1, 'Kategori gerekli'),
-  level: z.string().min(1, 'Seviye gerekli'),
-  price: z.number().min(0, 'Fiyat 0 veya daha büyük olmalı'),
-  image: z.custom<FileList>().optional(),
+// Form şeması
+const courseSchema = z.object({ //courseSchema için
+  title: z.string().min(1, 'Kurs başlığı gerekli'), //title için
+  description: z.string().min(1, 'Açıklama gerekli'), //description için
+  category: z.string().min(1, 'Kategori gerekli'), //category için
+  level: z.string().min(1, 'Seviye gerekli'), //level için
+  price: z.number().min(0, 'Fiyat 0 veya daha büyük olmalı'), //price için
+  image: z.custom<FileList>().optional(), //image için
 });
 
-type CourseFormData = z.infer<typeof courseSchema>;
+type CourseFormData = z.infer<typeof courseSchema>; //CourseFormData için
 
-const categories = [
-  'Programlama', 'Tasarım', 'İşletme', 'Pazarlama', 'Kişisel Gelişim', 'Müzik', 'Fotoğrafçılık', 'Diğer'
+const categories = [ //categories için
+  'Programlama', 'Tasarım', 'İşletme', 'Pazarlama', 'Kişisel Gelişim', 'Müzik', 'Fotoğrafçılık', 'Diğer' //categories için
 ];
-const levels = ['Başlangıç', 'Orta', 'İleri'];
+const levels = ['Başlangıç', 'Orta', 'İleri']; //levels için
 
-const MenuBar = ({ editor }: { editor: Editor | null }) => {
-  if (!editor) return null;
+const MenuBar = ({ editor }: { editor: Editor | null }) => { //MenuBar için
+  if (!editor) return null; //editor için
   return (
     <div className="border-b border-gray-200 p-2 space-x-2">
       <button
@@ -73,109 +73,109 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
   );
 };
 
-export default function EditCoursePage() {
-  const router = useRouter();
-  const { courseId } = useParams();
-  const { user, loading } = useAuth();
-  const [loadingData, setLoadingData] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
+export default function EditCoursePage() { //EditCoursePage için
+  const router = useRouter(); //router için
+  const { courseId } = useParams(); //courseId için
+  const { user, loading } = useAuth(); //user, loading için
+  const [loadingData, setLoadingData] = useState(true); //loadingData için
+  const [isSubmitting, setIsSubmitting] = useState(false); //isSubmitting için
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null); //previewUrl için
+  const [isPreviewMode, setIsPreviewMode] = useState(false); //isPreviewMode için
 
-  const editor = useEditor({
-    extensions: [StarterKit, Underline, TextStyle, Color, LinkExtension],
-    content: '',
-    onUpdate: ({ editor }) => {
-      setValue('description', editor.getHTML());
+  const editor = useEditor({ //editor için
+    extensions: [StarterKit, Underline, TextStyle, Color, LinkExtension], //extensions için
+    content: '', //content için
+    onUpdate: ({ editor }) => { //onUpdate için
+      setValue('description', editor.getHTML()); //setValue için
     },
   });
 
-  const { register, handleSubmit, setValue, control, watch, reset, formState: { errors, isDirty } } = useForm<CourseFormData>({
-    resolver: zodResolver(courseSchema),
-    defaultValues: { title: '', description: '', category: '', level: '', price: 0 },
+  const { register, handleSubmit, setValue, control, watch, reset, formState: { errors, isDirty } } = useForm<CourseFormData>({ //register, handleSubmit, setValue, control, watch, reset, formState: { errors, isDirty } için
+    resolver: zodResolver(courseSchema), //resolver için
+    defaultValues: { title: '', description: '', category: '', level: '', price: 0 }, //defaultValues için
   });
-  const watchedFields = watch();
+  const watchedFields = watch(); //watchedFields için
 
-  // Fetch existing course data
-  useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      router.push('/login');
-      return;
+  // Mevcut kurs verilerini al
+  useEffect(() => { //useEffect için
+    if (loading) return; //loading için
+    if (!user) { //user için
+      router.push('/login'); //router.push için
+      return; //return için
     }
-    const fetchCourse = async () => {
+    const fetchCourse = async () => { //fetchCourse için
       try {
-        const data = await coursesApi.getCourse(Number(courseId));
-        reset({
-          title: data.title,
-          description: data.description,
-          category: data.category,
-          level: data.level,
-          price: data.price,
+        const data = await coursesApi.getCourse(Number(courseId)); //data için
+        reset({ //reset için
+          title: data.title, //title için
+          description: data.description, //description için
+          category: data.category, //category için
+          level: data.level, //level için
+          price: data.price, //price için
         });
-        setPreviewUrl(data.image_url || null);
-        editor?.commands.setContent(data.description);
-      } catch {
-        toast.error('Kurs yüklenirken hata oluştu');
-        router.push('/courses');
-      } finally {
-        setLoadingData(false);
+        setPreviewUrl(data.image_url || null); //setPreviewUrl için
+        editor?.commands.setContent(data.description); //editor?.commands.setContent için
+      } catch { //catch için
+        toast.error('Kurs yüklenirken hata oluştu'); //toast.error için
+        router.push('/courses'); //router.push için
+      } finally { //finally için
+        setLoadingData(false); //setLoadingData için
       }
     };
-    fetchCourse();
-  }, [loading, user, courseId, reset, router, editor]);
+    fetchCourse(); //fetchCourse için
+  }, [loading, user, courseId, reset, router, editor]); //loading, user, courseId, reset, router, editor için
 
-  // Image drop
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      setValue('image', [file] as unknown as FileList);
-      setPreviewUrl(URL.createObjectURL(file));
+  // Görsel yükleme
+  const onDrop = useCallback((acceptedFiles: File[]) => { //onDrop için
+    if (acceptedFiles.length > 0) { //acceptedFiles.length > 0 için
+      const file = acceptedFiles[0]; //file için
+      setValue('image', [file] as unknown as FileList); //setValue için
+      setPreviewUrl(URL.createObjectURL(file)); //setPreviewUrl için
     }
-  }, [setValue]);
+  }, [setValue]); //setValue için
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: { 'image/*': ACCEPTED_IMAGE_TYPES },
-    maxSize: MAX_FILE_SIZE,
-    multiple: false,
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ //getRootProps, getInputProps, isDragActive için
+    onDrop, //onDrop için
+    accept: { 'image/*': ACCEPTED_IMAGE_TYPES }, //accept için
+    maxSize: MAX_FILE_SIZE, //maxSize için
+    multiple: false, //multiple için
   });
 
-  const onSubmit = async (data: CourseFormData) => {
+  const onSubmit = async (data: CourseFormData) => { //onSubmit için
     if (!user?.id) {
       toast.error('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');
       router.push('/login');
       return;
     }
-    const formData = new FormData();
-    formData.append('title', data.title);
-    formData.append('description', data.description);
-    formData.append('category', data.category);
-    formData.append('level', data.level);
-    formData.append('price', data.price.toString());
-    formData.append('instructor_id', user.id.toString());
-    if (data.image?.[0]) {
-      formData.append('image', data.image[0]);
+    const formData = new FormData(); //formData için
+    formData.append('title', data.title); //title için
+    formData.append('description', data.description); //description için
+    formData.append('category', data.category); //category için
+    formData.append('level', data.level); //level için
+    formData.append('price', data.price.toString()); //price için
+    formData.append('instructor_id', user.id.toString()); //instructor_id için
+    if (data.image?.[0]) { //data.image?.[0] için
+      formData.append('image', data.image[0]); //image için
     }
 
     try {
-      setIsSubmitting(true);
-      await coursesApi.updateCourse(courseId?.toString() || '', formData);
-      toast.success('Kurs başarıyla güncellendi!');
-      router.push(`/courses/${courseId}`);
+      setIsSubmitting(true); //setIsSubmitting için
+      await coursesApi.updateCourse(courseId?.toString() || '', formData); //coursesApi.updateCourse için
+      toast.success('Kurs başarıyla güncellendi!'); //toast.success için
+      router.push(`/courses/${courseId}`); //router.push için
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        toast.error('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.');
-        router.push('/login');
-        return;
+      if (axios.isAxiosError(error) && error.response?.status === 401) { //axios.isAxiosError(error) && error.response?.status === 401 için
+        toast.error('Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.'); //toast.error için
+        router.push('/login'); //router.push için
+        return; //return için
       }
-      toast.error(error instanceof Error ? error.message : 'Güncelleme sırasında hata oluştu');
-    } finally {
-      setIsSubmitting(false);
+      toast.error(error instanceof Error ? error.message : 'Güncelleme sırasında hata oluştu'); //toast.error için
+    } finally { //finally için
+      setIsSubmitting(false); //setIsSubmitting için
     }
   };
 
-  if (loadingData) {
+  if (loadingData) { //loadingData için
     return <div>Yükleniyor...</div>;
   }
 

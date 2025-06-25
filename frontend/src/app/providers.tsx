@@ -8,7 +8,7 @@ import Navbar from '@/components/Navbar';
 import NotificationPopup from '@/components/notifications/NotificationPopup';
 import { useNotifications } from '@/contexts/NotificationsContext';
 
-// Create a client
+// QueryClient oluştur
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -17,7 +17,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Component that uses the NotificationsContext
+// NotificationContainer bileşeni
 function NotificationContainer() {
   const { isNotificationsOpen, closeNotifications } = useNotifications();
   
@@ -36,7 +36,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <NotificationsProvider>
           <Navbar />
           {children}
-          {/* Notification popup rendering outside of Navbar */}
+          {/* Bildirim popup'ı Navbar'ın dışında render ediliyor */}
           <NotificationContainer />
         </NotificationsProvider>
       </AuthProvider>

@@ -1,149 +1,149 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { instructorsApi, StudentEnrollment, StudentStats } from '@/lib/api/instructors';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
+import { useState, useEffect } from 'react'; //useState ve useEffect için
+import { instructorsApi, StudentEnrollment, StudentStats } from '@/lib/api/instructors'; //instructorsApi ve StudentEnrollment için
+import { toast } from 'react-hot-toast'; //toast için
+import Link from 'next/link'; //Link için
 
-export default function InstructorStudentsPage() {
-  const [students, setStudents] = useState<StudentEnrollment[]>([]);
-  const [stats, setStats] = useState<StudentStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [sortBy, setSortBy] = useState<keyof StudentEnrollment>('enrolled_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
-  const [coursesFilter, setCoursesFilter] = useState<{id: number, title: string}[]>([]);
+export default function InstructorStudentsPage() { //InstructorStudentsPage için
+  const [students, setStudents] = useState<StudentEnrollment[]>([]); //students için
+  const [stats, setStats] = useState<StudentStats | null>(null); //stats için
+  const [loading, setLoading] = useState(true); //loading için
+  const [error, setError] = useState<string | null>(null); //error için
+  const [searchQuery, setSearchQuery] = useState<string>(''); //searchQuery için
+  const [sortBy, setSortBy] = useState<keyof StudentEnrollment>('enrolled_at'); //sortBy için
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); //sortOrder için
+  const [filterStatus, setFilterStatus] = useState<string>('all'); //filterStatus için
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(null); //selectedCourse için
+  const [coursesFilter, setCoursesFilter] = useState<{id: number, title: string}[]>([]); //coursesFilter için
 
-  useEffect(() => {
-    async function fetchStudents() {
+  useEffect(() => { //useEffect için
+    async function fetchStudents() { //fetchStudents için
       try {
-        setLoading(true);
-        const fetchedStudents = await instructorsApi.getEnrolledStudents();
-        const fetchedStats = await instructorsApi.getStudentStats();
+        setLoading(true); //setLoading için
+        const fetchedStudents = await instructorsApi.getEnrolledStudents(); //fetchedStudents için
+        const fetchedStats = await instructorsApi.getStudentStats(); //fetchedStats için
         
-        setStudents(fetchedStudents);
-        setStats(fetchedStats);
+        setStudents(fetchedStudents); //setStudents için
+        setStats(fetchedStats); //setStats için
         
-        // Extract unique courses for filtering
+        // Filtreleme için benzersiz kursları ayıkla
         const uniqueCourses = [...new Map(
           fetchedStudents.map(item => [item.course.id, item.course])
         ).values()];
-        setCoursesFilter(uniqueCourses);
-      } catch (err) {
-        console.error('Error fetching students:', err);
-        setError('Öğrenciler yüklenirken bir hata oluştu.');
-        toast.error('Öğrenciler yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
+        setCoursesFilter(uniqueCourses); //setCoursesFilter için
+      } catch (err) { //err için
+        console.error('Error fetching students:', err); //console.error için
+        setError('Öğrenciler yüklenirken bir hata oluştu.'); //setError için
+        toast.error('Öğrenciler yüklenirken bir hata oluştu.'); //toast.error için
+      } finally { //finally için
+        setLoading(false); //setLoading için
       }
     }
     
-    fetchStudents();
+    fetchStudents(); //fetchStudents için
   }, []);
 
-  // Sorting function
-  const sortStudents = (a: StudentEnrollment, b: StudentEnrollment) => {
-    if (sortBy === 'enrolled_at') {
-      return sortOrder === 'asc'
+  // Sıralama fonksiyonu
+  const sortStudents = (a: StudentEnrollment, b: StudentEnrollment) => { //sortStudents için
+    if (sortBy === 'enrolled_at') { //sortBy için
+      return sortOrder === 'asc' 
         ? new Date(a.enrolled_at).getTime() - new Date(b.enrolled_at).getTime()
         : new Date(b.enrolled_at).getTime() - new Date(a.enrolled_at).getTime();
-    } else if (sortBy === 'last_activity_at') {
-      return sortOrder === 'asc'
-        ? new Date(a.last_activity_at).getTime() - new Date(b.last_activity_at).getTime()
-        : new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
-    } else if (sortBy === 'progress') {
-      return sortOrder === 'asc'
-        ? a.progress - b.progress
-        : b.progress - a.progress;
+    } else if (sortBy === 'last_activity_at') { //sortBy için
+      return sortOrder === 'asc' //sortOrder için
+        ? new Date(a.last_activity_at).getTime() - new Date(b.last_activity_at).getTime() //new Date(a.last_activity_at).getTime() - new Date(b.last_activity_at).getTime() için
+        : new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime(); //new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime() için
+    } else if (sortBy === 'progress') { //sortBy için
+      return sortOrder === 'asc' //sortOrder için
+        ? a.progress - b.progress //a.progress - b.progress için
+        : b.progress - a.progress; //b.progress - a.progress için
     } 
     
-    // Default case - by student name
-    return sortOrder === 'asc'
-      ? a.student.name.localeCompare(b.student.name)
-      : b.student.name.localeCompare(a.student.name);
+    // Varsayılan durum - öğrenci adına göre
+    return sortOrder === 'asc' //sortOrder için
+      ? a.student.name.localeCompare(b.student.name) //a.student.name.localeCompare(b.student.name) için
+      : b.student.name.localeCompare(a.student.name); //b.student.name.localeCompare(a.student.name) için
   };
 
-  // Filtering function
-  const filterStudents = (student: StudentEnrollment) => {
-    // First filter by search query (name or email)
+  // Filtreleme fonksiyonu
+  const filterStudents = (student: StudentEnrollment) => { //filterStudents için
+    // İlk filtre - arama sorgusu (ad veya e-posta)
     if (searchQuery && 
         !student.student.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !student.student.email.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
+        !student.student.email.toLowerCase().includes(searchQuery.toLowerCase())) { //student.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ve student.student.email.toLowerCase().includes(searchQuery.toLowerCase()) için
+      return false; //false için
     }
     
-    // Then filter by selected course
-    if (selectedCourse !== null && student.course.id !== selectedCourse) {
-      return false;
+    // Daha sonra seçilen kursa göre filtrele
+    if (selectedCourse !== null && student.course.id !== selectedCourse) { //selectedCourse !== null ve student.course.id !== selectedCourse için
+      return false; //false için
     }
     
-    // Then filter by status
-    if (filterStatus === 'all') {
-      return true;
-    } else if (filterStatus === 'completed') {
+    // Daha sonra duruma göre filtrele
+    if (filterStatus === 'all') { //filterStatus için
+      return true; //true için
+    } else if (filterStatus === 'completed') { //filterStatus için
       return student.completed;
-    } else if (filterStatus === 'in-progress') {
-      return !student.completed && student.progress > 0;
-    } else if (filterStatus === 'not-started') {
-      return student.progress === 0;
-    } else if (filterStatus === 'active') {
-      const lastActivity = new Date(student.last_activity_at);
-      const twoWeeksAgo = new Date();
-      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-      return lastActivity > twoWeeksAgo;
+    } else if (filterStatus === 'in-progress') { //filterStatus için
+      return !student.completed && student.progress > 0; // student.completed && student.progress > 0 için
+    } else if (filterStatus === 'not-started') { //filterStatus için
+      return student.progress === 0; //student.progress === 0 için
+    } else if (filterStatus === 'active') { //filterStatus için
+      const lastActivity = new Date(student.last_activity_at); //lastActivity için
+      const twoWeeksAgo = new Date(); //twoWeeksAgo için
+      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14); //twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14); için
+      return lastActivity > twoWeeksAgo; //lastActivity > twoWeeksAgo için
     }
     
-    return true;
+    return true; //true için
   };
 
-  // Date formatting utilities
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  // Tarih formatlama yardımcıları
+  const formatDate = (dateString: string) => { //formatDate için
+    const date = new Date(dateString); //date için
+    return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }); //date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }); için
   };
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const formatTimeAgo = (dateString: string) => { //formatTimeAgo için
+    const date = new Date(dateString); //date için
+    const now = new Date(); //now için
+    const diffTime = Math.abs(now.getTime() - date.getTime()); //diffTime için
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); //diffDays için
     
-    if (diffDays === 0) {
-      return 'Bugün';
-    } else if (diffDays === 1) {
-      return 'Dün';
-    } else if (diffDays < 7) {
-      return `${diffDays} gün önce`;
-    } else if (diffDays < 30) {
-      const weeks = Math.floor(diffDays / 7);
-      return `${weeks} hafta önce`;
-    } else if (diffDays < 365) {
-      const months = Math.floor(diffDays / 30);
-      return `${months} ay önce`;
-    } else {
-      const years = Math.floor(diffDays / 365);
-      return `${years} yıl önce`;
+    if (diffDays === 0) { //diffDays için
+      return 'Bugün'; //Bugün için
+    } else if (diffDays === 1) { //diffDays için
+      return 'Dün'; //Dün için
+    } else if (diffDays < 7) { //diffDays için
+      return `${diffDays} gün önce`; //`${diffDays} gün önce` için
+    } else if (diffDays < 30) { //diffDays için
+      const weeks = Math.floor(diffDays / 7); //weeks için
+      return `${weeks} hafta önce`; //`${weeks} hafta önce` için
+    } else if (diffDays < 365) { //diffDays için
+      const months = Math.floor(diffDays / 30); //months için
+      return `${months} ay önce`; //`${months} ay önce` için
+    } else { //diffDays için
+      const years = Math.floor(diffDays / 365); //years için
+      return `${years} yıl önce`; //`${years} yıl önce` için
     }
   };
 
-  // Header for sortable columns
-  const renderSortableHeader = (label: string, key: keyof StudentEnrollment) => {
-    const isActive = sortBy === key;
+  // Sıralanabilir sütunlar için başlık
+  const renderSortableHeader = (label: string, key: keyof StudentEnrollment) => { //renderSortableHeader için
+    const isActive = sortBy === key; //isActive için
     
     return (
       <button 
         onClick={() => {
-          if (isActive) {
-            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-          } else {
-            setSortBy(key);
-            setSortOrder('desc');
+          if (isActive) { //isActive için
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); //setSortOrder için
+          } else { //else için
+            setSortBy(key); //setSortBy için
+            setSortOrder('desc'); //setSortOrder için
           }
         }}
-        className={`flex items-center space-x-1 ${isActive ? 'text-blue-600' : 'text-gray-700'}`}
+        className={`flex items-center space-x-1 ${isActive ? 'text-blue-600' : 'text-gray-700'}`} 
       >
         <span>{label}</span>
         {isActive && (
@@ -153,11 +153,11 @@ export default function InstructorStudentsPage() {
     );
   };
 
-  const filteredAndSortedStudents = students
-    .filter(filterStudents)
-    .sort(sortStudents);
+  const filteredAndSortedStudents = students //filteredAndSortedStudents için
+    .filter(filterStudents) //filterStudents için
+    .sort(sortStudents); //sortStudents için
 
-  if (loading) {
+  if (loading) { //loading için
     return (
       <div className="container mx-auto p-6 flex justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>

@@ -52,7 +52,7 @@ export default function LessonDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
       <div className="container mx-auto p-6 max-w-7xl">
-        {/* Header */}
+        {/* Başlık */}
         <div className="mb-8">
           <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">
             <div className="flex items-center justify-between">
@@ -75,9 +75,9 @@ export default function LessonDetailPage() {
           </div>
         </div>
 
-        {/* Main Content Grid */}
+        {/* Ana İçerik Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Content Section */}
+          {/* İçerik Bölümü */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-lg border border-indigo-50 overflow-hidden mb-8">
               <div className="p-6 border-b border-gray-100">
@@ -93,7 +93,7 @@ export default function LessonDetailPage() {
               </div>
             </div>
 
-            {/* Documents Section */}
+            {/* Dökümanlar Bölümü */}
             {lesson.documents.length > 0 && (
               <div className="bg-white rounded-2xl shadow-lg border border-indigo-50 overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
@@ -123,7 +123,7 @@ export default function LessonDetailPage() {
             )}
           </div>
 
-          {/* Sidebar */}
+          {/* Sağ Panel */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg border border-indigo-50 overflow-hidden sticky top-6">
               <div className="p-6 border-b border-gray-100">
@@ -132,7 +132,7 @@ export default function LessonDetailPage() {
                 </h2>
               </div>
               <div className="p-6 space-y-4">
-                {/* Quiz Button */}
+                {/* Sınavlar Butonu */}
                 <button 
                   onClick={navigateToQuizzes}
                   className="w-full flex items-center p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-lg hover:shadow-md transition-all duration-300 text-left group"
@@ -146,7 +146,7 @@ export default function LessonDetailPage() {
                   </div>
                 </button>
 
-                {/* Assignments Button */}
+                {/* Ödevler Butonu */}
                 <button 
                   onClick={navigateToAssignments}
                   className="w-full flex items-center p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-lg hover:shadow-md transition-all duration-300 text-left group"
@@ -160,7 +160,7 @@ export default function LessonDetailPage() {
                   </div>
                 </button>
 
-                {/* Instructor only buttons */}
+                {/* Öğretmen sadece görüntüleyebilir */}
                 {user?.role === 'instructor' && (
                   <>
                     <button 

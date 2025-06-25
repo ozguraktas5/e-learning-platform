@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-// Assuming you have an API function to get lessons for a course
-// Adjust the import path and function name if necessary
 import { coursesApi, Lesson } from '@/lib/api/courses'; 
 import { lessonApi } from '@/lib/api/lessons';
 import Link from 'next/link';
@@ -19,35 +17,32 @@ export default function CourseLessonsPage() {
   const router = useRouter();
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
-  const [courseTitle, setCourseTitle] = useState(''); // Optional: To display course title
+  const [courseTitle, setCourseTitle] = useState(''); // Kurs başlığı
 
   const numericCourseId = Number(courseId);
 
   useEffect(() => {
     if (isNaN(numericCourseId)) {
       toast.error('Invalid Course ID');
-      router.push('/courses'); // Redirect if ID is not valid
+      router.push('/courses'); // Kurs sayfasına yönlendir
       return;
     }
 
     const fetchLessonsAndCourse = async () => {
       setLoading(true);
       try {
-        // Fetch course details to get the title (optional)
+        // Kurs detaylarını al
         const courseDetails = await coursesApi.getCourse(numericCourseId);
         setCourseTitle(courseDetails.title);
         
-        // TODO: Implement or verify coursesApi.getCourseLessons(numericCourseId)
-        // This function should fetch lessons for the given course ID
-        // Replace with your actual API call if different
-        // Example: const courseLessons = await someOtherApi.getLessonsByCourse(numericCourseId);
+        // Bu kurs için dersleri al
         const courseLessons = await coursesApi.getCourseLessons(numericCourseId); 
         setLessons(courseLessons);
 
       } catch (error) {
         console.error('Failed to fetch lessons or course:', error);
         toast.error('Failed to load lessons.');
-        // Optionally redirect or show an error message
+        // Hata mesajı göster
       } finally {
         setLoading(false);
       }
@@ -56,23 +51,23 @@ export default function CourseLessonsPage() {
     fetchLessonsAndCourse();
   }, [numericCourseId, router]);
 
-  // Function to handle edit button click
+  // Dersi düzenle
   const handleEditLesson = (lessonId: number) => {
     router.push(`/student/courses/${courseId}/lessons/${lessonId}/edit`);
   };
 
-  // Function to handle delete button click
+  // Dersi sil
   const handleDeleteLesson = async (lessonId: number, lessonTitle: string) => {
-    // Show confirmation dialog
+    // Onay iste
     if (!confirm(`"${lessonTitle}" dersini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
-      return; // User canceled
+      return; // İptal
     }
     
     try {
       await lessonApi.deleteLesson(numericCourseId, lessonId);
       toast.success(`"${lessonTitle}" dersi başarıyla silindi.`);
       
-      // Remove the deleted lesson from the state to update the UI
+      // Silinen dersi state'den kaldır
       setLessons(lessons.filter(lesson => lesson.id !== lessonId));
     } catch (error) {
       console.error('Failed to delete lesson:', error);
@@ -87,7 +82,7 @@ export default function CourseLessonsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Başlık */}
         <div className="mb-8">
           <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">
             <div className="flex items-center justify-between">
@@ -121,7 +116,7 @@ export default function CourseLessonsPage() {
           </div>
         </div>
 
-        {/* Lessons Grid */}
+        {/* Dersler Grid */}
         {lessons.length === 0 ? (
           <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-12 text-center">
             <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -142,7 +137,7 @@ export default function CourseLessonsPage() {
                 key={lesson.id} 
                 className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200"
               >
-                {/* Video/Image Section */}
+                {/* Video/Resim Bölümü */}
                 <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden relative">
                   {lesson.video_url ? (
                     <div className="relative w-full h-full group">
@@ -173,7 +168,7 @@ export default function CourseLessonsPage() {
                   )}
                 </div>
 
-                {/* Card Content */}
+                {/* Karta İçerik */}
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-3">
                     <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
@@ -184,7 +179,7 @@ export default function CourseLessonsPage() {
                     </div>
                   </div>
                   
-                  {/* Content Preview */}
+                  {/* İçerik Ön İzleme */}
                   <div className="mb-4">
                     <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
                       {lesson.content?.length > 120 
@@ -193,7 +188,7 @@ export default function CourseLessonsPage() {
                     </p>
                   </div>
                   
-                  {/* Action Buttons */}
+                  {/* İşlem Butonları */}
                   <div className="flex gap-2 flex-wrap">
                     <Link 
                       href={`/student/courses/${courseId}/lessons/${lesson.id}`}

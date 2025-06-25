@@ -36,14 +36,14 @@ const StarRating: React.FC<StarRatingProps> = ({
   };
 
   const getStarClass = (index: number) => {
-    // Class based on star size
+    // Star boyutuna göre class
     const sizeClass = `w-${size} h-${size}`;
     
-    // Determine whether to show filled or empty star
+    // Puanı göster
     const currentRating = hoverRating || rating;
     const isFilled = index <= currentRating;
     
-    // Return appropriate classes
+    // Puanı göster
     return `inline-block ${sizeClass} ${isFilled ? 'text-yellow-400' : 'text-gray-300'} ${!readOnly ? 'cursor-pointer' : ''}`;
   };
 

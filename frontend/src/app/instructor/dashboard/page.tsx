@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { coursesApi, Course } from '@/lib/api/courses';
-import { instructorsApi } from '@/lib/api/instructors';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import api from '@/lib/axios';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useState, useEffect } from 'react'; // React hooks'ları import eder (state yönetimi ve side effects için)
+import { useRouter } from 'next/navigation'; //useRouter için
+import { coursesApi, Course } from '@/lib/api/courses'; //coursesApi ve Course için
+import { instructorsApi } from '@/lib/api/instructors'; //instructorsApi için
+import { toast } from 'react-hot-toast'; //toast için
+import Link from 'next/link'; //Link için
+import api from '@/lib/axios'; //api için
+import LoadingSpinner from '@/components/ui/LoadingSpinner'; //LoadingSpinner için
 
-interface DashboardStats {
+interface DashboardStats { //DashboardStats için
   totalCourses: number;
   totalStudents: number;
   totalReviews: number;
@@ -18,30 +18,30 @@ interface DashboardStats {
   recentEnrollments: number;
 }
 
-interface CourseBasicInfo extends Course {
+interface CourseBasicInfo extends Course { //CourseBasicInfo için
   student_count: number;
   reviews_count?: number;
   average_rating?: number;
   completion_rate?: number;
 }
 
-export default function InstructorDashboard() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [courses, setCourses] = useState<CourseBasicInfo[]>([]);
+export default function InstructorDashboard() { 
+  const router = useRouter(); //useRouter için
+  const [loading, setLoading] = useState(true); //loading için
+  const [error, setError] = useState<string | null>(null); //error için
+  const [stats, setStats] = useState<DashboardStats | null>(null); //stats için
+  const [courses, setCourses] = useState<CourseBasicInfo[]>([]); //courses için
 
-  useEffect(() => {
-    async function fetchDashboardData() {
+  useEffect(() => { //useEffect için
+    async function fetchDashboardData() { //fetchDashboardData için
       try {
-        setLoading(true);
+        setLoading(true); //loading için
         
         // Eğitmen kurslarını al
-        const coursesResponse = await coursesApi.getAllCourses();
+        const coursesResponse = await coursesApi.getAllCourses(); //coursesResponse için
         
         // Öğrenci istatistiklerini al
-        const studentStats = await instructorsApi.getStudentStats();
+        const studentStats = await instructorsApi.getStudentStats(); //studentStats için
         
         // Kurs değerlendirmelerini ve bilgilerini al
         const coursesWithDetails = await Promise.all(
@@ -54,7 +54,7 @@ export default function InstructorDashboard() {
               return {
                 ...course,
                 student_count: 0, // Öğrenci sayısı istatistiklerden alınacak
-                reviews_count: reviewsData.total_reviews || 0,
+                reviews_count: reviewsData.total_reviews || 0, 
                 average_rating: reviewsData.average_rating || 0,
                 completion_rate: 0 // Tamamlanma oranı istatistiklerden alınacak
               };
@@ -71,16 +71,16 @@ export default function InstructorDashboard() {
           })
         );
         
-        setCourses(coursesWithDetails);
+        setCourses(coursesWithDetails); //coursesWithDetails için
         
         // İstatistikleri hesapla
-        if (coursesWithDetails.length > 0 && studentStats) {
+        if (coursesWithDetails.length > 0 && studentStats) { //coursesWithDetails.length > 0 && studentStats için
           // Değerlendirmelerin toplamını hesapla
-          const totalReviews = coursesWithDetails.reduce((sum, course) => sum + (course.reviews_count || 0), 0);
+          const totalReviews = coursesWithDetails.reduce((sum, course) => sum + (course.reviews_count || 0), 0); //totalReviews için
           
           // Kursların ortalama puanını hesapla
           const totalRating = coursesWithDetails.reduce((sum, course) => sum + (course.average_rating || 0), 0);
-          const averageRating = totalRating / coursesWithDetails.length || 0;
+          const averageRating = totalRating / coursesWithDetails.length || 0; 
           
           setStats({
             totalCourses: coursesWithDetails.length,
@@ -103,7 +103,7 @@ export default function InstructorDashboard() {
     fetchDashboardData();
   }, []);
   
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string) => { //formatDate için
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('tr-TR', { 
       year: 'numeric', 
@@ -113,17 +113,17 @@ export default function InstructorDashboard() {
   };
 
   if (loading) {
-    return <LoadingSpinner fullScreen size="large" />;
+    return <LoadingSpinner fullScreen size="large" />; //LoadingSpinner için
   }
 
   if (error) {
-    return (
+    return ( //error için
       <div className="p-6">
         <div className="bg-red-50 p-4 rounded-md text-red-800">
           <h3 className="font-medium text-xl">Hata</h3>
           <p className="mt-2">{error}</p>
           <button 
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/')} //router.push için
             className="mt-4 text-blue-600 hover:underline"
           >
             Ana Sayfaya Dön

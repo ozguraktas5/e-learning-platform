@@ -1,101 +1,101 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { assignmentsApi, Assignment } from '@/lib/api/assignments';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { ArrowLeft, ClipboardList, Clock, Award, Send, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react'; //useState, useEffect için
+import { useParams, useRouter } from 'next/navigation'; //useParams, useRouter için
+import { useForm } from 'react-hook-form'; //useForm için
+import { assignmentsApi, Assignment } from '@/lib/api/assignments'; //assignmentsApi, Assignment için
+import { toast } from 'react-hot-toast'; //toast için
+import Link from 'next/link'; //Link için
+import LoadingSpinner from '@/components/ui/LoadingSpinner'; //LoadingSpinner için
+import { ArrowLeft, ClipboardList, Clock, Award, Send, AlertTriangle } from 'lucide-react'; //ArrowLeft, ClipboardList, Clock, Award, Send, AlertTriangle için
 
-interface FormValues {
-  text: string;
+interface FormValues { //FormValues için
+  text: string; //text için
 }
 
-export default function SubmitAssignmentPage() {
-  const { courseId, lessonId, assignmentId } = useParams();
-  const router = useRouter();
-  const [assignment, setAssignment] = useState<Assignment | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function SubmitAssignmentPage() { //SubmitAssignmentPage için
+  const { courseId, lessonId, assignmentId } = useParams(); //courseId, lessonId, assignmentId için
+  const router = useRouter(); //router için
+  const [assignment, setAssignment] = useState<Assignment | null>(null); //assignment için
+  const [loading, setLoading] = useState(true); //loading için
+  const [submitting, setSubmitting] = useState(false); //submitting için
+  const [error, setError] = useState<string | null>(null); //error için
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
-    defaultValues: {
-      text: ''
+  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({ //register, handleSubmit, formState: { errors } için
+    defaultValues: { //defaultValues için
+      text: '' //text için
     }
-  });
+  }); //useForm için
 
-  useEffect(() => {
-    async function fetchAssignment() {
-      try {
-        setLoading(true);
-        const data = await assignmentsApi.getAssignment(
+  useEffect(() => { //useEffect için
+    async function fetchAssignment() { //fetchAssignment için
+      try { //try için
+        setLoading(true); //setLoading için
+        const data = await assignmentsApi.getAssignment( //data için
           Number(courseId),
           Number(lessonId),
           Number(assignmentId)
         );
-        setAssignment(data);
+        setAssignment(data); //setAssignment için
         
         // Son teslim tarihini kontrol et
-        if (new Date(data.due_date) < new Date()) {
+        if (new Date(data.due_date) < new Date()) { //new Date(data.due_date) < new Date() için
           setError('Bu ödevin son teslim tarihi geçmiştir.');
         }
-      } catch (err) {
-        console.error('Error fetching assignment:', err);
-        setError('Ödev bilgileri yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
+      } catch (err) { //err için
+        console.error('Error fetching assignment:', err); //console.error için
+        setError('Ödev bilgileri yüklenirken bir hata oluştu.'); //setError için
+      } finally { //finally için
+        setLoading(false); //setLoading için
       }
     }
 
-    fetchAssignment();
-  }, [courseId, lessonId, assignmentId]);
+    fetchAssignment(); //fetchAssignment için
+  }, [courseId, lessonId, assignmentId]); //courseId, lessonId, assignmentId için
 
-  const onSubmit = async (data: FormValues) => {
-    try {
+  const onSubmit = async (data: FormValues) => { //onSubmit için
+    try { //try için
       // Son teslim tarihini kontrol et
-      if (assignment && new Date(assignment.due_date) < new Date()) {
-        toast.error('Bu ödevin son teslim tarihi geçmiştir.');
-        return;
+      if (assignment && new Date(assignment.due_date) < new Date()) { //assignment ve new Date(assignment.due_date) < new Date() için
+        toast.error('Bu ödevin son teslim tarihi geçmiştir.'); //toast.error için
+        return; //return için
       }
 
-      setSubmitting(true);
-      await assignmentsApi.submitAssignment(
+      setSubmitting(true); //setSubmitting için
+      await assignmentsApi.submitAssignment( //assignmentsApi.submitAssignment için
         Number(courseId),
         Number(lessonId),
         Number(assignmentId),
-        { text: data.text }
+        { text: data.text } //text için
       );
       
-      toast.success('Ödev başarıyla teslim edildi!');
-      router.push(`/student/courses/${courseId}/lessons/${lessonId}/assignments`);
-    } catch (err) {
-      console.error('Error submitting assignment:', err);
-      toast.error('Ödev gönderilirken bir hata oluştu. Lütfen tekrar deneyin.');
-    } finally {
-      setSubmitting(false);
+      toast.success('Ödev başarıyla teslim edildi!'); //toast.success için
+      router.push(`/student/courses/${courseId}/lessons/${lessonId}/assignments`); //router.push için
+    } catch (err) { //err için
+      console.error('Error submitting assignment:', err); //console.error için
+      toast.error('Ödev gönderilirken bir hata oluştu. Lütfen tekrar deneyin.'); //toast.error için
+    } finally { //finally için
+      setSubmitting(false); //setSubmitting için
     }
   };
 
   // Tarih formatını düzenleyen yardımcı fonksiyon
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('tr-TR', {
+  const formatDate = (dateString: string) => { //formatDate için
+    const date = new Date(dateString); //date için
+    return new Intl.DateTimeFormat('tr-TR', { //Intl.DateTimeFormat için
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     }).format(date);
-  };
+  }; 
 
-  if (loading) {
-    return <LoadingSpinner size="large" fullScreen />;
+  if (loading) { //loading için
+    return <LoadingSpinner size="large" fullScreen />; //LoadingSpinner için
   }
 
-  if (error || !assignment) {
+  if (error || !assignment) { //error veya assignment için
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
         <div className="max-w-7xl mx-auto px-4 py-8">

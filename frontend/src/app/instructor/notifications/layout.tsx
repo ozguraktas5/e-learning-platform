@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: "Eğitmen Bildirimleri",
+export const metadata: Metadata = { //metadata için
+  title: "Eğitmen Bildirimleri", 
   description: "E-learning platformu eğitmen bildirim listesi",
 };
 
-export default function InstructorNotificationsLayout({
-  children,
-}: {
-  children: React.ReactNode;
+export default function InstructorNotificationsLayout({ //InstructorNotificationsLayout için
+  children, //children için
+}: { //children için
+  children: React.ReactNode; //children için
 }) {
-  return children;
+  return children; //children için
 } 

@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from 'next/link'; 
 import Image from 'next/image';
 import { Course } from '@/lib/api/courses';
 import { getImageUrl } from '@/lib/axios';

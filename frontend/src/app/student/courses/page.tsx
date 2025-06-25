@@ -105,7 +105,7 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
       <div className="max-w-7xl mx-auto p-8">
-        {/* Header */}
+        {/* Başlık */}
         <div className="mb-10 relative">
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-200/30 via-purple-100/20 to-pink-200/30 rounded-3xl blur-2xl"></div>
           <div className="p-8 rounded-2xl backdrop-blur-sm bg-white/70 border border-indigo-100/50 shadow-xl">
@@ -236,7 +236,7 @@ export default function CoursesPage() {
                     </span>
                   </div>
                   
-                  {/* Rating Badge */}
+                  {/* Puan Badge */}
                   {course.average_rating && course.average_rating > 0 && (
                     <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
                       <Star className="h-3 w-3 text-yellow-500 fill-current" />
@@ -246,7 +246,7 @@ export default function CoursesPage() {
                     </div>
                   )}
                   
-                  {/* Level Badge */}
+                  {/* Seviye Badge */}
                   <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1">
                     <span className="text-xs font-medium text-gray-800">
                       {translateLevelToTurkish(course.level)}

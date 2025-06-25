@@ -10,8 +10,8 @@ import { reviewsApi, Review, ReplyData } from '@/lib/api/reviews';
 import { useAuth } from '@/hooks/useAuth';
 import StarRating from '@/components/StarRating';
 
-export default function ReviewReplyPage() {
-  const { courseId, reviewId } = useParams();
+export default function ReviewReplyPage() { 
+  const { courseId, reviewId } = useParams(); 
   const router = useRouter();
   const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);

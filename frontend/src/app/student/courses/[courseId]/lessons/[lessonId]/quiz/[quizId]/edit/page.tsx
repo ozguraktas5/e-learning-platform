@@ -1,67 +1,67 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { quizApi, ApiErrorResponse } from '@/lib/api/quiz';
-import { Quiz, QuizQuestion } from '@/types/quiz';
+import { useState, useEffect } from 'react'; //useState, useEffect için
+import { useParams, useRouter } from 'next/navigation'; //useParams, useRouter için
+import { useForm } from 'react-hook-form'; //useForm için
+import { zodResolver } from '@hookform/resolvers/zod'; //zodResolver için
+import { z } from 'zod'; //z için
+import { quizApi, ApiErrorResponse } from '@/lib/api/quiz'; //quizApi, ApiErrorResponse için
+import { Quiz, QuizQuestion } from '@/types/quiz'; //Quiz, QuizQuestion için
 
-interface QuizFormValues {
-  title: string;
-  description: string;
-  time_limit: number | null;
-  passing_score: number;
-  questions: {
-    question_text: string;
-    points: number;
-    options: {
-      option_text: string;
-      is_correct: boolean;
+interface QuizFormValues { //QuizFormValues için
+  title: string; //title için
+  description: string; //description için
+  time_limit: number | null; //time_limit için
+  passing_score: number; //passing_score için
+  questions: { //questions için
+    question_text: string; //question_text için
+    points: number; //points için
+    options: { //options için
+      option_text: string; //option_text için
+      is_correct: boolean; //is_correct için
     }[];
   }[];
-}
+} //QuizFormValues için
 
-const quizSchema = z.object({
-  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
-  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),
+const quizSchema = z.object({ //quizSchema için
+  title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'), //title için
+  description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'), //description için
   time_limit: z.preprocess(
-    // Convert empty string to null
-    val => val === '' ? null : Number(val),
+    // Boş stringi null olarak dön
+    val => val === '' ? null : Number(val), //val için
     z.number().nullable()
   ),
-  passing_score: z.number().min(0).max(100),
-  questions: z.array(z.object({
-    question_text: z.string().min(1, 'Soru metni gereklidir'),
-    points: z.number().min(1, 'Puan 1 veya daha büyük olmalıdır'),
-    options: z.array(z.object({
-      option_text: z.string().min(1, 'Seçenek metni gereklidir'),
-      is_correct: z.boolean()
-    })).min(2, 'En az 2 seçenek gereklidir')
-  })).min(1, 'En az 1 soru gereklidir')
-});
+  passing_score: z.number().min(0).max(100), //passing_score için
+  questions: z.array(z.object({ //questions için
+    question_text: z.string().min(1, 'Soru metni gereklidir'), //question_text için
+    points: z.number().min(1, 'Puan 1 veya daha büyük olmalıdır'), //points için
+    options: z.array(z.object({ //options için
+      option_text: z.string().min(1, 'Seçenek metni gereklidir'), //option_text için
+      is_correct: z.boolean() //is_correct için
+    })).min(2, 'En az 2 seçenek gereklidir') //min için
+  })).min(1, 'En az 1 soru gereklidir') //min için
+}); //quizSchema için
 
-export default function EditQuizPage() {
-  const { courseId, lessonId, quizId } = useParams();
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [fetchingQuiz, setFetchingQuiz] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [quizNotFound, setQuizNotFound] = useState(false);
+export default function EditQuizPage() { //EditQuizPage için
+  const { courseId, lessonId, quizId } = useParams(); //courseId, lessonId, quizId için
+  const router = useRouter(); //router için
+  const [loading, setLoading] = useState(false); //loading için
+  const [fetchingQuiz, setFetchingQuiz] = useState(true); //fetchingQuiz için
+  const [error, setError] = useState<string | null>(null); //error için
+  const [quizNotFound, setQuizNotFound] = useState(false); //quizNotFound için
 
-  const { register, handleSubmit, formState: { errors }, watch, setValue, reset } = useForm<QuizFormValues>({
-    resolver: zodResolver(quizSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      time_limit: null,
-      passing_score: 60,
-      questions: [{ 
-        question_text: '',
-        points: 10,
-        options: [
-          { option_text: '', is_correct: false },
+  const { register, handleSubmit, formState: { errors }, watch, setValue, reset } = useForm<QuizFormValues>({ //register, handleSubmit, formState: { errors }, watch, setValue, reset için
+    resolver: zodResolver(quizSchema), //zodResolver için
+    defaultValues: { //defaultValues için
+      title: '', //title için
+      description: '', //description için
+      time_limit: null, //time_limit için
+      passing_score: 60, //passing_score için
+      questions: [{ //questions için
+        question_text: '', //question_text için
+        points: 10, //points için
+        options: [ //options için
+          { option_text: '', is_correct: false }, 
           { option_text: '', is_correct: false },
           { option_text: '', is_correct: false },
           { option_text: '', is_correct: false }
@@ -106,19 +106,19 @@ export default function EditQuizPage() {
           }))
         };
         
-        reset(formData);
-      } catch (err) {
-        console.error('Error fetching quiz:', err);
-        setError('Quiz yüklenirken bir hata oluştu');
-      } finally {
-        setFetchingQuiz(false);
+        reset(formData); //reset için
+      } catch (err) { //err için
+        console.error('Error fetching quiz:', err); //console.error için
+        setError('Quiz yüklenirken bir hata oluştu'); //setError için
+      } finally { //finally için
+        setFetchingQuiz(false); //setFetchingQuiz için
       }
-    };
+    }; //fetchQuizData için
 
-    fetchQuizData();
-  }, [courseId, lessonId, quizId, reset]);
+    fetchQuizData(); //fetchQuizData için
+  }, [courseId, lessonId, quizId, reset]); //courseId, lessonId, quizId, reset için
 
-  const questions = watch('questions');
+  const questions = watch('questions'); //questions için
 
   const addQuestion = () => {
     setValue('questions', [...questions, { 
@@ -133,16 +133,16 @@ export default function EditQuizPage() {
     }]);
   };
 
-  const removeQuestion = (index: number) => {
-    const newQuestions = questions.filter((_, i) => i !== index);
-    setValue('questions', newQuestions);
-  };
+  const removeQuestion = (index: number) => { //removeQuestion için
+    const newQuestions = questions.filter((_, i) => i !== index); //questions.filter için
+    setValue('questions', newQuestions); //setValue için
+  }; //removeQuestion için
 
-  const onSubmit = async (data: QuizFormValues) => {
-    try {
-      setLoading(true);
+  const onSubmit = async (data: QuizFormValues) => { //onSubmit için
+    try { //try için
+      setLoading(true); //setLoading için
       
-      // Transform the data to match the backend API expectations
+      // Backend API beklediği formatta veri dönüştürme
       const transformedData = {
         ...data,
         questions: data.questions.map(question => ({

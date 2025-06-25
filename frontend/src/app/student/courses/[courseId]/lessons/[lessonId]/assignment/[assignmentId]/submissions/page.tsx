@@ -1,101 +1,101 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { assignmentsApi, Assignment, AssignmentSubmission } from '@/lib/api/assignments';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
+import { useState, useEffect } from 'react'; //useState, useEffect için
+import { useParams, useRouter } from 'next/navigation'; //useParams, useRouter için
+import { assignmentsApi, Assignment, AssignmentSubmission } from '@/lib/api/assignments'; //assignmentsApi, Assignment, AssignmentSubmission için
+import { useAuth } from '@/hooks/useAuth'; //useAuth için
+import { toast } from 'react-hot-toast'; //toast için
+import Link from 'next/link'; //Link için
 
-export default function AssignmentSubmissionsPage() {
-  const { courseId, lessonId, assignmentId } = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
+export default function AssignmentSubmissionsPage() { //AssignmentSubmissionsPage için
+  const { courseId, lessonId, assignmentId } = useParams(); //courseId, lessonId, assignmentId için
+  const router = useRouter(); //router için
+  const { user } = useAuth(); //user için
   
-  const [assignment, setAssignment] = useState<Assignment | null>(null);
-  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedSubmission, setSelectedSubmission] = useState<AssignmentSubmission | null>(null);
-  const [feedback, setFeedback] = useState('');
-  const [grade, setGrade] = useState<number>(0);
-  const [submitting, setSubmitting] = useState(false);
+  const [assignment, setAssignment] = useState<Assignment | null>(null); //assignment için
+  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]); //submissions için
+  const [loading, setLoading] = useState(true); //loading için
+  const [error, setError] = useState<string | null>(null); //error için
+  const [selectedSubmission, setSelectedSubmission] = useState<AssignmentSubmission | null>(null); //selectedSubmission için
+  const [feedback, setFeedback] = useState(''); //feedback için
+  const [grade, setGrade] = useState<number>(0); //grade için
+  const [submitting, setSubmitting] = useState(false); //submitting için
 
-  useEffect(() => {
+  useEffect(() => { //useEffect için
     // Eğitmen kontrolü
-    if (user && user.role !== 'instructor') {
-      toast.error('Bu sayfayı görüntüleme yetkiniz yok');
-      router.push(`/courses/${courseId}/lessons/${lessonId}`);
-      return;
+    if (user && user.role !== 'instructor') { //user ve user.role !== 'instructor' için
+      toast.error('Bu sayfayı görüntüleme yetkiniz yok'); //toast.error için
+      router.push(`/courses/${courseId}/lessons/${lessonId}`); //router.push için
+      return; //return için
     }
 
-    async function fetchData() {
-      try {
-        setLoading(true);
+    async function fetchData() { //fetchData için
+      try { //try için
+        setLoading(true); //setLoading için
         
         // Ödev bilgilerini al
-        const assignmentData = await assignmentsApi.getAssignment(
-          Number(courseId),
-          Number(lessonId),
-          Number(assignmentId)
+        const assignmentData = await assignmentsApi.getAssignment( //assignmentData için
+          Number(courseId), //courseId için
+          Number(lessonId), //lessonId için
+          Number(assignmentId) //assignmentId için
         );
-        setAssignment(assignmentData);
+        setAssignment(assignmentData); //setAssignment için
         
         // Ödev gönderimlerini al
-        const submissionsData = await assignmentsApi.getAssignmentSubmissions(
+        const submissionsData = await assignmentsApi.getAssignmentSubmissions( //submissionsData için
           Number(courseId),
           Number(lessonId),
           Number(assignmentId)
         );
-        setSubmissions(submissionsData);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Veriler yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
+        setSubmissions(submissionsData); //setSubmissions için
+      } catch (err) { //err için
+        console.error('Error fetching data:', err); //console.error için
+        setError('Veriler yüklenirken bir hata oluştu.'); //setError için
+      } finally { //finally için
+        setLoading(false); //setLoading için
       }
     }
 
-    fetchData();
-  }, [courseId, lessonId, assignmentId, router, user]);
+    fetchData(); //fetchData için
+  }, [courseId, lessonId, assignmentId, router, user]); //courseId, lessonId, assignmentId, router, user için
 
   // Tarih formatını düzenleyen yardımcı fonksiyon
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "Tarih yok";
+  const formatDate = (dateString: string) => { //formatDate için
+    if (!dateString) return "Tarih yok"; //dateString için
     
-    try {
-      const date = new Date(dateString);
-      // Check if the date is valid
-      if (isNaN(date.getTime())) {
-        return "Geçersiz tarih";
+    try { //try için
+      const date = new Date(dateString); //date için
+      // Tarihin geçerli olup olmadığını kontrol ediyoruz
+      if (isNaN(date.getTime())) { //isNaN(date.getTime()) için
+        return "Geçersiz tarih"; //Geçersiz tarih için
       }
       
-      return new Intl.DateTimeFormat('tr-TR', {
+      return new Intl.DateTimeFormat('tr-TR', { //Intl.DateTimeFormat için
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       }).format(date);
-    } catch (error) {
-      console.error("Date formatting error:", error);
-      return "Geçersiz tarih";
+    } catch (error) { //error için
+      console.error("Date formatting error:", error); //console.error için
+      return "Geçersiz tarih"; //Geçersiz tarih için
     }
   };
 
-  const handleSubmissionSelect = (submission: AssignmentSubmission) => {
-    setSelectedSubmission(submission);
-    setGrade(submission.grade || 0);
-    setFeedback(submission.feedback || '');
+  const handleSubmissionSelect = (submission: AssignmentSubmission) => { //handleSubmissionSelect için
+    setSelectedSubmission(submission); //setSelectedSubmission için
+    setGrade(submission.grade || 0); //setGrade için
+    setFeedback(submission.feedback || ''); //setFeedback için
   };
 
-  const handleGradeSubmit = async () => {
-    if (!selectedSubmission) return;
+  const handleGradeSubmit = async () => { //handleGradeSubmit için
+    if (!selectedSubmission) return; //selectedSubmission için
     
-    try {
-      setSubmitting(true);
+    try { //try için
+      setSubmitting(true); //setSubmitting için
       
-      const result = await assignmentsApi.gradeSubmission(
+      const result = await assignmentsApi.gradeSubmission( //result için
         Number(courseId),
         Number(lessonId),
         Number(assignmentId),
@@ -107,21 +107,21 @@ export default function AssignmentSubmissionsPage() {
       );
       
       // Değerlendirilen ödevi güncelle
-      setSubmissions(prev => prev.map(sub => 
-        sub.id === selectedSubmission.id ? result.submission : sub
+      setSubmissions(prev => prev.map(sub => //setSubmissions için
+        sub.id === selectedSubmission.id ? result.submission : sub //sub.id === selectedSubmission.id ? result.submission : sub için
       ));
       
-      setSelectedSubmission(result.submission);
-      toast.success('Ödev başarıyla değerlendirildi!');
-    } catch (err) {
-      console.error('Error grading submission:', err);
-      toast.error('Ödev değerlendirilirken bir hata oluştu.');
-    } finally {
-      setSubmitting(false);
+      setSelectedSubmission(result.submission); //setSelectedSubmission için
+      toast.success('Ödev başarıyla değerlendirildi!'); //toast.success için
+    } catch (err) { //err için
+      console.error('Error grading submission:', err); //console.error için
+      toast.error('Ödev değerlendirilirken bir hata oluştu.'); //toast.error için
+    } finally { //finally için
+      setSubmitting(false); //setSubmitting için
     }
   };
 
-  if (loading) {
+  if (loading) { //loading için
     return (
       <div className="p-6 flex justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>

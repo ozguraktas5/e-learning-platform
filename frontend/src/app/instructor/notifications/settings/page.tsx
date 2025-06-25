@@ -1,10 +1,10 @@
 'use client';
 
-import NotificationSettings from "@/components/notifications/NotificationSettings";
-import { PageHeader } from "@/components/ui/page-header";
-import { Settings } from "lucide-react";
+import NotificationSettings from "@/components/notifications/NotificationSettings"; //NotificationSettings için
+import { PageHeader } from "@/components/ui/page-header"; //PageHeader için
+import { Settings } from "lucide-react"; //Settings için
 
-export default function InstructorNotificationSettingsPage() {
+export default function InstructorNotificationSettingsPage() { //InstructorNotificationSettingsPage için
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">

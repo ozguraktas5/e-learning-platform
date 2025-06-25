@@ -77,7 +77,7 @@ export default function CreateLessonPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Başlık */}
         <div className="mb-8">
           <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-6">
             <div className="flex items-center justify-between">
@@ -100,7 +100,7 @@ export default function CreateLessonPage() {
           </div>
         </div>
 
-        {/* Error Message */}
+        {/* Hata Mesajı */}
         {error && (
           <div className="mb-6">
             <div className="backdrop-blur-sm bg-red-50/90 border border-red-200 rounded-2xl p-4 shadow-lg">
@@ -115,7 +115,7 @@ export default function CreateLessonPage() {
         {/* Form */}
         <div className="backdrop-blur-sm bg-white/90 rounded-2xl shadow-lg border border-indigo-100 p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Title Field */}
+            {/* Başlık Alanı */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Ders Başlığı *
@@ -134,7 +134,7 @@ export default function CreateLessonPage() {
               )}
             </div>
 
-            {/* Content Field */}
+            {/* İçerik Alanı */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Ders İçeriği *
@@ -153,7 +153,7 @@ export default function CreateLessonPage() {
               )}
             </div>
 
-            {/* Order Field */}
+            {/* Sıra Numarası Alanı */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Sıra Numarası *
@@ -173,7 +173,7 @@ export default function CreateLessonPage() {
               )}
             </div>
 
-            {/* Video Upload Field */}
+            {/* Video Yükleme Alanı */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Video Dosyası (İsteğe bağlı)
@@ -215,7 +215,7 @@ export default function CreateLessonPage() {
               )}
             </div>
 
-            {/* Action Buttons */}
+            {/* İşlem Butonları */}
             <div className="flex gap-4 pt-6 border-t border-gray-200">
               <button
                 type="submit"

@@ -1,17 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import Link from 'next/link';
-import { toast } from 'react-toastify';
-import { profileApi } from '@/lib/api/profile';
-import { useAuth } from '@/hooks/useAuth';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useEffect, useState } from 'react'; //useEffect ve useState için
+import { useRouter } from 'next/navigation'; //useRouter için
+import { useForm } from 'react-hook-form'; //useForm için
+import { z } from 'zod'; //z için
+import { zodResolver } from '@hookform/resolvers/zod'; //zodResolver için
+import Link from 'next/link'; //Link için
+import { toast } from 'react-toastify'; //toast için
+import { profileApi } from '@/lib/api/profile'; //profileApi için
+import { useAuth } from '@/hooks/useAuth'; //useAuth için
+import LoadingSpinner from '@/components/ui/LoadingSpinner'; //LoadingSpinner için
 
-const instructorProfileSchema = z.object({
+const instructorProfileSchema = z.object({ //instructorProfileSchema için
   username: z.string().min(1, 'Kullanıcı adı boş olamaz'),
   email: z.string().email('Geçerli e-posta giriniz'),
   bio: z.string().optional(),
@@ -23,77 +23,77 @@ const instructorProfileSchema = z.object({
   }).optional(),
 });
 
-type InstructorProfileForm = z.infer<typeof instructorProfileSchema>;
+type InstructorProfileForm = z.infer<typeof instructorProfileSchema>; //InstructorProfileForm için
 
-export default function InstructorProfilePage() {
-  const router = useRouter();
-  const { user, loading } = useAuth();
-  const [loadingData, setLoadingData] = useState(true);
-  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<InstructorProfileForm>({
-    resolver: zodResolver(instructorProfileSchema),
-    defaultValues: {
-      username: '',
-      email: '',
-      bio: '',
-      expertise: '',
-      socialMediaLinks: {
-        website: '',
-        linkedin: '',
-        twitter: '',
+export default function InstructorProfilePage() { //InstructorProfilePage için
+  const router = useRouter(); //router için
+  const { user, loading } = useAuth(); //user ve loading için
+  const [loadingData, setLoadingData] = useState(true); //loadingData için
+  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<InstructorProfileForm>({ //register, handleSubmit, reset, formState: { errors, isDirty } için
+    resolver: zodResolver(instructorProfileSchema), //zodResolver için
+    defaultValues: { //defaultValues için
+      username: '', //username için
+      email: '', //email için
+      bio: '', //bio için
+      expertise: '', //expertise için
+      socialMediaLinks: { //socialMediaLinks için
+        website: '', //website için
+        linkedin: '', //linkedin için
+        twitter: '', //twitter için
       }
     },
   });
 
-  useEffect(() => {
-    if (loading) return;
+  useEffect(() => { //useEffect için 
+    if (loading) return; //loading için
     
-    if (!user) {
-      router.push('/login');
-      return;
+    if (!user) { //user için
+      router.push('/login'); //router.push için
+      return; //return için
     }
     
     // Eğitmen değilse öğrenci profil sayfasına yönlendir
-    if (user.role !== 'instructor') {
-      router.push('/profile');
-      return;
+    if (user.role !== 'instructor') { //user.role !== 'instructor' için
+      router.push('/profile'); //router.push için
+      return; //return için
     }
     
-    profileApi.getInstructorProfile()
-      .then((data) => reset({
-        username: data.username,
-        email: data.email,
-        bio: data.bio || '',
-        expertise: data.expertise || '',
-        socialMediaLinks: {
-          website: data.socialMediaLinks?.website || '',
-          linkedin: data.socialMediaLinks?.linkedin || '',
-          twitter: data.socialMediaLinks?.twitter || '',
+    profileApi.getInstructorProfile() //profileApi.getInstructorProfile için
+      .then((data) => reset({ //reset için
+        username: data.username, //username için
+        email: data.email, //email için
+        bio: data.bio || '', //bio için
+        expertise: data.expertise || '', //expertise için
+        socialMediaLinks: { //socialMediaLinks için
+          website: data.socialMediaLinks?.website || '', //website için
+          linkedin: data.socialMediaLinks?.linkedin || '', //linkedin için
+          twitter: data.socialMediaLinks?.twitter || '', //twitter için
         }
       }))
-      .catch((err) => {
-        console.error(err);
-        toast.error('Profil bilgileri yüklenirken hata oluştu');
+      .catch((err) => { //err için
+        console.error(err); //console.error için
+        toast.error('Profil bilgileri yüklenirken hata oluştu'); //toast.error için
       })
-      .finally(() => setLoadingData(false));
-  }, [loading, user, reset, router]);
+      .finally(() => setLoadingData(false)); //setLoadingData için
+  }, [loading, user, reset, router]); //loading, user, reset, router için
 
-  const onSubmit = async (data: InstructorProfileForm) => {
+  const onSubmit = async (data: InstructorProfileForm) => { //onSubmit için
     try {
-      const res = await profileApi.updateInstructorProfile(data);
-      toast.success(res.message || 'Profil başarıyla güncellendi');
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      const msg = err.response?.data?.message ?? 'Profil güncellenemedi';
-      toast.error(msg);
+      const res = await profileApi.updateInstructorProfile(data); //res için 
+      toast.success(res.message || 'Profil başarıyla güncellendi'); //toast.success için
+    } catch (error: unknown) { //error için
+      const err = error as { response?: { data?: { message?: string } } }; //err için
+      const msg = err.response?.data?.message ?? 'Profil güncellenemedi'; //msg için
+      toast.error(msg); //toast.error için
     }
   };
 
-  if (loading || loadingData) {
-    return <LoadingSpinner size="medium" fullScreen />;
+  if (loading || loadingData) { //loading ve loadingData için
+    return <LoadingSpinner size="medium" fullScreen />; //LoadingSpinner için
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4">
+    <div className="max-w-7xl mx-auto p-4"> 
       <h1 className="text-2xl font-bold mb-4">Eğitmen Profilim</h1>
       
       <div className="mb-6 flex space-x-4">

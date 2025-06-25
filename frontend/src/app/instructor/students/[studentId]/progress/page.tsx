@@ -1,64 +1,64 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { instructorsApi, StudentProgress } from '@/lib/api/instructors';
+import { useState, useEffect } from 'react'; //useState ve useEffect için
+import { useParams } from 'next/navigation'; //useParams için
+import { toast } from 'react-hot-toast'; //toast için
+import Link from 'next/link'; //Link için
+import LoadingSpinner from '@/components/ui/LoadingSpinner'; //LoadingSpinner için
+import { instructorsApi, StudentProgress } from '@/lib/api/instructors'; //instructorsApi ve StudentProgress için
 
-export default function StudentProgressPage() {
-  const { studentId } = useParams();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [student, setStudent] = useState<StudentProgress | null>(null);
+export default function StudentProgressPage() { //StudentProgressPage için
+  const { studentId } = useParams(); //studentId için
+  const [loading, setLoading] = useState(true); //loading için
+  const [error, setError] = useState<string | null>(null); //error için
+  const [student, setStudent] = useState<StudentProgress | null>(null); //student için
 
-  useEffect(() => {
-    async function fetchStudentProgress() {
+  useEffect(() => { //useEffect için
+    async function fetchStudentProgress() { //fetchStudentProgress için
       try {
-        setLoading(true);
-        setError(null);
-        const data = await instructorsApi.getStudentProgress(Number(studentId));
+        setLoading(true); //setLoading için
+        setError(null); //setError için
+        const data = await instructorsApi.getStudentProgress(Number(studentId)); //data için
         
         // API'den gelen verinin doğruluğunu kontrol et
         if (!data) {
           throw new Error('Öğrenci bilgileri alınamadı');
         }
         
-        if (!data.name || !data.email) {
+        if (!data.name || !data.email) { //data.name ve data.email için
           throw new Error('Öğrenci bilgileri eksik');
         }
         
-        if (!Array.isArray(data.courses) || data.courses.length === 0) {
+        if (!Array.isArray(data.courses) || data.courses.length === 0) { //data.courses için
           throw new Error('Öğrencinin kayıtlı olduğu kurs bulunamadı');
         }
         
-        setStudent(data);
-      } catch (error: unknown) {
-        console.error('Error fetching student progress:', error);
+        setStudent(data); //setStudent için
+      } catch (error: unknown) { //error için
+        console.error('Error fetching student progress:', error); //console.error için
         // API'den gelen hata mesajını kullan veya varsayılan mesajı göster
-        let errorMessage = 'Öğrenci bilgileri yüklenirken bir hata oluştu';
+        let errorMessage = 'Öğrenci bilgileri yüklenirken bir hata oluştu'; //errorMessage için
         
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        } else if (typeof error === 'object' && error !== null && 'response' in error) {
-          const axiosError = error as { response?: { data?: { error?: string } } };
-          errorMessage = axiosError.response?.data?.error || errorMessage;
+        if (error instanceof Error) { //error instanceof Error için
+          errorMessage = error.message; //errorMessage için
+        } else if (typeof error === 'object' && error !== null && 'response' in error) { //typeof error === 'object' && error !== null && 'response' in error için
+          const axiosError = error as { response?: { data?: { error?: string } } }; //axiosError için
+          errorMessage = axiosError.response?.data?.error || errorMessage; //errorMessage için
         }
         
-        setError(errorMessage);
-        toast.error(errorMessage);
-      } finally {
-        setLoading(false);
+        setError(errorMessage); //setError için
+        toast.error(errorMessage); //toast.error için
+      } finally { //finally için
+        setLoading(false); //setLoading için
       }
     }
 
-    if (studentId) {
-      fetchStudentProgress();
+    if (studentId) { //studentId için
+      fetchStudentProgress(); //fetchStudentProgress için
     }
-  }, [studentId]);
+  }, [studentId]); //studentId için
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string) => { //formatDate için
     return new Date(dateString).toLocaleDateString('tr-TR', {
       year: 'numeric',
       month: 'long',
@@ -68,11 +68,11 @@ export default function StudentProgressPage() {
     });
   };
 
-  if (loading) {
-    return <LoadingSpinner fullScreen size="large" />;
+  if (loading) { //loading için
+    return <LoadingSpinner fullScreen size="large" />; //LoadingSpinner için
   }
 
-  if (error || !student || !student.name) {
+  if (error || !student || !student.name) { //error veya student veya student.name için
     return (
       <div className="container mx-auto p-6">
         <div className="max-w-7xl mx-auto">

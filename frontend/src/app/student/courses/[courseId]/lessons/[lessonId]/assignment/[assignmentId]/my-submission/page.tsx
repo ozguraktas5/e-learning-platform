@@ -1,103 +1,103 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { assignmentsApi, Assignment, AssignmentSubmission } from '@/lib/api/assignments';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { ArrowLeft, ClipboardList, Clock, Award, CheckCircle, AlertTriangle, FileText, MessageSquare, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react'; //useState, useEffect için
+import { useParams, useRouter } from 'next/navigation'; //useParams, useRouter için
+import { assignmentsApi, Assignment, AssignmentSubmission } from '@/lib/api/assignments'; //assignmentsApi, Assignment, AssignmentSubmission için
+import { useAuth } from '@/hooks/useAuth'; //useAuth için
+import { toast } from 'react-hot-toast'; //toast için
+import Link from 'next/link'; //Link için
+import LoadingSpinner from '@/components/ui/LoadingSpinner'; //LoadingSpinner için
+import { ArrowLeft, ClipboardList, Clock, Award, CheckCircle, AlertTriangle, FileText, MessageSquare, Calendar } from 'lucide-react'; //ArrowLeft, ClipboardList, Clock, Award, CheckCircle, AlertTriangle, FileText, MessageSquare, Calendar için
 
-export default function MyAssignmentSubmissionPage() {
-  const { courseId, lessonId, assignmentId } = useParams();
-  const router = useRouter();
-  const { user } = useAuth();
+export default function MyAssignmentSubmissionPage() { //MyAssignmentSubmissionPage için
+  const { courseId, lessonId, assignmentId } = useParams(); //courseId, lessonId, assignmentId için
+  const router = useRouter(); //router için
+  const { user } = useAuth(); //user için
   
-  const [assignment, setAssignment] = useState<Assignment | null>(null);
-  const [submission, setSubmission] = useState<AssignmentSubmission | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [assignment, setAssignment] = useState<Assignment | null>(null); //assignment için
+  const [submission, setSubmission] = useState<AssignmentSubmission | null>(null); //submission için
+  const [loading, setLoading] = useState(true); //loading için
+  const [error, setError] = useState<string | null>(null); //error için
 
-  useEffect(() => {
+  useEffect(() => { //useEffect için
     // Öğrenci kontrolü
-    if (user && user.role !== 'student') {
-      toast.error('Bu sayfayı görüntüleme yetkiniz yok');
-      router.push(`/student/courses/${courseId}/lessons/${lessonId}`);
-      return;
+    if (user && user.role !== 'student') { //user ve user.role !== 'student' için
+      toast.error('Bu sayfayı görüntüleme yetkiniz yok'); //toast.error için
+      router.push(`/student/courses/${courseId}/lessons/${lessonId}`); //router.push için
+      return; //return için
     }
 
-    async function fetchData() {
-      try {
-        setLoading(true);
+    async function fetchData() { //fetchData için
+      try { //try için
+        setLoading(true); //setLoading için
         
         // Ödev bilgilerini al
-        const assignmentData = await assignmentsApi.getAssignment(
-          Number(courseId),
-          Number(lessonId),
-          Number(assignmentId)
+        const assignmentData = await assignmentsApi.getAssignment( //assignmentData için
+          Number(courseId), //courseId için
+          Number(lessonId), //lessonId için
+          Number(assignmentId) //assignmentId için
         );
-        setAssignment(assignmentData);
+        setAssignment(assignmentData); //setAssignment için
         
         // Öğrencinin bu ödeve gönderimini al
-        try {
+        try { //try için
           const submissionData = await assignmentsApi.getUserSubmission(
             Number(courseId),
             Number(lessonId),
             Number(assignmentId)
           );
-          setSubmission(submissionData);
-        } catch (submissionErr) {
+          setSubmission(submissionData); //setSubmission için
+        } catch (submissionErr) { //submissionErr için
           // 404 hatası submission olmadığını gösterir, bu normal bir durum
-          const error = submissionErr as { response?: { status?: number } };
-          if (error?.response?.status === 404) {
-            console.log('No submission found for this assignment - this is expected');
-            setSubmission(null);
-          } else {
-            console.error('Error fetching submission:', submissionErr);
+          const error = submissionErr as { response?: { status?: number } }; //error için
+          if (error?.response?.status === 404) { //error?.response?.status === 404 için
+            console.log('No submission found for this assignment - this is expected'); //console.log için
+            setSubmission(null); //setSubmission için
+          } else { //else için
+            console.error('Error fetching submission:', submissionErr); //console.error için
           }
           // Her iki durumda da submission null kalacak ve kullanıcı gönderi yapma seçeneğini görecek
         }
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Veriler yüklenirken bir hata oluştu.');
-      } finally {
-        setLoading(false);
+      } catch (err) { //err için
+        console.error('Error fetching data:', err); //console.error için
+        setError('Veriler yüklenirken bir hata oluştu.'); //setError için
+      } finally { //finally için
+        setLoading(false); //setLoading için
       }
     }
 
-    fetchData();
-  }, [courseId, lessonId, assignmentId, router, user]);
+    fetchData(); //fetchData için
+  }, [courseId, lessonId, assignmentId, router, user]); //courseId, lessonId, assignmentId, router, user için
 
   // Tarih formatını düzenleyen yardımcı fonksiyon
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "Tarih yok";
+  const formatDate = (dateString: string) => { //formatDate için
+    if (!dateString) return "Tarih yok"; //dateString için
     
-    try {
-      const date = new Date(dateString);
+    try { //try için
+      const date = new Date(dateString); //date için
       // Check if the date is valid
-      if (isNaN(date.getTime())) {
-        return "Geçersiz tarih";
+      if (isNaN(date.getTime())) { //isNaN(date.getTime()) için
+        return "Geçersiz tarih"; //Geçersiz tarih için
       }
       
-      return new Intl.DateTimeFormat('tr-TR', {
+      return new Intl.DateTimeFormat('tr-TR', { //Intl.DateTimeFormat için
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
       }).format(date);
-    } catch (error) {
-      console.error("Date formatting error:", error);
-      return "Geçersiz tarih";
+    } catch (error) { //error için
+      console.error("Date formatting error:", error); //console.error için
+      return "Geçersiz tarih"; //Geçersiz tarih için
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner size="large" fullScreen />;
+  if (loading) { //loading için
+    return <LoadingSpinner size="large" fullScreen />; //LoadingSpinner için
   }
 
-  if (error || !assignment) {
+  if (error || !assignment) { //error veya assignment için
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 via-white to-pink-50/50">
         <div className="container mx-auto px-4 py-8">

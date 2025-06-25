@@ -1,79 +1,79 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { toast } from 'react-hot-toast';
-import { assignmentsApi, Assignment } from '@/lib/api/assignments';
-import { useAuth } from '@/hooks/useAuth';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
-import { ArrowLeft, ClipboardList, Clock, Award, AlertTriangle, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react'; //useState, useEffect için
+import { useParams } from 'next/navigation'; //useParams için
+import Link from 'next/link'; //Link için
+import { toast } from 'react-hot-toast'; //toast için
+import { assignmentsApi, Assignment } from '@/lib/api/assignments'; //assignmentsApi, Assignment için
+import { useAuth } from '@/hooks/useAuth'; //useAuth için
+import LoadingSpinner from '@/components/ui/LoadingSpinner'; //LoadingSpinner için
+import { ArrowLeft, ClipboardList, Clock, Award, AlertTriangle, Trash2 } from 'lucide-react'; //ArrowLeft, ClipboardList, Clock, Award, AlertTriangle, Trash2 için
 
-export default function AssignmentsPage() {
-  const { courseId, lessonId } = useParams();
-  const { user } = useAuth();
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<number | null>(null);
+export default function AssignmentsPage() { //AssignmentsPage için
+  const { courseId, lessonId } = useParams(); //courseId, lessonId için
+  const { user } = useAuth(); //user için
+  const [assignments, setAssignments] = useState<Assignment[]>([]); //assignments için
+  const [loading, setLoading] = useState(true); //loading için
+  const [error, setError] = useState<string | null>(null); //error için
+  const [deleting, setDeleting] = useState<number | null>(null); //deleting için
 
-  useEffect(() => {
-    fetchAssignments();
-  }, [courseId, lessonId]);
+  useEffect(() => { //useEffect için
+    fetchAssignments(); //fetchAssignments için
+  }, [courseId, lessonId]); //courseId, lessonId için
 
-  async function fetchAssignments() {
-    try {
-      setLoading(true);
-      const data = await assignmentsApi.getLessonAssignments(
+  async function fetchAssignments() { //fetchAssignments için
+    try { //try için
+      setLoading(true); //setLoading için
+      const data = await assignmentsApi.getLessonAssignments( //data için
         Number(courseId),
         Number(lessonId)
       );
-      setAssignments(data);
-    } catch (err) {
-      console.error('Error fetching assignments:', err);
-      setError('Ödevler yüklenirken bir hata oluştu.');
-    } finally {
-      setLoading(false);
+      setAssignments(data); //setAssignments için
+    } catch (err) { //err için
+      console.error('Error fetching assignments:', err); //console.error için
+      setError('Ödevler yüklenirken bir hata oluştu.'); //setError için
+    } finally { //finally için
+      setLoading(false); //setLoading için
     }
-  }
+  } //fetchAssignments için
 
   // Ödevi silme fonksiyonu (instructor için)
-  const handleDeleteAssignment = async (assignmentId: number) => {
-    if (!confirm('Bu ödevi silmek istediğinize emin misiniz?')) {
-      return;
+  const handleDeleteAssignment = async (assignmentId: number) => { //handleDeleteAssignment için
+    if (!confirm('Bu ödevi silmek istediğinize emin misiniz?')) { //confirm için
+      return; //return için
     }
 
-    try {
-      setDeleting(assignmentId);
-      await assignmentsApi.deleteAssignment(
+    try { //try için
+      setDeleting(assignmentId); //setDeleting için
+      await assignmentsApi.deleteAssignment( //assignmentsApi.deleteAssignment için
         Number(courseId),
         Number(lessonId),
         assignmentId
       );
-      toast.success('Ödev başarıyla silindi');
-      fetchAssignments();
-    } catch (err) {
-      console.error('Error deleting assignment:', err);
-      toast.error('Ödev silinirken bir hata oluştu');
-    } finally {
-      setDeleting(null);
+      toast.success('Ödev başarıyla silindi'); //toast.success için
+      fetchAssignments(); //fetchAssignments için
+    } catch (err) { //err için
+      console.error('Error deleting assignment:', err); //console.error için
+      toast.error('Ödev silinirken bir hata oluştu'); //toast.error için
+    } finally { //finally için
+      setDeleting(null); //setDeleting için
     }
-  };
+  }; //handleDeleteAssignment için
 
   // Tarih formatını düzenleyen yardımcı fonksiyon
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('tr-TR', {
+  const formatDate = (dateString: string) => { //formatDate için
+    const date = new Date(dateString); //date için
+    return new Intl.DateTimeFormat('tr-TR', { //Intl.DateTimeFormat için
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     }).format(date);
-  };
+  }; //formatDate için
 
   // Teslim tarihi geçmiş mi kontrolü
-  const isPastDue = (dueDate: string) => {
+  const isPastDue = (dueDate: string) => { //isPastDue için
     return new Date(dueDate) < new Date();
   };
 

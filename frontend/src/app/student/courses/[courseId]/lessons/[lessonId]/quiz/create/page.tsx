@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState } from 'react'; 
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,7 +11,7 @@ const quizSchema = z.object({
   title: z.string().min(3, 'Başlık en az 3 karakter olmalıdır'),
   description: z.string().min(10, 'Açıklama en az 10 karakter olmalıdır'),
   time_limit: z.preprocess(
-    // Convert empty string to null
+    // Boş stringi null olarak dön
     val => val === '' ? null : Number(val),
     z.number().nullable()
   ),
@@ -91,7 +91,7 @@ export default function CreateQuizPage() {
     try {
       setLoading(true);
       
-      // Transform the data to match the backend API expectations
+      // Backend API beklediği formatta veri dönüştürme
       const transformedData = {
         ...data,
         questions: data.questions.map(question => ({
@@ -105,7 +105,7 @@ export default function CreateQuizPage() {
       
       const result = await quizApi.createQuiz(Number(courseId), Number(lessonId), transformedData);
       
-      // Check if result is an error response
+      // Sonuç hata yanıtı mı kontrol et
       if ('error' in result) {
         setError(result.error);
         return;
