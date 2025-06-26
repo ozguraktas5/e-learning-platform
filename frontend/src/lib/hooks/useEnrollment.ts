@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { coursesApi } from '@/lib/api/courses';
+import { useState, useEffect } from 'react'; // useState ve useEffect'i import ettik
+import { coursesApi } from '@/lib/api/courses'; // coursesApi'ı import ettik
 
-export function useEnrollment(courseId: number) {
+export function useEnrollment(courseId: number) { // useEnrollment fonksiyonu oluşturduk
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -10,7 +10,7 @@ export function useEnrollment(courseId: number) {
     checkEnrollment();
   }, [courseId]);
 
-  const checkEnrollment = async () => {
+  const checkEnrollment = async () => { // checkEnrollment fonksiyonu oluşturduk
     try {
       console.log(`Checking enrollment for course ID: ${courseId}`);
       const response = await coursesApi.checkEnrollment(courseId);
@@ -24,7 +24,7 @@ export function useEnrollment(courseId: number) {
     }
   };
 
-  const enroll = async () => {
+  const enroll = async () => { // enroll fonksiyonu oluşturduk
     try {
       console.log(`Enrolling in course ID: ${courseId}`);
       const response = await coursesApi.enrollInCourse(courseId);
@@ -37,5 +37,5 @@ export function useEnrollment(courseId: number) {
     }
   };
 
-  return { isEnrolled, loading, error, enroll };
+  return { isEnrolled, loading, error, enroll }; // isEnrolled, loading, error ve enroll fonksiyonunu döndük
 }

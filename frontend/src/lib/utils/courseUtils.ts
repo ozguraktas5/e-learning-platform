@@ -1,6 +1,6 @@
 // Kurs seviyesi çeviri fonksiyonları
 
-export const translateLevelToTurkish = (level: string): string => {
+export const translateLevelToTurkish = (level: string): string => { // translateLevelToTurkish fonksiyonu oluşturduk
   switch (level.toLowerCase()) {
     case 'beginner':
       return 'Başlangıç';
@@ -13,7 +13,7 @@ export const translateLevelToTurkish = (level: string): string => {
   }
 };
 
-export const translateLevelToEnglish = (level: string): string => {
+export const translateLevelToEnglish = (level: string): string => { // translateLevelToEnglish fonksiyonu oluşturduk
   switch (level) {
     case 'Başlangıç':
       return 'beginner';
@@ -26,7 +26,7 @@ export const translateLevelToEnglish = (level: string): string => {
   }
 };
 
-export const getLevelBadgeColor = (level: string): string => {
+export const getLevelBadgeColor = (level: string): string => { // getLevelBadgeColor fonksiyonu oluşturduk
   const turkishLevel = translateLevelToTurkish(level);
   switch (turkishLevel) {
     case 'Başlangıç':

@@ -1,24 +1,24 @@
-import { create } from 'zustand';
-import { User } from '@/types/auth';
-import { authApi } from '../api/auth';
+import { create } from 'zustand'; // create'i import ettik
+import { User } from '@/types/auth'; // User'ı import ettik
+import { authApi } from '../api/auth'; // authApi'ı import ettik
 
-interface AuthState {
+interface AuthState { // AuthState interface'i oluşturduk
   user: User | null;
   token: string | null;
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  register: (data: RegisterData) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>; // register fonksiyonu oluşturduk
 }
 
-export const useAuth = create<AuthState>((set) => ({
+export const useAuth = create<AuthState>((set) => ({ // useAuth fonksiyonu oluşturduk
   user: null,
   token: null,
   isLoading: false,
   error: null,
 
-  login: async (email, password) => {
+  login: async (email, password) => { // login fonksiyonu oluşturduk
     try {
       set({ isLoading: true, error: null });
       const response = await authApi.login(email, password);
@@ -31,12 +31,12 @@ export const useAuth = create<AuthState>((set) => ({
     }
   },
 
-  logout: () => {
+  logout: () => { // logout fonksiyonu oluşturduk
     localStorage.removeItem('token');
     set({ user: null, token: null });
   },
 
-  register: async (data) => {
+  register: async (data) => { // register fonksiyonu oluşturduk
     try {
       set({ isLoading: true, error: null });
       const response = await authApi.register(data);

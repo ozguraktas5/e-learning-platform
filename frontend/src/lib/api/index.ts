@@ -1,27 +1,26 @@
 'use client';
 
-import axios from 'axios';
-import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import axios from 'axios'; // axios'u import ettik
+import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios'; // AxiosInstance ve InternalAxiosRequestConfig'ı import ettik
 
-declare global {
+declare global { // global interface'i oluşturduk
   interface Window {
     location: Location;
   }
 }
 
-// Export this so it can be used for file URLs
+// BASE_URL'i oluşturduk
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-const api: AxiosInstance = axios.create({
+const api: AxiosInstance = axios.create({ // api objesi oluşturduk
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor for adding auth token
-api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem('token');
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => { // api.interceptors.request.use fonksiyonu oluşturduk
+  const token = localStorage.getItem('token'); // token'ı localStorage'ten aldık
   
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -29,29 +28,23 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// Response interceptor for handling errors
-api.interceptors.response.use(
+api.interceptors.response.use( // api.interceptors.response.use fonksiyonu oluşturduk
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+      localStorage.removeItem('token'); // token'ı localStorage'ten sil
       window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
-export default api;
+export default api; // api'yi döndük
 
-// Doğrudan dosyalardan içe aktar ve yeniden ihraç et
 export * from './auth';
 export * from './profile';
-// Export ederken isim çakışmasını önlemek için seçici export yapıyoruz
 export { enrollmentsApi } from './enrollments';
 export type { EnrollmentHistory } from './enrollments';
 export * from './courses';
 export * from './lessons';
 export * from './reviews';
-
-// Api error response'ları çakışmaması için, quiz ve assignments'dan yeniden export edilmiyor
-// Özel export'lar gerekiyorsa burada tek tek belirtilmeli 

@@ -1,16 +1,16 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';  // ReactNode ekledik
+import { jwtDecode } from 'jwt-decode'; // jwt-decode kütüphanesini import ettik
 
-interface User {
+interface User { // User interface'i oluşturduk
   id: string;
   email: string;
   username: string;
   role: 'student' | 'instructor';
 }
 
-interface DecodedToken {
+interface DecodedToken { // DecodedToken interface'i oluşturduk
   sub: string;
   email: string;
   username: string;
@@ -18,7 +18,7 @@ interface DecodedToken {
   exp: number;
 }
 
-interface AuthContextType {
+interface AuthContextType { // AuthContextType interface'i oluşturduk
   user: User | null;
   loading: boolean;
   login: (token: string) => Promise<void>;
@@ -26,44 +26,44 @@ interface AuthContextType {
   refreshTokenIfNeeded: () => Promise<string | null>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined); // AuthContext oluşturduk
 
 // Cookie yardımcı fonksiyonları
-const setCookie = (name: string, value: string, days = 7) => {
+const setCookie = (name: string, value: string, days = 7) => { // setCookie fonksiyonu oluşturduk
   const expires = new Date(Date.now() + days * 864e5).toUTCString();
   document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
 };
 
-const getCookie = (name: string) => {
+const getCookie = (name: string) => { // getCookie fonksiyonu oluşturduk
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return decodeURIComponent(parts.pop()!.split(';').shift() || '');
   return '';
 };
 
-const deleteCookie = (name: string) => {
+const deleteCookie = (name: string) => { // deleteCookie fonksiyonu oluşturduk
   document.cookie = name + '=; Max-Age=-99999999; path=/';
 };
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) { // AuthProvider fonksiyonu oluşturduk
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Token'ı hem localStorage hem cookie'ye kaydet
-  const saveToken = (token: string) => {
+  const saveToken = (token: string) => { // saveToken fonksiyonu oluşturduk
     localStorage.setItem('token', token);
     setCookie('token', token);
   };
 
   // Token'ı hem localStorage hem cookie'den sil
-  const removeToken = () => {
+  const removeToken = () => { // removeToken fonksiyonu oluşturduk
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     deleteCookie('token');
   };
 
   // Token'ın geçerli olup olmadığını kontrol et
-  const isTokenValid = (token: string): boolean => {
+  const isTokenValid = (token: string): boolean => { // isTokenValid fonksiyonu oluşturduk
     try {
       const decoded = jwtDecode(token) as DecodedToken;
       // 5 dakika marj ekleyerek kontrol et (backend'in saat farkı olabilir)
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Gerekirse token'ı yenile
-  const refreshTokenIfNeeded = async (): Promise<string | null> => {
+  const refreshTokenIfNeeded = async (): Promise<string | null> => { // refreshTokenIfNeeded fonksiyonu oluşturduk
     const token = localStorage.getItem('token');
     const refreshToken = localStorage.getItem('refreshToken');
     
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  useEffect(() => {
+  useEffect(() => { // useEffect fonksiyonu oluşturduk
     // Client tarafında çalışmasını sağla (SSR için kontrol)
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token') || getCookie('token');
@@ -181,7 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (token: string): Promise<void> => {
+  const login = async (token: string): Promise<void> => { // login fonksiyonu oluşturduk
     return new Promise((resolve, reject) => {
       try {
         const decoded = jwtDecode(token) as DecodedToken;
@@ -208,7 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const logout = () => {
+  const logout = () => { // logout fonksiyonu oluşturduk
     removeToken();
     localStorage.removeItem('userRole');
     setUser(null);
@@ -221,7 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
+export function useAuth() { // useAuth fonksiyonu oluşturduk
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');

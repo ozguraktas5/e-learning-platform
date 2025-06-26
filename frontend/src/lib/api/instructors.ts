@@ -1,7 +1,6 @@
-// Will be used when API endpoints are fully implemented
-import api from '../axios';
+import api from '../axios'; // api'yi import ettik
 
-export interface StudentEnrollment {
+export interface StudentEnrollment { // StudentEnrollment interface'i oluşturduk
   id: number;
   student: {
     id: number;
@@ -19,14 +18,14 @@ export interface StudentEnrollment {
   completed: boolean;
 }
 
-export interface StudentStats {
+export interface StudentStats { // StudentStats interface'i oluşturduk
   total_students: number;
   active_students: number;
   completions_this_month: number;
   average_course_completion: number;
 }
 
-export interface StudentProgress {
+export interface StudentProgress { // StudentProgress interface'i oluşturduk
   id: number;
   name: string;
   email: string;
@@ -44,7 +43,7 @@ export interface StudentProgress {
   }[];
 }
 
-const getEnrolledStudents = async (): Promise<StudentEnrollment[]> => {
+const getEnrolledStudents = async (): Promise<StudentEnrollment[]> => { // getEnrolledStudents fonksiyonu oluşturduk
   try {
     const { data } = await api.get('/enrollments/instructor/students');
     return data;
@@ -54,7 +53,7 @@ const getEnrolledStudents = async (): Promise<StudentEnrollment[]> => {
   }
 };
 
-const getStudentStats = async (): Promise<StudentStats> => {
+const getStudentStats = async (): Promise<StudentStats> => { // getStudentStats fonksiyonu oluşturduk
   try {
     const { data } = await api.get('/enrollments/instructor/student-stats');
     return data;
@@ -64,7 +63,7 @@ const getStudentStats = async (): Promise<StudentStats> => {
   }
 };
 
-const getStudentProgress = async (studentId: number): Promise<StudentProgress> => {
+const getStudentProgress = async (studentId: number): Promise<StudentProgress> => { // getStudentProgress fonksiyonu oluşturduk
   try {
     const { data } = await api.get(`/enrollments/instructor/students/${studentId}/progress`);
     return data;
@@ -74,7 +73,7 @@ const getStudentProgress = async (studentId: number): Promise<StudentProgress> =
   }
 };
 
-export const instructorsApi = {
+export const instructorsApi = { // instructorsApi objesi oluşturduk
   getEnrolledStudents,
   getStudentStats,
   getStudentProgress

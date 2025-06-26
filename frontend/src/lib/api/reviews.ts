@@ -1,6 +1,6 @@
-import api from '@/lib/axios';
+import api from '@/lib/axios'; // api'yi import ettik
 
-export interface Review {
+export interface Review { // Review interface'i oluşturduk
   id: number;
   course_id: number;
   user_id: number;
@@ -10,28 +10,28 @@ export interface Review {
   updated_at?: string;
   instructor_reply?: string;
   instructor_reply_date?: string;
-  username?: string; // Kullanıcı adı, frontend tarafında gösterim amaçlı
+  username?: string;
 }
 
-export interface CourseReviewsResponse {
+export interface CourseReviewsResponse { // CourseReviewsResponse interface'i oluşturduk
   course_id: number;
   average_rating: number;
   total_reviews: number;
   reviews: Review[];
 }
 
-export interface CreateReviewData {
+export interface CreateReviewData { // CreateReviewData interface'i oluşturduk
   rating: number;
   comment: string;
 }
 
-export interface ReplyData {
+export interface ReplyData { // ReplyData interface'i oluşturduk
   reply: string;
 }
 
-export const reviewsApi = {
+export const reviewsApi = { // reviewsApi objesi oluşturduk
   // Kurs değerlendirmelerini getir
-  getCourseReviews: async (courseId: number): Promise<CourseReviewsResponse> => {
+  getCourseReviews: async (courseId: number): Promise<CourseReviewsResponse> => { // getCourseReviews fonksiyonu oluşturduk
     try {
       const response = await api.get(`/courses/${courseId}/reviews`);
       return response.data;
@@ -42,7 +42,7 @@ export const reviewsApi = {
   },
 
   // Yeni değerlendirme oluştur
-  createReview: async (courseId: number, reviewData: CreateReviewData): Promise<Review> => {
+  createReview: async (courseId: number, reviewData: CreateReviewData): Promise<Review> => { // createReview fonksiyonu oluşturduk
     try {
       const response = await api.post(`/courses/${courseId}/reviews`, reviewData);
       return response.data;
@@ -53,7 +53,7 @@ export const reviewsApi = {
   },
 
   // Değerlendirmeyi güncelle
-  updateReview: async (courseId: number, reviewId: number, reviewData: CreateReviewData): Promise<Review> => {
+  updateReview: async (courseId: number, reviewId: number, reviewData: CreateReviewData): Promise<Review> => { // updateReview fonksiyonu oluşturduk
     try {
       const response = await api.put(`/courses/${courseId}/reviews/${reviewId}`, reviewData);
       return response.data;
@@ -64,7 +64,7 @@ export const reviewsApi = {
   },
 
   // Değerlendirmeyi sil
-  deleteReview: async (courseId: number, reviewId: number): Promise<{ message: string }> => {
+  deleteReview: async (courseId: number, reviewId: number): Promise<{ message: string }> => { // deleteReview fonksiyonu oluşturduk
     try {
       const response = await api.delete(`/courses/${courseId}/reviews/${reviewId}`);
       return response.data;
@@ -75,7 +75,7 @@ export const reviewsApi = {
   },
 
   // Değerlendirmeye yanıt ver (eğitmen için)
-  replyToReview: async (courseId: number, reviewId: number, replyData: ReplyData): Promise<Review> => {
+  replyToReview: async (courseId: number, reviewId: number, replyData: ReplyData): Promise<Review> => { // replyToReview fonksiyonu oluşturduk
     try {
       const response = await api.post(`/courses/${courseId}/reviews/${reviewId}/reply`, replyData);
       return response.data.review;

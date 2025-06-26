@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axios from 'axios'; // axios'u import ettik
 
-const api = axios.create({
+const api = axios.create({ // api objesi oluşturduk
   baseURL: 'http://localhost:5000',
   headers: {
     'Content-Type': 'application/json',
   },
-  // Hata ayıklama için
+  // Hata ayıklama için 
   validateStatus: function (status) {
     return status >= 200 && status < 500; // 500 ve üzeri hataları reject et
   },
@@ -19,9 +19,9 @@ interface QueueItem {
   reject: (reason?: unknown) => void;
 }
 
-let failedQueue: QueueItem[] = [];
+let failedQueue: QueueItem[] = []; // failedQueue değişkeni oluşturduk
 
-const processQueue = (error: Error | null, token: string | null = null) => {
+const processQueue = (error: Error | null, token: string | null = null) => { // processQueue fonksiyonu oluşturduk
   failedQueue.forEach(prom => {
     if (error) {
       prom.reject(error);
@@ -34,7 +34,7 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 };
 
 // Backend URL'sini oluşturan yardımcı fonksiyon
-export const getBackendUrl = (path: string): string => {
+export const getBackendUrl = (path: string): string => { // getBackendUrl fonksiyonu oluşturduk
   // Eğer yol zaten tam bir URL ise, olduğu gibi döndür
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
@@ -48,7 +48,7 @@ export const getBackendUrl = (path: string): string => {
 };
 
 // İmage URL'lerini almak için özel bir yardımcı fonksiyon
-export const getImageUrl = (imagePath: string | null | undefined): string => {
+export const getImageUrl = (imagePath: string | null | undefined): string => { // getImageUrl fonksiyonu oluşturduk
   if (!imagePath) {
     return 'https://via.placeholder.com/300x200?text=Resim+Yok';
   }
@@ -61,8 +61,7 @@ export const getImageUrl = (imagePath: string | null | undefined): string => {
   return imagePath;
 };
 
-// Request interceptor
-api.interceptors.request.use(
+api.interceptors.request.use( // api.interceptors.request.use fonksiyonu oluşturduk
   (config) => {
     // Debug için
     console.log('Request:', {
@@ -84,9 +83,8 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor
-api.interceptors.response.use(
-  (response) => {
+api.interceptors.response.use( // api.interceptors.response.use fonksiyonu oluşturduk
+  (response) => { // (response) fonksiyonu oluşturduk
     // Debug için
     console.log('Response:', {
       status: response.status,
@@ -95,7 +93,7 @@ api.interceptors.response.use(
     });
     return response;
   },
-  async (error) => {
+  async (error) => { // async (error) fonksiyonu oluşturduk
     // Detaylı hata loglaması
     console.error('Response error details:', {
       message: error.message,

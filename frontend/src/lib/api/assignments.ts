@@ -1,9 +1,6 @@
-import api from './index';
+import api from './index'; // api'yi import ettik
 
-// Will be used when API endpoints are fully implemented
-// import axios from './index';
-
-export interface Assignment {
+export interface Assignment { // Assignment interface'i oluşturduk
   id: number;
   title: string;
   description: string;
@@ -20,7 +17,7 @@ export interface Assignment {
   submission_count?: number;
 }
 
-export interface AssignmentSubmission {
+export interface AssignmentSubmission { // AssignmentSubmission interface'i oluşturduk
   id: number;
   assignment_id: number;
   user_id: number;
@@ -32,28 +29,28 @@ export interface AssignmentSubmission {
   graded_at: string | null;
 }
 
-export interface AssignmentStats {
+export interface AssignmentStats { // AssignmentStats interface'i oluşturduk
   total: number;
   active: number;
   pending_review: number;
   average_score: number;
 }
 
-export interface ApiErrorResponse {
+export interface ApiErrorResponse { // ApiErrorResponse interface'i oluşturduk
   error: string;
   message?: string;
   details?: string;
 }
 
-export interface CreateAssignmentData {
+export interface CreateAssignmentData { // CreateAssignmentData interface'i oluşturduk
   title: string;
   description: string;
-  due_date: string; // ISO 8601 format: YYYY-MM-DDTHH:mm
+  due_date: string;
   max_points: number;
   lesson_id: number;
 }
 
-export interface UpdateAssignmentData {
+export interface UpdateAssignmentData { // UpdateAssignmentData interface'i oluşturduk
   title?: string;
   description?: string;
   due_date?: string;
@@ -61,7 +58,7 @@ export interface UpdateAssignmentData {
   is_published?: boolean;
 }
 
-export interface CourseWithLessons {
+export interface CourseWithLessons { // CourseWithLessons interface'i oluşturduk
   id: number;
   title: string;
   lessons: {
@@ -70,7 +67,7 @@ export interface CourseWithLessons {
   }[];
 }
 
-const getInstructorAssignments = async (): Promise<Assignment[]> => {
+const getInstructorAssignments = async (): Promise<Assignment[]> => { // getInstructorAssignments fonksiyonu oluşturduk
   try {
     const { data } = await api.get(`/instructor/assignments`);
     return data;
@@ -80,7 +77,7 @@ const getInstructorAssignments = async (): Promise<Assignment[]> => {
   }
 };
 
-const getAssignmentSubmissions = async (courseId: number, lessonId: number, assignmentId: number): Promise<AssignmentSubmission[]> => {
+const getAssignmentSubmissions = async (courseId: number, lessonId: number, assignmentId: number): Promise<AssignmentSubmission[]> => { // getAssignmentSubmissions fonksiyonu oluşturduk
   try {
     const { data } = await api.get(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}/submissions`);
     return data;
@@ -90,11 +87,11 @@ const getAssignmentSubmissions = async (courseId: number, lessonId: number, assi
   }
 };
 
-const gradeSubmission = async (
+const gradeSubmission = async ( // gradeSubmission fonksiyonu oluşturduk
   submissionId: number,
   grade: number,
   feedback: string
-): Promise<{ success: boolean }> => {
+): Promise<{ success: boolean }> => { 
   try {
     const { data } = await api.post(`/assignment-submissions/${submissionId}/grade`, {
       grade,
@@ -107,7 +104,7 @@ const gradeSubmission = async (
   }
 };
 
-const getAssignmentStats = async (): Promise<AssignmentStats> => {
+const getAssignmentStats = async (): Promise<AssignmentStats> => { // getAssignmentStats fonksiyonu oluşturduk
   try {
     const { data } = await api.get(`/instructor/assignments/stats`);
     return data;
@@ -117,7 +114,7 @@ const getAssignmentStats = async (): Promise<AssignmentStats> => {
   }
 };
 
-const getCreateAssignmentData = async (): Promise<{ courses: CourseWithLessons[] }> => {
+const getCreateAssignmentData = async (): Promise<{ courses: CourseWithLessons[] }> => { // getCreateAssignmentData fonksiyonu oluşturduk
   try {
     const { data } = await api.get(`/instructor/assignments/create`);
     return data;
@@ -127,54 +124,47 @@ const getCreateAssignmentData = async (): Promise<{ courses: CourseWithLessons[]
   }
 };
 
-export const assignmentsApi = {
+export const assignmentsApi = { // assignmentsApi objesi oluşturduk
   getInstructorAssignments,
   getAssignmentSubmissions,
   gradeSubmission,
   getAssignmentStats,
   getCreateAssignmentData,
-  // Get all assignments for a course
-  getCourseAssignments: async (courseId: number): Promise<Assignment[]> => {
+  
+  getCourseAssignments: async (courseId: number): Promise<Assignment[]> => { // getCourseAssignments fonksiyonu oluşturduk
     const response = await api.get(`/courses/${courseId}/assignments`);
     return response.data;
   },
 
-  // Get assignments for a specific lesson
-  getLessonAssignments: async (courseId: number, lessonId: number): Promise<Assignment[]> => {
+  getLessonAssignments: async (courseId: number, lessonId: number): Promise<Assignment[]> => { // getLessonAssignments fonksiyonu oluşturduk
     const response = await api.get(`/courses/${courseId}/lessons/${lessonId}/assignments`);
     return response.data;
   },
 
-  // Get a single assignment
-  getAssignment: async (courseId: number, lessonId: number, assignmentId: number): Promise<Assignment> => {
+  getAssignment: async (courseId: number, lessonId: number, assignmentId: number): Promise<Assignment> => { // getAssignment fonksiyonu oluşturduk
     const response = await api.get(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`);
     return response.data;
   },
 
-  // Create a new assignment
-  createAssignment: async (courseId: number, data: CreateAssignmentData): Promise<Assignment> => {
-    const response = await api.post(`/courses/${courseId}/assignments`, data);
+  createAssignment: async (courseId: number, data: CreateAssignmentData): Promise<Assignment> => { // createAssignment fonksiyonu oluşturduk
+    const response = await api.post(`/courses/${courseId}/assignments`, data); 
     return response.data;
   },
-
-  // Update an assignment
-  updateAssignment: async (courseId: number, lessonId: number, assignmentId: number, data: UpdateAssignmentData): Promise<Assignment> => {
+ 
+  updateAssignment: async (courseId: number, lessonId: number, assignmentId: number, data: UpdateAssignmentData): Promise<Assignment> => { // updateAssignment fonksiyonu oluşturduk
     const response = await api.put(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`, data);
     return response.data;
   },
 
-  // Delete an assignment
-  deleteAssignment: async (courseId: number, lessonId: number, assignmentId: number): Promise<void> => {
+  deleteAssignment: async (courseId: number, lessonId: number, assignmentId: number): Promise<void> => { // deleteAssignment fonksiyonu oluşturduk
     await api.delete(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}`);
   },
 
-  // Submit an assignment
-  submitAssignment: async (courseId: number, lessonId: number, assignmentId: number, data: { text: string }): Promise<void> => {
+  submitAssignment: async (courseId: number, lessonId: number, assignmentId: number, data: { text: string }): Promise<void> => { // submitAssignment fonksiyonu oluşturduk
     await api.post(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}/submit`, data);
   },
 
-  // Get user's submission for an assignment
-  getUserSubmission: async (courseId: number, lessonId: number, assignmentId: number): Promise<AssignmentSubmission> => {
+  getUserSubmission: async (courseId: number, lessonId: number, assignmentId: number): Promise<AssignmentSubmission> => { // getUserSubmission fonksiyonu oluşturduk
     const response = await api.get(`/courses/${courseId}/lessons/${lessonId}/assignment/${assignmentId}/my-submission`);
     return response.data;
   }

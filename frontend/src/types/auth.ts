@@ -1,4 +1,4 @@
-export interface User {
+export interface User { // User interface'i oluşturduk
   id: number;
   username: string;
   email: string;
@@ -6,12 +6,12 @@ export interface User {
   created_at: string;
 }
 
-export interface LoginResponse {
+export interface LoginResponse { // LoginResponse interface'i oluşturduk
   access_token: string;
   user: User;
 }
 
-export interface RegisterData {
+export interface RegisterData { // RegisterData interface'i oluşturduk
   username: string;
   email: string;
   password: string;

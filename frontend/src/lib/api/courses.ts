@@ -1,6 +1,6 @@
-import api from '@/lib/axios';
+import api from '@/lib/axios'; // api'yi import ettik
 
-export interface CourseSearchParams {
+export interface CourseSearchParams { // CourseSearchParams interface'i oluşturduk
   query?: string;
   category?: string;
   level?: string;
@@ -13,7 +13,7 @@ export interface CourseSearchParams {
   per_page?: number;
 }
 
-export interface Course {
+export interface Course { // Course interface'i oluşturduk
   id: number;
   title: string;
   description: string;
@@ -29,7 +29,7 @@ export interface Course {
   duration?: string;
 }
 
-export interface CourseEnrollment {
+export interface CourseEnrollment { // CourseEnrollment interface'i oluşturduk
   id: number;
   course_id: number;
   user_id: number;
@@ -37,7 +37,7 @@ export interface CourseEnrollment {
   is_enrolled?: boolean;
 }
 
-export interface SearchResponse {
+export interface SearchResponse { // SearchResponse interface'i oluşturduk
   courses: Course[];
   total: number;
   page: number;
@@ -45,7 +45,7 @@ export interface SearchResponse {
   total_pages: number;
 }
 
-export interface CreateCourseData {
+export interface CreateCourseData { // CreateCourseData interface'i oluşturduk
   title: string;
   description: string;
   category: string;
@@ -55,25 +55,24 @@ export interface CreateCourseData {
   image_url?: string;
 }
 
-export interface Lesson {
+export interface Lesson { // Lesson interface'i oluşturduk
   id: number;
   title: string;
   content: string;
   order: number;
-  video_url?: string | null; // Optional based on model nullable=True
-  created_at: string; // ISO date string
-  document_count?: number; // Optional, might not always be present
-  quiz_count?: number; // Optional, might not always be present
-  assignment_count?: number; // Optional, might not always be present
-  // course_id is available in the model but not in to_dict, add if needed
+  video_url?: string | null; 
+  created_at: string; 
+  document_count?: number;
+  quiz_count?: number; 
+  assignment_count?: number;
 } 
 
-export const coursesApi = {
-  searchCourses: async (params: CourseSearchParams = {}): Promise<SearchResponse> => {
+export const coursesApi = { // coursesApi objesi oluşturduk
+  searchCourses: async (params: CourseSearchParams = {}): Promise<SearchResponse> => { // searchCourses fonksiyonu oluşturduk
     try {
       const response = await api.get('/courses/search', { 
         params,
-        // Hata durumunda bile yanıtı almak için
+        // Hata durumunda bile yanıtı almak için  
         validateStatus: function (status) {
           return status >= 200 && status < 600;
         }
@@ -90,12 +89,12 @@ export const coursesApi = {
     }
   },
 
-  getCourseById: async (courseId: string): Promise<Course> => {
+  getCourseById: async (courseId: string): Promise<Course> => { // getCourseById fonksiyonu oluşturduk
     const response = await api.get(`/courses/${courseId}`);
     return response.data;
   },
 
-  createCourse: async (courseData: FormData): Promise<Course> => {
+  createCourse: async (courseData: FormData): Promise<Course> => { // createCourse fonksiyonu oluşturduk
     const response = await api.post('/courses', courseData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -104,7 +103,7 @@ export const coursesApi = {
     return response.data;
   },
 
-  updateCourse: async (courseId: string, courseData: FormData): Promise<Course> => {
+  updateCourse: async (courseId: string, courseData: FormData): Promise<Course> => { // updateCourse fonksiyonu oluşturduk
     const response = await api.put(`/courses/${courseId}`, courseData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -113,22 +112,22 @@ export const coursesApi = {
     return response.data;
   },
 
-  deleteCourse: async (courseId: string): Promise<void> => {
+  deleteCourse: async (courseId: string): Promise<void> => { // deleteCourse fonksiyonu oluşturduk
     const response = await api.delete(`/courses/${courseId}`);
     return response.data;
   },
 
-  getCourse: async (courseId: number): Promise<Course> => {
+  getCourse: async (courseId: number): Promise<Course> => { // getCourse fonksiyonu oluşturduk
     const response = await api.get(`/courses/${courseId}`);
     return response.data;
   },
 
-  enrollInCourse: async (courseId: number): Promise<CourseEnrollment> => {
+  enrollInCourse: async (courseId: number): Promise<CourseEnrollment> => { // enrollInCourse fonksiyonu oluşturduk
     const response = await api.post(`/courses/${courseId}/enroll`);
     return response.data;
   },
 
-  checkEnrollment: async (courseId: number): Promise<{is_enrolled: boolean}> => {
+  checkEnrollment: async (courseId: number): Promise<{is_enrolled: boolean}> => { // checkEnrollment fonksiyonu oluşturduk
     console.log(`API call: Checking enrollment for course ID ${courseId}`);
     try {
       const response = await api.get(`/courses/${courseId}/enrollment-status`);
@@ -140,29 +139,29 @@ export const coursesApi = {
     }
   },
 
-  getCategories: async (): Promise<string[]> => {
+  getCategories: async (): Promise<string[]> => { // getCategories fonksiyonu oluşturduk
     const response = await api.get('/courses/categories');
     return response.data;
   },
 
-  getInstructors: async (): Promise<{ id: number; username: string; email: string }[]> => {
+  getInstructors: async (): Promise<{ id: number; username: string; email: string }[]> => { // getInstructors fonksiyonu oluşturduk
     const response = await api.get('/courses/instructors');
     return response.data;
   },
 
-  getAllCourses: async (): Promise<Course[]> => {
+  getAllCourses: async (): Promise<Course[]> => { // getAllCourses fonksiyonu oluşturduk
     const response = await api.get('/courses');
     return response.data;
   },
 
-  getCourseLessons: async (courseId: number): Promise<Lesson[]> => {
+  getCourseLessons: async (courseId: number): Promise<Lesson[]> => { // getCourseLessons fonksiyonu oluşturduk
     try {
       const response = await api.get(`/courses/${courseId}/lessons`);
-      // Ensure the response data is an array, default to empty array if not
+      // response.data'ın array olup olmadığını kontrol et
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       console.error(`Error fetching lessons for course ${courseId}:`, error);
-      // Re-throw the error or return an empty array/handle as needed
+      // error'ı fırlat
       throw error; 
     }
   },

@@ -1,4 +1,4 @@
-export interface Course {
+export interface Course { // Course interface'i oluşturduk
   id: number;
   title: string;
   description: string;
@@ -16,7 +16,7 @@ export interface Course {
   enrollment_count: number;
 }
 
-export interface CreateCourseData {
+export interface CreateCourseData { // CreateCourseData interface'i oluşturduk
   title: string;
   description: string;
   category: string;
@@ -24,4 +24,4 @@ export interface CreateCourseData {
   price: number;
 }
 
-export interface UpdateCourseData extends Partial<CreateCourseData> {}
+export interface UpdateCourseData extends Partial<CreateCourseData> {} // UpdateCourseData interface'i oluşturduk

@@ -1,19 +1,11 @@
 import { BASE_URL } from './api/index';
 
-/**
- * Builds a full URL for media files, ensuring paths are correct
- * @param url Relative or absolute URL
- * @returns Full URL with proper path
- */
-export const getFullUrl = (url: string): string => {
+export const getFullUrl = (url: string): string => { // getFullUrl fonksiyonu oluşturduk
   if (!url) return '';
   
-  // Replace media path with uploads
-  const fixedUrl = url.replace('/media/', '/uploads/');
+  const fixedUrl = url.replace('/media/', '/uploads/'); // media yolunu uploads yoluna değiştirdik
   
-  // If already an absolute URL, return as is
-  if (fixedUrl.startsWith('http')) return fixedUrl;
+  if (fixedUrl.startsWith('http')) return fixedUrl; // eğer url http ile başlıyorsa, url'i döndür
   
-  // Otherwise prepend BASE_URL
-  return `${BASE_URL}${fixedUrl}`;
+  return `${BASE_URL}${fixedUrl}`; // BASE_URL ile url'i birleştir ve döndür
 }; 

@@ -1,6 +1,6 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"; // NextConfig interface'i oluşturduk
 
-const nextConfig: NextConfig = {
+const nextConfig: NextConfig = { // nextConfig objesi oluşturduk
   images: {
     remotePatterns: [
       {
@@ -11,6 +11,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-};
+}; // nextConfig objesi oluşturduk
 
-export default nextConfig;
+export default nextConfig; // nextConfig objesini döndürüyoruz

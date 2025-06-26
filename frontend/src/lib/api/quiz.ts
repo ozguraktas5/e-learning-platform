@@ -1,8 +1,8 @@
-import api from '../api';
-import { Quiz, QuizAttempt } from '@/types/quiz';
-import { AxiosError } from 'axios';
+import api from '../api'; // api'yi import ettik
+import { Quiz, QuizAttempt } from '@/types/quiz'; // Quiz ve QuizAttempt'ı import ettik
+import { AxiosError } from 'axios'; // AxiosError'ı import ettik
 
-export interface ApiErrorResponse {
+export interface ApiErrorResponse { // ApiErrorResponse interface'i oluşturduk
   error: string;
   not_found?: boolean;
   details?: string;
@@ -10,7 +10,7 @@ export interface ApiErrorResponse {
   status?: number;
 }
 
-export interface ApiQuizResults {
+export interface ApiQuizResults { // ApiQuizResults interface'i oluşturduk
   quiz_title: string;
   quiz_description: string;
   total_attempts: number;
@@ -33,7 +33,7 @@ export interface ApiQuizResults {
   }>;
 }
 
-export const quizApi = {
+export const quizApi = { // quizApi objesi oluşturduk
   // Quiz detaylarını getir
   getQuiz: async (courseId: number, lessonId: number, quizId: number): Promise<Quiz | ApiErrorResponse> => {
     try {
@@ -54,13 +54,13 @@ export const quizApi = {
   },
 
   // Dersin tüm quizlerini getir
-  getLessonQuizzes: async (courseId: number, lessonId: number): Promise<Quiz[]> => {
+  getLessonQuizzes: async (courseId: number, lessonId: number): Promise<Quiz[]> => { // getLessonQuizzes fonksiyonu oluşturduk
     const response = await api.get(`/courses/${courseId}/lessons/${lessonId}/quizzes`);
     return response.data;
   },
 
   // Yeni quiz oluştur
-  createQuiz: async (courseId: number, lessonId: number, data: any): Promise<Quiz | ApiErrorResponse> => {
+  createQuiz: async (courseId: number, lessonId: number, data: any): Promise<Quiz | ApiErrorResponse> => { // createQuiz fonksiyonu oluşturduk
     try {
       const response = await api.post(`/courses/${courseId}/lessons/${lessonId}/quiz`, data);
       return response.data;
@@ -78,18 +78,18 @@ export const quizApi = {
   },
 
   // Quiz'i sil
-  deleteQuiz: async (courseId: number, lessonId: number, quizId: number): Promise<void> => {
+  deleteQuiz: async (courseId: number, lessonId: number, quizId: number): Promise<void> => { // deleteQuiz fonksiyonu oluşturduk
     await api.delete(`/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}`);
   },
 
   // Quiz'i güncelle
-  updateQuiz: async (courseId: number, lessonId: number, quizId: number, data: any): Promise<Quiz> => {
+  updateQuiz: async (courseId: number, lessonId: number, quizId: number, data: any): Promise<Quiz> => { // updateQuiz fonksiyonu oluşturduk
     const response = await api.put(`/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}`, data);
     return response.data;
   },
 
   // Quiz'i çöz
-  submitQuiz: async (courseId: number, lessonId: number, quizId: number, answers: any): Promise<QuizAttempt> => {
+  submitQuiz: async (courseId: number, lessonId: number, quizId: number, answers: any): Promise<QuizAttempt> => { // submitQuiz fonksiyonu oluşturduk
     const response = await api.post(
       `/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}/submit`,
       { answers }
@@ -98,7 +98,7 @@ export const quizApi = {
   },
 
   // Quiz sonuçlarını getir
-  getQuizResults: async (courseId: number, lessonId: number, quizId: number): Promise<ApiQuizResults | QuizAttempt[]> => {
+  getQuizResults: async (courseId: number, lessonId: number, quizId: number): Promise<ApiQuizResults | QuizAttempt[]> => { // getQuizResults fonksiyonu oluşturduk
     try {
       const response = await api.get(
         `/courses/${courseId}/lessons/${lessonId}/quiz/${quizId}/results`

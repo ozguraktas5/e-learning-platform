@@ -1,4 +1,4 @@
-export interface Lesson {
+export interface Lesson { // Lesson interface'i oluşturduk
   id: number;
   title: string;
   content: string;
@@ -11,7 +11,7 @@ export interface Lesson {
   quizzes?: any[];
 }
 
-export interface LessonDocument {
+export interface LessonDocument { // LessonDocument interface'i oluşturduk
   id: number;
   lesson_id: number;
   file_url: string;
@@ -19,10 +19,10 @@ export interface LessonDocument {
   created_at: string;
 }
 
-export interface CreateLessonData {
+export interface CreateLessonData { // CreateLessonData interface'i oluşturduk
   title: string;
   content: string;
   order: number;
 }
 
-export interface UpdateLessonData extends Partial<CreateLessonData> {}
+export interface UpdateLessonData extends Partial<CreateLessonData> {} // UpdateLessonData interface'i oluşturduk

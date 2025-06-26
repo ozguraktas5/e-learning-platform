@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; // useState ve useEffect kütüphanesini import ettik
 
-export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+export function useDebounce<T>(value: T, delay: number): T { // useDebounce fonksiyonu oluşturduk
+  const [debouncedValue, setDebouncedValue] = useState<T>(value); // debouncedValue'ı useState ile oluşturduk
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
+  useEffect(() => { // useEffect fonksiyonu oluşturduk
+    const handler = setTimeout(() => { // handler'ı setTimeout ile oluşturduk
+      setDebouncedValue(value); // value'ı setDebouncedValue ile güncelledik
+    }, delay); // delay'ı setTimeout ile ayarladık
 
-    return () => {
-      clearTimeout(handler);
+    return () => { // return fonksiyonu oluşturduk
+      clearTimeout(handler); // handler'ı clearTimeout ile temizledik
     };
-  }, [value, delay]);
+  }, [value, delay]); // value ve delay'ı dependency olarak ekledik
 
-  return debouncedValue;
+  return debouncedValue; // debouncedValue'ı döndük
 } 
