@@ -7,7 +7,7 @@ import { toast } from 'react-hot-toast';  // Toast için
 import Link from 'next/link';  // Link için
 import { coursesApi, Course } from '@/lib/api/courses';  // Courses API'sini içe aktar
 import { reviewsApi, CreateReviewData } from '@/lib/api/reviews';  // Reviews API'sini içe aktar
-import { useAuth } from '@/hooks/useAuth';  // useAuth hook'u içe aktar
+import { useAuth } from '@/contexts/AuthContext';  // useAuth hook'u içe aktar
 import StarRating from '@/components/StarRating';  // StarRating componentini içe aktar
 
 export default function CourseReviewPage() {  // CourseReviewPage componenti

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { coursesApi, Course } from '@/lib/api/courses';
 import { reviewsApi, CourseReviewsResponse } from '@/lib/api/reviews';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import StarRating from '@/components/StarRating';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 

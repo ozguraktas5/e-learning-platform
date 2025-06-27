@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';  // Client-side rendering için dir
 import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
 import { toast } from 'react-hot-toast';  // Toast için
 import { coursesApi, Course } from '@/lib/api/courses';  // Courses API'sini içe aktar
-import { useAuth } from '@/hooks/useAuth';  // useAuth hook'u içe aktar
+import { useAuth } from '@/contexts/AuthContext';  // useAuth hook'u içe aktar
 import Link from 'next/link';  // Link için
 import LoadingSpinner from '@/components/ui/LoadingSpinner';  // LoadingSpinner componentini içe aktar
 import Image from 'next/image';  // Image için

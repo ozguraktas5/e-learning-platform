@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { profileApi } from '@/lib/api/profile';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { User, Book, GraduationCap, Calendar, Mail, Save } from 'lucide-react';
 

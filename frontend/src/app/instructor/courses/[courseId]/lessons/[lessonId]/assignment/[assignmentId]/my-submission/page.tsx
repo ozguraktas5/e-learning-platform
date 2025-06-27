@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';  // Client-side rendering için directive
 import { useParams, useRouter } from 'next/navigation';  // Route parametrelerini almak için
 import { assignmentsApi, Assignment, AssignmentSubmission } from '@/lib/api/assignments';  // Assignment API'sini içe aktar
-import { useAuth } from '@/hooks/useAuth';  // Auth hook'unu içe aktar
+import { useAuth } from '@/contexts/AuthContext';  // Auth hook'unu içe aktar
 import { toast } from 'react-hot-toast';  // Toast mesajları için
 import Link from 'next/link';  // Link componenti için
 

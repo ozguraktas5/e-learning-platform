@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { lessonApi } from '@/lib/api/lessons';
 import { quizApi } from '@/lib/api/quiz';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Quiz } from '@/types/quiz';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { ArrowLeft, HelpCircle, Clock, Award, Plus, Edit, Trash2 } from 'lucide-react';

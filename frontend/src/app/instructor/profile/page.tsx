@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'; //zodResolver için
 import Link from 'next/link'; //Link için
 import { toast } from 'react-toastify'; //toast için
 import { profileApi } from '@/lib/api/profile'; //profileApi için
-import { useAuth } from '@/hooks/useAuth'; //useAuth için
+import { useAuth } from '@/contexts/AuthContext'; //useAuth için
 import LoadingSpinner from '@/components/ui/LoadingSpinner'; //LoadingSpinner için
 
 const instructorProfileSchema = z.object({ //instructorProfileSchema için

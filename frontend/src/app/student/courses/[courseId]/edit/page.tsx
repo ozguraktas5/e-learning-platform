@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'; //zodResolver için
 import { z } from 'zod'; //z için
 import { toast } from 'react-toastify'; //toast için
 import { coursesApi } from '@/lib/api/courses'; //coursesApi için
-import { useAuth } from '@/hooks/useAuth'; //useAuth için
+import { useAuth } from '@/contexts/AuthContext'; //useAuth için
 import axios from 'axios'; //axios için
 import Image from 'next/image'; //Image için
 import { useDropzone } from 'react-dropzone'; //useDropzone için

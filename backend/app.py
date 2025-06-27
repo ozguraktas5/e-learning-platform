@@ -21,8 +21,8 @@ load_dotenv()
 migrate = Migrate() #flask_migrate modülünü başlatıyoruz
 
 def create_app():
-    #uploads dizinini ayarla
-    uploads_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+    #uploads dizinini ayarla (backend/uploads klasörü)
+    uploads_path = os.path.join(os.path.dirname(__file__), 'uploads')
     app = Flask(__name__, static_folder=None) #flask uygulamasını başlatıyoruz
     
     # Debug modu aktif et
@@ -31,11 +31,13 @@ def create_app():
     # URL sonundaki eğik çizgi yönlendirmesini devre dışı bırak
     app.url_map.strict_slashes = False
     
-    # Uploads klasörünü oluştur
+    # Google Cloud Storage için gerekli olmayabilir ama backward compatibility için
     UPLOAD_FOLDER = uploads_path #uploads dizinini ayarla
-    if not os.path.exists(UPLOAD_FOLDER): #uploads dizininin var olup olmadığını kontrol et
-        os.makedirs(UPLOAD_FOLDER) #uploads dizinini oluştur
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER #uploads dizinini ayarla
+    
+    # Google Cloud Storage ayarları
+    app.config['GOOGLE_CLOUD_PROJECT'] = os.getenv('GOOGLE_CLOUD_PROJECT')
+    app.config['GOOGLE_CLOUD_BUCKET'] = os.getenv('GOOGLE_CLOUD_BUCKET')
 
     # Logging konfigürasyonu
     if not os.path.exists('logs'): #logs dizininin var olup olmadığını kontrol et
@@ -79,66 +81,15 @@ def create_app():
     migrate.init_app(app, db) #veritabanını başlat
     jwt = JWTManager(app) #JWT tokenını başlat
 
-    # (dosya gönderimi) rotasını tanımla
-    @app.route('/uploads/<path:filename>') #uploads dizinini ayarla
-    def serve_uploads_file(filename): #uploads dizinini ayarla
-        app.logger.info(f"Attempting to serve file: {filename}") #dosya gönderimi için log yazdır
-        
-        try:
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename) #dosya yolu oluştur
-            app.logger.info(f"Full file path: {file_path}") #dosya yolu log yazdır
-            
-            # Dosya varlığını kontrol et
-            if not os.path.exists(file_path): #dosya varlığını kontrol et
-                app.logger.error(f"File not found: {file_path}") #dosya yolu log yazdır
-                # Dosya tam yolu göstererek hata döndür
-                return jsonify({"error": "File not found", "path": file_path}), 404 #dosya yolu log yazdır
-                
-            # Dosya tipi belirle
-            mimetype = None
-            if filename.lower().endswith('.mp4'): #dosya tipi kontrol et
-                mimetype = 'video/mp4' #dosya tipi kontrol et
-            elif filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'): #dosya tipi kontrol et
-                mimetype = 'image/jpeg' #dosya tipi kontrol et
-            elif filename.lower().endswith('.png'): #dosya tipi kontrol et
-                mimetype = 'image/png' #dosya tipi kontrol et
-            elif filename.lower().endswith('.gif'): #dosya tipi kontrol et
-                mimetype = 'image/gif' #dosya tipi kontrol et
-            elif filename.lower().endswith('.svg'):
-                mimetype = 'image/svg+xml'
-            
-            app.logger.info(f"Sending file with mimetype: {mimetype}") #dosya tipi log yazdır
-            
-            try:
-                # Dosyayı gönder
-                response = send_file(
-                    file_path,
-                    mimetype=mimetype
-                )
-                
-                # CORS headers ekle
-                response.headers.add('Access-Control-Allow-Origin', '*')
-                response.headers.add('Access-Control-Allow-Methods', 'GET')
-                
-                app.logger.info(f"Successfully sent file: {filename}")
-                return response
-            except Exception as e:
-                app.logger.error(f"Error sending file with send_file: {str(e)}")
-                # Alternatif olarak direkt dosyayı aç ve içeriğini oku
-                with open(file_path, 'rb') as f:
-                    file_content = f.read()
-                
-                response = app.response_class( #dosya gönderimi için yanıt oluştur
-                    response=file_content,
-                    mimetype=mimetype
-                )
-                response.headers.add('Access-Control-Allow-Origin', '*') #CORS headers ekle
-                app.logger.info(f"Sent file with manual method: {filename}") #dosya gönderimi için log yazdır
-                return response
-            
-        except Exception as e: 
-            app.logger.error(f"Error serving file {filename}: {str(e)}") #dosya gönderimi için log yazdır
-            return jsonify({"error": "Error serving file", "details": str(e)}), 500 #dosya gönderimi için log yazdır
+    # Google Cloud Storage kullanıldığında dosyalar doğrudan cloud'dan serve edilir
+    # Bu endpoint artık gerekli değil, ama legacy support için bırakılabilir
+    @app.route('/uploads/<path:filename>')
+    def serve_uploads_file(filename):
+        app.logger.info(f"Legacy upload endpoint called for: {filename}")
+        return jsonify({
+            "message": "Files are now served from Google Cloud Storage",
+            "filename": filename
+        }), 200
             
     # (dosya gönderimi için test endpoint)
     @app.route('/debug-files') #debug-files rotasını tanımla

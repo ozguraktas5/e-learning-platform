@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { enrollmentsApi } from '@/lib/api/enrollments';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { BookOpen, User, Calendar, Clock, ArrowRight, Search, ExternalLink } from 'lucide-react';

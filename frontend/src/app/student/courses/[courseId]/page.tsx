@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { coursesApi, Course } from '@/lib/api/courses';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useEnrollment } from '@/lib/hooks/useEnrollment';
 import Link from 'next/link';
 import api from '@/lib/axios';

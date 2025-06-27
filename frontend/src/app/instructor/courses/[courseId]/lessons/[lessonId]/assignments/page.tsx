@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';  // Route parametrelerini almak iç
 import Link from 'next/link';  // Link componenti için
 import { toast } from 'react-hot-toast';  // Toast mesajları için
 import { assignmentsApi, Assignment } from '@/lib/api/assignments';  // Assignment API'sini içe aktar
-import { useAuth } from '@/hooks/useAuth';  // useAuth hook'unu içe aktar
+import { useAuth } from '@/contexts/AuthContext';  // useAuth hook'unu içe aktar
 
 export default function AssignmentsPage() {  // AssignmentsPage componenti
   const { courseId, lessonId } = useParams();  // Route parametrelerini al

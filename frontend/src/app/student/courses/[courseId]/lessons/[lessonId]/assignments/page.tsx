@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'; //useParams için
 import Link from 'next/link'; //Link için
 import { toast } from 'react-hot-toast'; //toast için
 import { assignmentsApi, Assignment } from '@/lib/api/assignments'; //assignmentsApi, Assignment için
-import { useAuth } from '@/hooks/useAuth'; //useAuth için
+import { useAuth } from '@/contexts/AuthContext'; //useAuth için
 import LoadingSpinner from '@/components/ui/LoadingSpinner'; //LoadingSpinner için
 import { ArrowLeft, ClipboardList, Clock, Award, AlertTriangle, Trash2 } from 'lucide-react'; //ArrowLeft, ClipboardList, Clock, Award, AlertTriangle, Trash2 için
 

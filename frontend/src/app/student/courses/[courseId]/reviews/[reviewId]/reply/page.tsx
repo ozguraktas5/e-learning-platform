@@ -7,7 +7,7 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { coursesApi, Course } from '@/lib/api/courses';
 import { reviewsApi, Review, ReplyData } from '@/lib/api/reviews';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import StarRating from '@/components/StarRating';
 
 export default function ReviewReplyPage() { 

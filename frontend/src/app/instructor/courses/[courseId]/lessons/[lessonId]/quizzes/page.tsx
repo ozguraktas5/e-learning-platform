@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';  // Toast için
 import Link from 'next/link';  // Link için
 import { lessonApi } from '@/lib/api/lessons';  // Lesson API'sini içe aktar
 import { quizApi } from '@/lib/api/quiz';  // Quiz API'sini içe aktar
-import { useAuth } from '@/hooks/useAuth';  // useAuth hook'u içe aktar
+import { useAuth } from '@/contexts/AuthContext';  // useAuth hook'u içe aktar
 import { Quiz } from '@/types/quiz';  // Quiz tipini içe aktar
 
 interface Lesson {  // Lesson interface'i

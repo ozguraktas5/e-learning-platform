@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'; //useState, useEffect için
 import { useParams, useRouter } from 'next/navigation'; //useParams, useRouter için
 import { assignmentsApi, Assignment, AssignmentSubmission } from '@/lib/api/assignments'; //assignmentsApi, Assignment, AssignmentSubmission için
-import { useAuth } from '@/hooks/useAuth'; //useAuth için
+import { useAuth } from '@/contexts/AuthContext'; //useAuth için
 import { toast } from 'react-hot-toast'; //toast için
 import Link from 'next/link'; //Link için
 import LoadingSpinner from '@/components/ui/LoadingSpinner'; //LoadingSpinner için
