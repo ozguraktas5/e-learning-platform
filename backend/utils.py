@@ -1,19 +1,9 @@
 from werkzeug.utils import secure_filename # Dosya adını güvenli hale getir 
 import os # Dosya yollarını oluşturmak için kullanılır.
-from google.cloud import storage # Google Cloud Storage'a bağlanmak için kullanılır.
-from config import GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_BUCKET, GOOGLE_APPLICATION_CREDENTIALS # Google Cloud projesini, bucket'ı ve kimlik bilgilerini yükle
-
-def validate_gcs_config():
-    """Google Cloud Storage konfigürasyonunu kontrol et"""
-    if not GOOGLE_CLOUD_PROJECT:
-        raise ValueError("GOOGLE_CLOUD_PROJECT environment variable is required")
-    if not GOOGLE_CLOUD_BUCKET:
-        raise ValueError("GOOGLE_CLOUD_BUCKET environment variable is required")
-    return True
 from config import ALLOWED_VIDEO_EXTENSIONS, ALLOWED_FILE_EXTENSIONS # İzin verilen video ve dosya uzantılarını yükle
 from datetime import datetime, timedelta # Zaman dilimi için kullanılır.
 import uuid
-from flask import current_app, request, jsonify # Flask'ın current_app, request ve jsonify fonksiyonlarını import ediyoruz.
+from flask import current_app, request, jsonify, url_for # Flask'ın current_app, request ve jsonify fonksiyonlarını import ediyoruz.
 from functools import wraps
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request, get_jwt
 
@@ -51,82 +41,86 @@ def allowed_file(filename):
     """Dosya uzantısının geçerli olup olmadığını kontrol et"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_FILE_EXTENSIONS
 
-def get_storage_client():
-    """Google Cloud Storage istemcisi oluştur"""
-    try:
-        if GOOGLE_APPLICATION_CREDENTIALS:
-            # Service account key file kullan
-            credentials_path = os.path.join(os.path.dirname(__file__), GOOGLE_APPLICATION_CREDENTIALS)
-            if not os.path.exists(credentials_path):
-                raise FileNotFoundError(f"Credentials file not found: {credentials_path}")
-            return storage.Client.from_service_account_json(credentials_path, project=GOOGLE_CLOUD_PROJECT)
-        else:
-            # Default credentials kullan (Google Cloud'da çalışırken)
-            return storage.Client(project=GOOGLE_CLOUD_PROJECT)
-    except Exception as e:
-        current_app.logger.error(f"Error creating GCS client: {str(e)}")
-        raise
+# ========== LOCAL UPLOADS (Production Ready) ==========
 
-def upload_file_to_gcs(file, folder=None):
-    """Dosyayı Google Cloud Storage'a yükle"""
+def upload_file_local(file, folder=None):
+    """Dosyayı local uploads klasörüne yükle"""
     try:
-        # Konfigürasyonu kontrol et
-        validate_gcs_config()
+        # Uploads klasörü yolunu al
+        uploads_path = os.path.join(os.path.dirname(__file__), 'uploads')
         
-        # Google Cloud Storage istemcisini al
-        client = get_storage_client()
-        bucket = client.bucket(GOOGLE_CLOUD_BUCKET)
+        # Folder varsa alt klasör oluştur
+        if folder:
+            folder_path = os.path.join(uploads_path, folder)
+            os.makedirs(folder_path, exist_ok=True)
+            save_path = folder_path
+        else:
+            os.makedirs(uploads_path, exist_ok=True)
+            save_path = uploads_path
         
         # Güvenli dosya adı oluştur
         filename = secure_filename(file.filename)
         unique_filename = f"{uuid.uuid4().hex}_{filename}"
         
-        # Folder path oluştur
-        blob_name = f"{folder}/{unique_filename}" if folder else unique_filename
+        # Dosya yolu
+        file_path = os.path.join(save_path, unique_filename)
         
-        # Blob oluştur ve dosyayı yükle
-        blob = bucket.blob(blob_name)
+        # Dosyayı kaydet
+        file.save(file_path)
         
-        # Dosya tipini belirle
-        content_type = None
-        if filename.lower().endswith(('.jpg', '.jpeg')):
-            content_type = 'image/jpeg'
-        elif filename.lower().endswith('.png'):
-            content_type = 'image/png'
-        elif filename.lower().endswith('.gif'):
-            content_type = 'image/gif'
-        elif filename.lower().endswith('.mp4'):
-            content_type = 'video/mp4'
-        elif filename.lower().endswith('.pdf'):
-            content_type = 'application/pdf'
+        # URL oluştur (production'da domain ile değişecek)
+        if folder:
+            file_url = f"/uploads/{folder}/{unique_filename}"
+        else:
+            file_url = f"/uploads/{unique_filename}"
         
-        # Dosyayı yükle
-        file.seek(0)  # Dosya pointer'ını başa al
-        blob.upload_from_file(file, content_type=content_type)
-        
-        # Public URL oluştur
-        blob.make_public()
-        public_url = blob.public_url
-        
-        current_app.logger.info(f"File uploaded to GCS: {blob_name}, URL: {public_url}")
-        return public_url
+        current_app.logger.info(f"File uploaded locally: {file_path}, URL: {file_url}")
+        return file_url
         
     except Exception as e:
-        current_app.logger.error(f"Error uploading file to GCS: {str(e)}")
+        current_app.logger.error(f"Error uploading file locally: {str(e)}")
         return None
 
-def upload_video_to_gcs(video_file): # Video dosyasını yükle
-    """Video dosyasını yükle"""
+def upload_video_local(video_file):
+    """Video dosyasını local uploads'a yükle"""
     if not allowed_video_file(video_file.filename):
-        return None # Hata mesajı
-
-    video_url = upload_file_to_gcs(video_file, folder='videos') # Video dosyasını yükle ve dosya yolu oluştur
+        return None
     
-    return video_url # Video dosyasını yükle ve dosya yolu oluştur
+    return upload_file_local(video_file, folder='videos')
 
-def upload_document_to_gcs(file): # Dosya dosyasını yükle
-    """Dosya dosyasını yükle"""
-    if not allowed_file(file.filename): # Dosya dosyasının uzantısı geçerli değilse
-        return None # Hata mesajı
-    doc_url = upload_file_to_gcs(file, folder='documents') # Dosya dosyasını yükle ve dosya yolu oluştur
-    return doc_url # Dosya dosyasını yükle ve dosya yolu oluştur
+def upload_document_local(file):
+    """Döküman dosyasını local uploads'a yükle"""
+    if not allowed_file(file.filename):
+        return None
+    
+    return upload_file_local(file, folder='documents')
+
+def upload_image_local(image_file):
+    """Resim dosyasını local uploads'a yükle"""
+    # Resim uzantıları
+    ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+    
+    if not ('.' in image_file.filename and 
+            image_file.filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS):
+        return None
+    
+    return upload_file_local(image_file, folder='images')
+
+# ========== MAIN UPLOAD FUNCTIONS ==========
+
+# Ana upload fonksiyonları artık local'i kullanıyor
+def upload_file(file, folder=None):
+    """Ana dosya upload fonksiyonu - local uploads kullanır"""
+    return upload_file_local(file, folder)
+
+def upload_video(video_file):
+    """Ana video upload fonksiyonu"""
+    return upload_video_local(video_file)
+
+def upload_document(file):
+    """Ana döküman upload fonksiyonu"""
+    return upload_document_local(file)
+
+def upload_image(image_file):
+    """Ana resim upload fonksiyonu"""
+    return upload_image_local(image_file)

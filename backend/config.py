@@ -4,10 +4,8 @@ from datetime import UTC # Zaman dilimi için kullanılır.
 
 load_dotenv() # .env dosyasındaki değişkenleri yüklemek için kullanılır.
 
-# Google Cloud Storage ayarları
-GOOGLE_CLOUD_PROJECT = os.getenv('GOOGLE_CLOUD_PROJECT') # Google Cloud Project ID'yi alıyoruz.
-GOOGLE_CLOUD_BUCKET = os.getenv('GOOGLE_CLOUD_BUCKET') # Google Cloud Bucket adını alıyoruz.
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS') # Google Cloud Application Credentials'ı alıyoruz.
+# Local uploads ayarları (Google Cloud kaldırıldı)
+UPLOAD_FOLDER = 'uploads'  # Local uploads klasörü
 
 # Dosya yükleme ayarları
 ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'webm', 'mkv'} # Video dosya uzantılarını alıyoruz.

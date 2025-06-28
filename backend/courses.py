@@ -12,7 +12,7 @@ import uuid #uuid modülünü import ediyoruz
 import bleach #bleach modülünü import ediyoruz
 from sqlalchemy import or_, and_, func, desc #sqlalchemy modülünü import ediyoruz#sqlalchemy modülünü import ediyoruz
 import logging
-from utils import upload_file_to_gcs
+from utils import upload_image_local, upload_video_local, upload_document_local
 
 # İstanbul/Türkiye saat dilimini tanımla (UTC+3)
 TURKEY_TZ = timezone(timedelta(hours=3)) #Türkiye saat dilimini tanımlıyoruz.
@@ -79,8 +79,8 @@ def create_course(): #create_course fonksiyonunu tanımlıyoruz
             file = request.files['image'] #file'yi alıyoruz
             if file and file.filename: #file'in filename'inin boş olup olmadığını kontrol ediyoruz
                 try:
-                    # upload_file_to_gcs fonksiyonunu kullanarak file'ı yüklüyoruzupload_file_to_gcs fonksiyonunu kullanarak file'ı yüklüyoruz
-                    image_url = upload_file_to_gcs(file) 
+                    # Local uploads kullanarak file'ı yüklüyoruz
+                    image_url = upload_image_local(file) 
                     if image_url is None: #image_url'in boş olup olmadığını kontrol ediyoruz
                          raise ValueError("File upload failed.") #file upload failed durumunda hata fırlatıyoruz
                 except Exception as e: #hata durumunda
@@ -177,7 +177,7 @@ def update_course(course_id): #update_course fonksiyonunu tanımlıyoruz
             file = request.files['image'] #file'yi alıyoruz
             if file and file.filename: #file'in filename'inin boş olup olmadığını kontrol ediyoruz
                 try:
-                    new_url = upload_file_to_gcs(file) #upload_file_to_gcs fonksiyonunu kullanarak file'ı yüklüyoruz
+                    new_url = upload_image_local(file) #Local uploads kullanarak file'ı yüklüyoruz
                     course.image_url = new_url #course.image_url'yi alıyoruz
                     changes.append('Kurs görseli güncellendi') #Kurs görseli güncellendi durumunda changes'e ekle
                 except Exception as e: #hata durumunda
@@ -576,8 +576,8 @@ def upload_lesson_media(course_id, lesson_id):
     # Video yükleme
     if 'video' in request.files:
         video_file = request.files['video']
-        # upload_video_to_gcs now returns only the video_url
-        video_url = upload_video_to_gcs(video_file)
+        # upload_video_local returns only the video_url
+        video_url = upload_video_local(video_file)
         if video_url:
             # Save only the video URL
             lesson.video_url = video_url
@@ -587,8 +587,8 @@ def upload_lesson_media(course_id, lesson_id):
     # Döküman yükleme
     if 'document' in request.files:
         document_file = request.files['document']
-        # upload_document_to_gcs now returns only the doc_url
-        document_url = upload_document_to_gcs(document_file) 
+        # upload_document_local returns only the doc_url
+        document_url = upload_document_local(document_file) 
         if document_url:
             # Döküman URL'ini veritabanına kaydet
             new_document = LessonDocument(

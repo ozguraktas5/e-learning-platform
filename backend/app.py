@@ -35,9 +35,8 @@ def create_app():
     UPLOAD_FOLDER = uploads_path #uploads dizinini ayarla
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER #uploads dizinini ayarla
     
-    # Google Cloud Storage ayarları
-    app.config['GOOGLE_CLOUD_PROJECT'] = os.getenv('GOOGLE_CLOUD_PROJECT')
-    app.config['GOOGLE_CLOUD_BUCKET'] = os.getenv('GOOGLE_CLOUD_BUCKET')
+    # Local uploads konfigürasyonu
+    app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
 
     # Logging konfigürasyonu
     if not os.path.exists('logs'): #logs dizininin var olup olmadığını kontrol et
@@ -81,15 +80,15 @@ def create_app():
     migrate.init_app(app, db) #veritabanını başlat
     jwt = JWTManager(app) #JWT tokenını başlat
 
-    # Google Cloud Storage kullanıldığında dosyalar doğrudan cloud'dan serve edilir
-    # Bu endpoint artık gerekli değil, ama legacy support için bırakılabilir
+    # Local uploads dosyalarını serve et
     @app.route('/uploads/<path:filename>')
     def serve_uploads_file(filename):
-        app.logger.info(f"Legacy upload endpoint called for: {filename}")
-        return jsonify({
-            "message": "Files are now served from Google Cloud Storage",
-            "filename": filename
-        }), 200
+        app.logger.info(f"Serving local file: {filename}")
+        try:
+            return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+        except Exception as e:
+            app.logger.error(f"Error serving file {filename}: {str(e)}")
+            return jsonify({"error": "File not found"}), 404
             
     # (dosya gönderimi için test endpoint)
     @app.route('/debug-files') #debug-files rotasını tanımla
