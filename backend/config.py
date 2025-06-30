@@ -13,18 +13,20 @@ ALLOWED_FILE_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'} # Dosya u
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev' # SECRET_KEY'yi alıyoruz.
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///instance/elearning.db' # SQLALCHEMY_DATABASE_URI'yi alıyoruz.
+    
+    # Database URL'i al ve PostgreSQL formatını düzelt
+    database_url = os.environ.get('DATABASE_URL') or 'sqlite:///instance/elearning.db'
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://')
+    
+    SQLALCHEMY_DATABASE_URI = database_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False # SQLALCHEMY_TRACK_MODIFICATIONS'yi alıyoruz.
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-key' # JWT_SECRET_KEY'yi alıyoruz.
     
-    # PostgreSQL için gerekli ayarlar
-    if os.environ.get('DATABASE_URL') and os.environ.get('DATABASE_URL').startswith('postgres://'):
-        # Railway PostgreSQL URL'ini güncelle
-        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL').replace('postgres://', 'postgresql://')
-    
+    # Engine options
+    is_sqlite = 'sqlite' in database_url
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'connect_args': {'check_same_thread': False} if 'sqlite' in (os.environ.get('DATABASE_URL') or 'sqlite') else {}, # connect_args'ı alıyoruz.
-        'timezone': UTC # timezone'ı alıyoruz.
+        'connect_args': {'check_same_thread': False} if is_sqlite else {}
     }
     
 class DevelopmentConfig(Config): # DevelopmentConfig sınıfını oluşturuyoruz ve Config sınıfını miras alıyoruz.
