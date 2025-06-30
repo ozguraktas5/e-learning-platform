@@ -14,6 +14,7 @@ from models import db, User, Course, Lesson, Enrollment, Progress #models modül
 from flask_migrate import Migrate #flask_migrate modülünü import ediyoruz
 from datetime import timedelta #datetime modülünü import ediyoruz
 from dotenv import load_dotenv #dotenv modülünü import ediyoruz
+from config import Config #config modülünü import ediyoruz
 
 # Ortam değişkenlerini yükle
 load_dotenv()
@@ -24,6 +25,9 @@ def create_app():
     #uploads dizinini ayarla (backend/uploads klasörü)
     uploads_path = os.path.join(os.path.dirname(__file__), 'uploads')
     app = Flask(__name__, static_folder=None) #flask uygulamasını başlatıyoruz
+    
+    # Config sınıfından ayarları yükle
+    app.config.from_object(Config)
     
     # Debug modu aktif et
     app.config['DEBUG'] = True
@@ -50,12 +54,7 @@ def create_app():
     app.logger.setLevel(logging.DEBUG) #logs dizinini ayarla
     app.logger.info('E-Learning Platform startup') #logs dizinini ayarla
 
-    # SQLite veritabanı konfigürasyonu
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///elearning.db' #sqlite veritabanını ayarla
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False #sqlite veritabanını ayarla
-    
-    # JWT konfigürasyonu
-    app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Güvenli bir secret key kullanın (şifre)
+    # JWT Access Token süresini ayarla (Config'den gelen ayarlara ek olarak)
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)  # Token 1 saat geçerli
     
     # CORS ayarları: tüm rotalar için preflight dahil her isteği otomatik olarak destekle
@@ -223,3 +222,6 @@ def create_app():
 if __name__ == '__main__':
     app = create_app() #app oluştur
     app.run(debug=True, host='0.0.0.0', port=5000) #app çalıştır
+
+# Railway deployment için
+app = create_app()

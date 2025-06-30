@@ -16,8 +16,14 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///instance/elearning.db' # SQLALCHEMY_DATABASE_URI'yi alıyoruz.
     SQLALCHEMY_TRACK_MODIFICATIONS = False # SQLALCHEMY_TRACK_MODIFICATIONS'yi alıyoruz.
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-key' # JWT_SECRET_KEY'yi alıyoruz.
+    
+    # PostgreSQL için gerekli ayarlar
+    if os.environ.get('DATABASE_URL') and os.environ.get('DATABASE_URL').startswith('postgres://'):
+        # Railway PostgreSQL URL'ini güncelle
+        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL').replace('postgres://', 'postgresql://')
+    
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'connect_args': {'check_same_thread': False}, # connect_args'ı alıyoruz.
+        'connect_args': {'check_same_thread': False} if 'sqlite' in (os.environ.get('DATABASE_URL') or 'sqlite') else {}, # connect_args'ı alıyoruz.
         'timezone': UTC # timezone'ı alıyoruz.
     }
     
