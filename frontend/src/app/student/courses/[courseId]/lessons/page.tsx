@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { coursesApi, Lesson } from '@/lib/api/courses'; 
 import { lessonApi } from '@/lib/api/lessons';
 import Link from 'next/link';
-import no_video from '../../../../../../../uploads/no_video.png';
+import no_video from '/no_video.png';
 import Image from 'next/image';
 import { getFullUrl } from '@/lib/utils';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
