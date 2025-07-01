@@ -22,11 +22,25 @@ export interface AssignmentSubmission { // AssignmentSubmission interface'i olu�
   assignment_id: number;
   user_id: number;
   submission_text: string;
+  content?: string;
   file_url: string | null;
   submitted_at: string;
   grade: number | null;
   feedback: string | null;
   graded_at: string | null;
+  status: 'submitted' | 'graded' | 'pending' | 'late' | 'resubmitted';
+  attachments?: {
+    id: number;
+    url: string;
+    name?: string;
+    type?: string;
+  }[];
+  student: {
+    id: number;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
 }
 
 export interface AssignmentStats { // AssignmentStats interface'i oluşturduk
@@ -87,6 +101,17 @@ const getAssignmentSubmissions = async (courseId: number, lessonId: number, assi
   }
 };
 
+// Instructor dashboard için - sadece assignment ID ile
+const getAssignmentSubmissionsByAssignmentId = async (assignmentId: number): Promise<AssignmentSubmission[]> => {
+  try {
+    const { data } = await api.get(`/instructor/assignments/${assignmentId}/submissions`);
+    return data;
+  } catch (error) {
+    console.error(`Error fetching submissions for assignment ${assignmentId}:`, error);
+    throw error;
+  }
+};
+
 const gradeSubmission = async ( // gradeSubmission fonksiyonu oluşturduk
   submissionId: number,
   grade: number,
@@ -127,6 +152,7 @@ const getCreateAssignmentData = async (): Promise<{ courses: CourseWithLessons[]
 export const assignmentsApi = { // assignmentsApi objesi oluşturduk
   getInstructorAssignments,
   getAssignmentSubmissions,
+  getAssignmentSubmissionsByAssignmentId,
   gradeSubmission,
   getAssignmentStats,
   getCreateAssignmentData,

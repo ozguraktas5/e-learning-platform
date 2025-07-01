@@ -1,6 +1,6 @@
 'use client'; 
 
-import { useState, useEffect } from 'react';  // React'ten useState ve useEffect hook'larını içe aktarır.
+import { useState, useEffect, Suspense } from 'react';  // React'ten useState, useEffect ve Suspense hook'larını içe aktarır.
 import { useForm } from 'react-hook-form';  // React Hook Form kütüphanesini içe aktarır.
 import { zodResolver } from '@hookform/resolvers/zod';  // Zod resolver'ı içe aktarır.
 import { z } from 'zod';  // Zod kütüphanesini içe aktarır.
@@ -19,7 +19,7 @@ const loginSchema = z.object({  // Zod kütüphanesi ile loginSchema oluşturulu
 
 type LoginFormData = z.infer<typeof loginSchema>;  // LoginFormData tipi loginSchema'dan türetir.
 
-export default function LoginPage() {  // LoginPage bileşenini dışa aktarır.
+function LoginForm() {  // LoginForm bileşenini oluşturur.
   const { login } = useAuth();  // useAuth hook'u ile login fonksiyonunu alır.
   const router = useRouter();  // useRouter hook'u ile router'ı alır.
   const searchParams = useSearchParams();  // useSearchParams hook'u ile searchParams'ı alır.
@@ -183,5 +183,17 @@ export default function LoginPage() {  // LoginPage bileşenini dışa aktarır.
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {  // LoginPage bileşenini dışa aktarır.
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="large" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
