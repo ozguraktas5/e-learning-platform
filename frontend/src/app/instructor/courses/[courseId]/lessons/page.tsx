@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';  // Toast için
 import { coursesApi, Lesson } from '@/lib/api/courses';  // Courses API'sini içe aktar
 import { lessonApi } from '@/lib/api/lessons';  // Lesson API'sini içe aktar
 import Link from 'next/link';  // Link için
-import no_video from '/no_video.png';  // No video için
+// no_video.png public klasöründe - import etmeye gerek yok
 import Image from 'next/image';  // Image için
 import { getFullUrl } from '@/lib/utils';  // getFullUrl fonksiyonunu içe aktar
 import LoadingSpinner from '@/components/ui/LoadingSpinner';  // LoadingSpinner componentini içe aktar
@@ -149,8 +149,10 @@ export default function CourseLessonsPage() {  // CourseLessonsPage componenti
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Image 
-                        src={no_video}
+                        src="/no_video.png"
                         alt="No video available"
+                        width={120}
+                        height={120}
                         className="w-1/3 h-1/3 object-contain opacity-50" 
                       />
                     </div>

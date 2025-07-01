@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { coursesApi, Lesson } from '@/lib/api/courses'; 
 import { lessonApi } from '@/lib/api/lessons';
 import Link from 'next/link';
-import no_video from '/no_video.png';
+// no_video.png public klasöründe - import etmeye gerek yok
 import Image from 'next/image';
 import { getFullUrl } from '@/lib/utils';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -159,8 +159,10 @@ export default function CourseLessonsPage() {
                   ) : (
                     <div className="flex flex-col items-center justify-center text-gray-500">
                       <Image 
-                        src={no_video}
+                        src="/no_video.png"
                         alt="No video available"
+                        width={64}
+                        height={64}
                         className="object-contain w-16 h-16 mb-2 opacity-50" 
                       />
                       <span className="text-sm">Video yok</span>
