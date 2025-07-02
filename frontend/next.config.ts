@@ -12,12 +12,19 @@ const nextConfig: NextConfig = { // nextConfig objesi oluşturduk
   images: {
     remotePatterns: [
       {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
         protocol: 'http',
         hostname: 'localhost',
         port: '5000',
         pathname: '/uploads/**',
       },
     ],
+  },
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
 }; // nextConfig objesi oluşturduk
 

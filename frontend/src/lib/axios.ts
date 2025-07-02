@@ -1,7 +1,12 @@
 import axios from 'axios'; // axios'u import ettik
 
+// Environment variable'dan backend URL'sini al
+const getBaseURL = () => {
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+};
+
 const api = axios.create({ // api objesi oluşturduk
-  baseURL: 'http://localhost:5000',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -44,7 +49,7 @@ export const getBackendUrl = (path: string): string => { // getBackendUrl fonksi
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
   // Backend URL'siyle birleştir
-  return `http://localhost:5000${normalizedPath}`;
+  return `${getBaseURL()}${normalizedPath}`;
 };
 
 // İmage URL'lerini almak için özel bir yardımcı fonksiyon
