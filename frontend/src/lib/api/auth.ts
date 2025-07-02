@@ -3,7 +3,7 @@ import { LoginResponse, RegisterData } from '@/types/auth'; // LoginResponse ve 
 
 export const authApi = { // authApi objesi oluşturduk
   login: async (email: string, password: string): Promise<LoginResponse> => { // login fonksiyonu oluşturduk
-    const response = await api.post('/api/auth/login', { email, password });
+    const response = await api.post('/auth/login', { email, password });
     return response.data;
   },
 
@@ -13,7 +13,7 @@ export const authApi = { // authApi objesi oluşturduk
   },
 
   getCurrentUser: async () => { // getCurrentUser fonksiyonu oluşturduk
-    const response = await api.get('/api/auth/me');
+    const response = await api.get('/auth/me');
     return response.data;
   }
 };
