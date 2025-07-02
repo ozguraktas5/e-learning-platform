@@ -23,7 +23,7 @@ export default function CourseLessonsPage() {
 
   useEffect(() => {
     if (isNaN(numericCourseId)) {
-      toast.error('Invalid Course ID');
+      toast.error('Geçersiz Kurs ID');
       router.push('/courses'); // Kurs sayfasına yönlendir
       return;
     }
@@ -41,7 +41,7 @@ export default function CourseLessonsPage() {
 
       } catch (error) {
         console.error('Failed to fetch lessons or course:', error);
-        toast.error('Failed to load lessons.');
+        toast.error('Dersler yüklenirken hata oluştu.');
         // Hata mesajı göster
       } finally {
         setLoading(false);

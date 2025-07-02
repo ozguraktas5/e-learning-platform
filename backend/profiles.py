@@ -23,18 +23,18 @@ def update_profile(): # Profili güncelle
     data = request.get_json() # JSON formatında veri al
     
     if not data: # Veri yoksa hata döndür
-        return jsonify({'message': 'No data provided'}), 400
+        return jsonify({'message': 'Veri sağlanmadı'}), 400
     
     # Email değişikliği varsa, yeni email'in başka bir kullanıcı tarafından kullanılmadığından emin ol
     if 'email' in data and data['email'] != current_user.email:
         if User.query.filter_by(email=data['email']).first():
-            return jsonify({'message': 'Email already in use'}), 400
+            return jsonify({'message': 'Bu e-posta adresi zaten kullanılıyor'}), 400
         current_user.email = data['email']
     
     # Kullanıcı adı değişikliği varsa, yeni kullanıcı adının başka bir kullanıcı tarafından kullanılmadığından emin ol
     if 'username' in data and data['username'] != current_user.username:
         if User.query.filter_by(username=data['username']).first():
-            return jsonify({'message': 'Username already in use'}), 400
+            return jsonify({'message': 'Bu kullanıcı adı zaten kullanılıyor'}), 400
         current_user.username = data['username']
     
     # Student profile fields
@@ -47,7 +47,7 @@ def update_profile(): # Profili güncelle
     db.session.commit() # Değişiklikleri kaydediyoruz.
     
     return jsonify({
-        'message': 'Profile updated successfully',
+        'message': 'Profil başarıyla güncellendi',
         'profile': current_user.to_dict()
     })
 
@@ -60,15 +60,15 @@ def change_password(): # Şifreyi değiştir
     data = request.get_json() # JSON formatında veri al
     
     if not data or 'current_password' not in data or 'new_password' not in data: # Şifre değiştirme için gerekli veri yoksa hata döndür
-        return jsonify({'message': 'Current password and new password are required'}), 400
+        return jsonify({'message': 'Mevcut şifre ve yeni şifre gereklidir'}), 400
     
     if not current_user.check_password(data['current_password']): # Şifre yanlışsa hata döndür
-        return jsonify({'message': 'Current password is incorrect'}), 401
+        return jsonify({'message': 'Mevcut şifre yanlış'}), 401
     
     current_user.set_password(data['new_password']) # Yeni şifreyi hash'liyoruz.
     db.session.commit() # Değişiklikleri kaydediyoruz.
     
-    return jsonify({'message': 'Password updated successfully'}) # Şifre değiştirme işlemi başarılıysa mesaj döndür
+    return jsonify({'message': 'Şifre başarıyla güncellendi'}) # Şifre değiştirme işlemi başarılıysa mesaj döndür
 
 @profiles.route('/instructor/profile', methods=['GET']) # Eğitmen profilini getir
 @jwt_required() # JWT token'ının içindeki bilgileri almak için kullanılır.
@@ -78,7 +78,7 @@ def get_instructor_profile(): # Eğitmen profilini getir
     
     # Kullanıcının eğitmen olup olmadığını kontrol et
     if current_user.role != 'instructor':
-        return jsonify({'message': 'Unauthorized. User is not an instructor'}), 403
+        return jsonify({'message': 'Yetkisiz. Kullanıcı eğitmen değil'}), 403
     
     # Eğitmen profil verilerini al
     # Eğitmen profil verilerini almak için gerekli olan alanları ekleyebilirsiniz
@@ -105,22 +105,22 @@ def update_instructor_profile(): # Eğitmen profilini güncelle
     
     # Kullanıcının eğitmen olup olmadığını kontrol et
     if current_user.role != 'instructor':
-        return jsonify({'message': 'Unauthorized. User is not an instructor'}), 403
+        return jsonify({'message': 'Yetkisiz. Kullanıcı eğitmen değil'}), 403
     
     data = request.get_json() # JSON formatında veri al
     
     if not data:
-        return jsonify({'message': 'No data provided'}), 400
+        return jsonify({'message': 'Veri sağlanmadı'}), 400
     
     # Temel profil bilgilerini güncelle
     if 'email' in data and data['email'] != current_user.email:
         if User.query.filter_by(email=data['email']).first():
-            return jsonify({'message': 'Email already in use'}), 400
+            return jsonify({'message': 'Bu e-posta adresi zaten kullanılıyor'}), 400
         current_user.email = data['email']
     
     if 'username' in data and data['username'] != current_user.username:
         if User.query.filter_by(username=data['username']).first():
-            return jsonify({'message': 'Username already in use'}), 400
+            return jsonify({'message': 'Bu kullanıcı adı zaten kullanılıyor'}), 400
         current_user.username = data['username']
     
     # Eğitmen profil alanlarını güncelle
@@ -143,7 +143,7 @@ def update_instructor_profile(): # Eğitmen profilini güncelle
     db.session.commit() # Değişiklikleri kaydediyoruz.  
     
     return jsonify({
-        'message': 'Instructor profile updated successfully',
+        'message': 'Eğitmen profili başarıyla güncellendi',
         'profile': {
             'id': current_user.id,
             'username': current_user.username,

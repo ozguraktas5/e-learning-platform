@@ -62,7 +62,7 @@ export default function CourseDetail() {
         setCourse(response);
         console.log(`Fetched course data:`, response);
       } catch (error) {
-        toast.error('Failed to load course details');
+        toast.error('Kurs detayları yüklenirken hata oluştu');
         console.error('Error fetching course:', error);
       } finally {
         setLoading(false);
@@ -74,7 +74,7 @@ export default function CourseDetail() {
 
   const handleEnroll = async () => {
     if (!user) {
-      toast.error('Please login to enroll in courses');
+      toast.error('Kurslara kaydolmak için giriş yapınız');
       return;
     }
 
@@ -82,11 +82,11 @@ export default function CourseDetail() {
     try {
       const response = await coursesApi.enrollInCourse(Number(courseId));
       console.log('Enrollment response:', response);
-      toast.success('Successfully enrolled in course!');
+      toast.success('Kursa başarıyla kaydoldunuz!');
       // Sayfayı yenile
       window.location.reload();
     } catch (error) {
-      toast.error('Failed to enroll in course');
+      toast.error('Kursa kaydolurken hata oluştu');
       console.error('Error enrolling in course:', error);
     } finally {
       setEnrolling(false);
